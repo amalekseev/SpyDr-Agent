@@ -1,0 +1,4392 @@
+{
+  "total_steps": 545,
+  "steps_by_type": {
+    "given": 92,
+    "when": 240,
+    "then": 213
+  },
+  "files_parsed": [
+    {
+      "file": "common_steps.py",
+      "steps_count": 165
+    },
+    {
+      "file": "rest_api_steps.py",
+      "steps_count": 75
+    },
+    {
+      "file": "kafka_steps.py",
+      "steps_count": 68
+    },
+    {
+      "file": "database_steps.py",
+      "steps_count": 68
+    },
+    {
+      "file": "ui_steps.py",
+      "steps_count": 169
+    }
+  ],
+  "steps": [
+    {
+      "type": "given",
+      "pattern": "установлен базовый URL \"{url}\"",
+      "function_name": "set_base_url",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 26
+    },
+    {
+      "type": "given",
+      "pattern": "заголовок \"{name}\" имеет значение \"{value}\"",
+      "function_name": "set_header",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 31
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут запроса {timeout:d} секунд",
+      "function_name": "set_request_timeout",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 38
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут соединения {timeout:d} секунд",
+      "function_name": "set_connection_timeout",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 43
+    },
+    {
+      "type": "given",
+      "pattern": "авторизация по токену \"{token}\"",
+      "function_name": "set_auth_token",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 48
+    },
+    {
+      "type": "given",
+      "pattern": "базовая авторизация логин \"{login}\" пароль \"{password}\"",
+      "function_name": "set_basic_auth",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 55
+    },
+    {
+      "type": "given",
+      "pattern": "установлен Content-Type \"{content_type}\"",
+      "function_name": "set_content_type",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 64
+    },
+    {
+      "type": "given",
+      "pattern": "установлен Accept \"{accept}\"",
+      "function_name": "set_accept_header",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 71
+    },
+    {
+      "type": "given",
+      "pattern": "установлен User-Agent \"{user_agent}\"",
+      "function_name": "set_user_agent",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 78
+    },
+    {
+      "type": "given",
+      "pattern": "установлен cookie \"{name}\" со значением \"{value}\"",
+      "function_name": "set_cookie",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 85
+    },
+    {
+      "type": "given",
+      "pattern": "включен режим отладки",
+      "function_name": "enable_debug_mode",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 90
+    },
+    {
+      "type": "given",
+      "pattern": "отключена проверка SSL сертификата",
+      "function_name": "disable_ssl_verification",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 95
+    },
+    {
+      "type": "given",
+      "pattern": "включено следование редиректам",
+      "function_name": "enable_follow_redirects",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 100
+    },
+    {
+      "type": "given",
+      "pattern": "отключено следование редиректам",
+      "function_name": "disable_follow_redirects",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 105
+    },
+    {
+      "type": "given",
+      "pattern": "установлен максимальный размер ответа {size:d} МБ",
+      "function_name": "set_max_response_size",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 110
+    },
+    {
+      "type": "given",
+      "pattern": "установлен язык запроса \"{language}\"",
+      "function_name": "set_request_language",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 115
+    },
+    {
+      "type": "given",
+      "pattern": "установлена кодировка \"{encoding}\"",
+      "function_name": "set_encoding",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 122
+    },
+    {
+      "type": "given",
+      "pattern": "установлен прокси сервер \"{proxy_url}\"",
+      "function_name": "set_proxy",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 127
+    },
+    {
+      "type": "given",
+      "pattern": "подготовлен тестовый контекст",
+      "function_name": "prepare_test_context",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 132
+    },
+    {
+      "type": "given",
+      "pattern": "загружена конфигурация из файла \"{config_path}\"",
+      "function_name": "load_config_from_file",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 138
+    },
+    {
+      "type": "given",
+      "pattern": "установлено окружение \"{environment}\"",
+      "function_name": "set_environment",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 144
+    },
+    {
+      "type": "given",
+      "pattern": "установлен идентификатор корреляции \"{correlation_id}\"",
+      "function_name": "set_correlation_id",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 149
+    },
+    {
+      "type": "given",
+      "pattern": "установлен идентификатор запроса \"{request_id}\"",
+      "function_name": "set_request_id",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 156
+    },
+    {
+      "type": "given",
+      "pattern": "установлен идентификатор сессии \"{session_id}\"",
+      "function_name": "set_session_id",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 163
+    },
+    {
+      "type": "given",
+      "pattern": "установлен идентификатор пользователя \"{user_id}\"",
+      "function_name": "set_user_id",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 168
+    },
+    {
+      "type": "given",
+      "pattern": "установлен идентификатор клиента \"{client_id}\"",
+      "function_name": "set_client_id",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 173
+    },
+    {
+      "type": "given",
+      "pattern": "установлен API ключ \"{api_key}\"",
+      "function_name": "set_api_key",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 178
+    },
+    {
+      "type": "given",
+      "pattern": "установлен секретный ключ \"{secret_key}\"",
+      "function_name": "set_secret_key",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 185
+    },
+    {
+      "type": "given",
+      "pattern": "установлен формат даты \"{date_format}\"",
+      "function_name": "set_date_format",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 190
+    },
+    {
+      "type": "given",
+      "pattern": "установлена временная зона \"{timezone}\"",
+      "function_name": "set_timezone",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 195
+    },
+    {
+      "type": "given",
+      "pattern": "установлен лимит повторных попыток {retries:d}",
+      "function_name": "set_retry_limit",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 200
+    },
+    {
+      "type": "given",
+      "pattern": "установлена задержка между попытками {delay:d} секунд",
+      "function_name": "set_retry_delay",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 205
+    },
+    {
+      "type": "given",
+      "pattern": "включено логирование запросов",
+      "function_name": "enable_request_logging",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 210
+    },
+    {
+      "type": "given",
+      "pattern": "включено логирование ответов",
+      "function_name": "enable_response_logging",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 215
+    },
+    {
+      "type": "given",
+      "pattern": "установлен режим сжатия \"{compression}\"",
+      "function_name": "set_compression_mode",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 220
+    },
+    {
+      "type": "given",
+      "pattern": "установлен кэш с TTL {ttl:d} секунд",
+      "function_name": "set_cache_ttl",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 227
+    },
+    {
+      "type": "given",
+      "pattern": "отключен кэш",
+      "function_name": "disable_cache",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 232
+    },
+    {
+      "type": "when",
+      "pattern": "отправить POST запрос на \"{endpoint}\" с телом:",
+      "function_name": "send_post_request_with_body",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 244
+    },
+    {
+      "type": "when",
+      "pattern": "отправить GET запрос на \"{endpoint}\"",
+      "function_name": "send_get_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 259
+    },
+    {
+      "type": "when",
+      "pattern": "отправить PUT запрос на \"{endpoint}\" с телом:",
+      "function_name": "send_put_request_with_body",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 272
+    },
+    {
+      "type": "when",
+      "pattern": "отправить PATCH запрос на \"{endpoint}\" с телом:",
+      "function_name": "send_patch_request_with_body",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 286
+    },
+    {
+      "type": "when",
+      "pattern": "отправить DELETE запрос на \"{endpoint}\"",
+      "function_name": "send_delete_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 300
+    },
+    {
+      "type": "when",
+      "pattern": "отправить HEAD запрос на \"{endpoint}\"",
+      "function_name": "send_head_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 312
+    },
+    {
+      "type": "when",
+      "pattern": "отправить OPTIONS запрос на \"{endpoint}\"",
+      "function_name": "send_options_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 324
+    },
+    {
+      "type": "when",
+      "pattern": "Присвоить переменной \"{var_name}\" значение \"{value}\"",
+      "function_name": "assign_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 336
+    },
+    {
+      "type": "when",
+      "pattern": "установить переменную \"{var_name}\" значением \"{value}\"",
+      "function_name": "set_variable_alias",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 352
+    },
+    {
+      "type": "when",
+      "pattern": "присвоить переменной \"{var_name}\" случайное число от {min_val:d} до {max_val:d}",
+      "function_name": "assign_random_number",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 356
+    },
+    {
+      "type": "when",
+      "pattern": "присвоить переменной \"{var_name}\" случайную строку длиной {length:d}",
+      "function_name": "assign_random_string",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 363
+    },
+    {
+      "type": "when",
+      "pattern": "присвоить переменной \"{var_name}\" текущую дату в формате \"{date_format}\"",
+      "function_name": "assign_current_date",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 371
+    },
+    {
+      "type": "when",
+      "pattern": "присвоить переменной \"{var_name}\" дату через {days:d} дней",
+      "function_name": "assign_future_date",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 377
+    },
+    {
+      "type": "when",
+      "pattern": "присвоить переменной \"{var_name}\" дату {days:d} дней назад",
+      "function_name": "assign_past_date",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 383
+    },
+    {
+      "type": "when",
+      "pattern": "увеличить переменную \"{var_name}\" на {increment:d}",
+      "function_name": "increment_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 389
+    },
+    {
+      "type": "when",
+      "pattern": "уменьшить переменную \"{var_name}\" на {decrement:d}",
+      "function_name": "decrement_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 395
+    },
+    {
+      "type": "when",
+      "pattern": "объединить переменные \"{var1}\" и \"{var2}\" в \"{result_var}\"",
+      "function_name": "concat_variables",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 401
+    },
+    {
+      "type": "when",
+      "pattern": "Комментарий \"{text}\"",
+      "function_name": "add_comment",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 408
+    },
+    {
+      "type": "when",
+      "pattern": "добавить заметку \"{note}\"",
+      "function_name": "add_note",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 412
+    },
+    {
+      "type": "when",
+      "pattern": "Отправить \"{method_path}\" на REST сервер \"{server_name}\"",
+      "function_name": "send_rest_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 419
+    },
+    {
+      "type": "when",
+      "pattern": "Отправить \"{method_path}\" на REST сервер \"{server_name}\" с body из файла \"{file_path}\"",
+      "function_name": "send_rest_request_from_file",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 427
+    },
+    {
+      "type": "when",
+      "pattern": "отправить запрос с файлом \"{file_path}\" на \"{endpoint}\"",
+      "function_name": "send_file_upload",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 435
+    },
+    {
+      "type": "when",
+      "pattern": "отправить multipart запрос на \"{endpoint}\" с файлами:",
+      "function_name": "send_multipart_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 448
+    },
+    {
+      "type": "when",
+      "pattern": "отправить GraphQL запрос на \"{endpoint}\":",
+      "function_name": "send_graphql_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 462
+    },
+    {
+      "type": "when",
+      "pattern": "отправить SOAP запрос на \"{endpoint}\":",
+      "function_name": "send_soap_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 475
+    },
+    {
+      "type": "when",
+      "pattern": "Загрузить TCR файлы",
+      "function_name": "load_tcr_files",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 488
+    },
+    {
+      "type": "when",
+      "pattern": "загрузить данные из CSV файла \"{file_path}\"",
+      "function_name": "load_csv_data",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 492
+    },
+    {
+      "type": "when",
+      "pattern": "загрузить данные из JSON файла \"{file_path}\"",
+      "function_name": "load_json_data",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 497
+    },
+    {
+      "type": "when",
+      "pattern": "загрузить данные из XML файла \"{file_path}\"",
+      "function_name": "load_xml_data",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 502
+    },
+    {
+      "type": "when",
+      "pattern": "загрузить данные из Excel файла \"{file_path}\"",
+      "function_name": "load_excel_data",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 507
+    },
+    {
+      "type": "when",
+      "pattern": "Выполнить запрос в базу \"{db_name}\":",
+      "function_name": "execute_sql_query",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 512
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить SQL запрос в базу \"{db_name}\":",
+      "function_name": "execute_sql",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 517
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить хранимую процедуру \"{procedure_name}\" в базе \"{db_name}\"",
+      "function_name": "execute_stored_procedure",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 521
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить хранимую процедуру \"{procedure_name}\" в базе \"{db_name}\" с параметрами:",
+      "function_name": "execute_stored_procedure_with_params",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 526
+    },
+    {
+      "type": "when",
+      "pattern": "начать транзакцию в базе \"{db_name}\"",
+      "function_name": "begin_transaction",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 531
+    },
+    {
+      "type": "when",
+      "pattern": "зафиксировать транзакцию в базе \"{db_name}\"",
+      "function_name": "commit_transaction",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 536
+    },
+    {
+      "type": "when",
+      "pattern": "откатить транзакцию в базе \"{db_name}\"",
+      "function_name": "rollback_transaction",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 541
+    },
+    {
+      "type": "when",
+      "pattern": "Отправить сообщение в кафку \"{kafka_name}\" в топик \"{topic_name}\"",
+      "function_name": "send_kafka_message",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 546
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать {seconds:d} секунд",
+      "function_name": "wait_seconds",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 550
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать {milliseconds:d} миллисекунд",
+      "function_name": "wait_milliseconds",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 555
+    },
+    {
+      "type": "when",
+      "pattern": "запустить таймер \"{timer_name}\"",
+      "function_name": "start_timer",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 559
+    },
+    {
+      "type": "when",
+      "pattern": "остановить таймер \"{timer_name}\"",
+      "function_name": "stop_timer",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 564
+    },
+    {
+      "type": "when",
+      "pattern": "очистить контекст",
+      "function_name": "clear_context",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 571
+    },
+    {
+      "type": "when",
+      "pattern": "очистить переменные",
+      "function_name": "clear_variables",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 578
+    },
+    {
+      "type": "when",
+      "pattern": "очистить заголовки",
+      "function_name": "clear_headers",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 583
+    },
+    {
+      "type": "when",
+      "pattern": "очистить cookies",
+      "function_name": "clear_cookies",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 588
+    },
+    {
+      "type": "when",
+      "pattern": "сохранить ответ в файл \"{file_path}\"",
+      "function_name": "save_response_to_file",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 593
+    },
+    {
+      "type": "when",
+      "pattern": "сохранить запрос в файл \"{file_path}\"",
+      "function_name": "save_request_to_file",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 598
+    },
+    {
+      "type": "when",
+      "pattern": "преобразовать ответ в XML",
+      "function_name": "convert_response_to_xml",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 603
+    },
+    {
+      "type": "when",
+      "pattern": "преобразовать ответ в JSON",
+      "function_name": "convert_response_to_json",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 608
+    },
+    {
+      "type": "when",
+      "pattern": "декодировать Base64 из поля \"{field}\" в переменную \"{var_name}\"",
+      "function_name": "decode_base64_field",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 613
+    },
+    {
+      "type": "when",
+      "pattern": "закодировать в Base64 переменную \"{var_name}\"",
+      "function_name": "encode_base64_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 624
+    },
+    {
+      "type": "when",
+      "pattern": "вычислить MD5 хэш переменной \"{var_name}\"",
+      "function_name": "compute_md5_hash",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 632
+    },
+    {
+      "type": "when",
+      "pattern": "вычислить SHA256 хэш переменной \"{var_name}\"",
+      "function_name": "compute_sha256_hash",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 640
+    },
+    {
+      "type": "when",
+      "pattern": "извлечь значение по JSONPath \"{jsonpath}\" в переменную \"{var_name}\"",
+      "function_name": "extract_jsonpath",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 648
+    },
+    {
+      "type": "when",
+      "pattern": "извлечь значение по XPath \"{xpath}\" в переменную \"{var_name}\"",
+      "function_name": "extract_xpath",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 653
+    },
+    {
+      "type": "when",
+      "pattern": "извлечь значение по регулярному выражению \"{regex}\" в переменную \"{var_name}\"",
+      "function_name": "extract_regex",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 658
+    },
+    {
+      "type": "when",
+      "pattern": "повторить последний запрос",
+      "function_name": "repeat_last_request",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 663
+    },
+    {
+      "type": "when",
+      "pattern": "повторить последний запрос {times:d} раз",
+      "function_name": "repeat_last_request_times",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 667
+    },
+    {
+      "type": "when",
+      "pattern": "отправить пакет запросов:",
+      "function_name": "send_batch_requests",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 671
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить параллельно {count:d} запросов на \"{endpoint}\"",
+      "function_name": "send_parallel_requests",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 679
+    },
+    {
+      "type": "then",
+      "pattern": "код ответа должен быть {status_code:d}",
+      "function_name": "check_status_code",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 691
+    },
+    {
+      "type": "then",
+      "pattern": "код ответа должен быть одним из {status_codes}",
+      "function_name": "check_status_code_in_list",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 697
+    },
+    {
+      "type": "then",
+      "pattern": "код ответа должен быть в диапазоне от {min_code:d} до {max_code:d}",
+      "function_name": "check_status_code_range",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 704
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" со значением \"{value}\"",
+      "function_name": "check_response_field",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 710
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\"",
+      "function_name": "check_response_field_exists",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 716
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа не содержит поле \"{field}\"",
+      "function_name": "check_response_field_not_exists",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 722
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" со значением не равным \"{value}\"",
+      "function_name": "check_response_field_not_equals",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 728
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" со значением больше {value:d}",
+      "function_name": "check_response_field_greater",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 734
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" со значением меньше {value:d}",
+      "function_name": "check_response_field_less",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 740
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" со значением в диапазоне от {min_val:d} до {max_val:d}",
+      "function_name": "check_response_field_range",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 746
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" соответствующее регулярному выражению \"{pattern}\"",
+      "function_name": "check_response_field_regex",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 752
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" типа \"{expected_type}\"",
+      "function_name": "check_response_field_type",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 758
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" с длиной {length:d}",
+      "function_name": "check_response_field_length",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 765
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" с длиной больше {length:d}",
+      "function_name": "check_response_field_length_greater",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 771
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит поле \"{field}\" с длиной меньше {length:d}",
+      "function_name": "check_response_field_length_less",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 777
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит массив \"{field}\" с {count:d} элементами",
+      "function_name": "check_response_array_count",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 783
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит массив \"{field}\" с количеством элементов больше {count:d}",
+      "function_name": "check_response_array_count_greater",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 789
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит массив \"{field}\" с количеством элементов меньше {count:d}",
+      "function_name": "check_response_array_count_less",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 795
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит непустой массив \"{field}\"",
+      "function_name": "check_response_array_not_empty",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 801
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит пустой массив \"{field}\"",
+      "function_name": "check_response_array_empty",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 807
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа содержит текст \"{text}\"",
+      "function_name": "check_response_contains_text",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 813
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа не содержит текст \"{text}\"",
+      "function_name": "check_response_not_contains_text",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 819
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа является валидным JSON",
+      "function_name": "check_response_valid_json",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 825
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа является валидным XML",
+      "function_name": "check_response_valid_xml",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 831
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа не пустое",
+      "function_name": "check_response_not_empty",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 837
+    },
+    {
+      "type": "then",
+      "pattern": "тело ответа пустое",
+      "function_name": "check_response_empty",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 843
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить ответ с кодом {status_code:d} и body из файла \"{file_path}\"",
+      "function_name": "check_response_from_file",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 849
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить ответ с кодом {status_code:d} и body",
+      "function_name": "check_response_body_json",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 854
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить результат запроса из базы \"{db_name}\"",
+      "function_name": "check_sql_result_direct",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 859
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить значение поля \"{field}\" в переменную \"{var_name}\"",
+      "function_name": "save_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 864
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить значение заголовка \"{header}\" в переменную \"{var_name}\"",
+      "function_name": "save_header_to_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 870
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить код ответа в переменную \"{var_name}\"",
+      "function_name": "save_status_code_to_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 876
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить время ответа в переменную \"{var_name}\"",
+      "function_name": "save_response_time_to_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 882
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить размер ответа в переменную \"{var_name}\"",
+      "function_name": "save_response_size_to_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 888
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить результат запроса из базы \"{db_name}\" в течение {timeout:d} секунд",
+      "function_name": "check_sql_result_with_timeout",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 894
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса в базу \"{db_name}\" содержит данные в течение {timeout:d} секунд",
+      "function_name": "check_sql_result_contains",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 899
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" равен \"{value}\"",
+      "function_name": "check_response_header",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 903
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" существует",
+      "function_name": "check_response_header_exists",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 909
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" не существует",
+      "function_name": "check_response_header_not_exists",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 915
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" содержит \"{substring}\"",
+      "function_name": "check_response_header_contains",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 921
+    },
+    {
+      "type": "then",
+      "pattern": "время ответа меньше {max_time:d} миллисекунд",
+      "function_name": "check_response_time",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 927
+    },
+    {
+      "type": "then",
+      "pattern": "время ответа меньше {max_time:d} секунд",
+      "function_name": "check_response_time_seconds",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 933
+    },
+    {
+      "type": "then",
+      "pattern": "размер ответа меньше {max_size:d} байт",
+      "function_name": "check_response_size",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 939
+    },
+    {
+      "type": "then",
+      "pattern": "размер ответа больше {min_size:d} байт",
+      "function_name": "check_response_size_greater",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 945
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" равна \"{value}\"",
+      "function_name": "check_variable_equals",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 951
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" не равна \"{value}\"",
+      "function_name": "check_variable_not_equals",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 957
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" существует",
+      "function_name": "check_variable_exists",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 963
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" не существует",
+      "function_name": "check_variable_not_exists",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 968
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" не пустая",
+      "function_name": "check_variable_not_empty",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 973
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" пустая",
+      "function_name": "check_variable_empty",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 979
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" содержит \"{substring}\"",
+      "function_name": "check_variable_contains",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 985
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" соответствует регулярному выражению \"{pattern}\"",
+      "function_name": "check_variable_regex",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 991
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" больше {value:d}",
+      "function_name": "check_variable_greater",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 997
+    },
+    {
+      "type": "then",
+      "pattern": "переменная \"{var_name}\" меньше {value:d}",
+      "function_name": "check_variable_less",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1003
+    },
+    {
+      "type": "then",
+      "pattern": "Выполнить python код",
+      "function_name": "execute_python_code",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1009
+    },
+    {
+      "type": "then",
+      "pattern": "вывести значение переменной \"{var_name}\"",
+      "function_name": "print_variable",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1014
+    },
+    {
+      "type": "then",
+      "pattern": "вывести тело ответа",
+      "function_name": "print_response_body",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1019
+    },
+    {
+      "type": "then",
+      "pattern": "вывести заголовки ответа",
+      "function_name": "print_response_headers",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1024
+    },
+    {
+      "type": "then",
+      "pattern": "вывести все переменные",
+      "function_name": "print_all_variables",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1029
+    },
+    {
+      "type": "then",
+      "pattern": "вывести время таймера \"{timer_name}\"",
+      "function_name": "print_timer",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1033
+    },
+    {
+      "type": "then",
+      "pattern": "ответ соответствует JSON схеме:",
+      "function_name": "check_json_schema",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1039
+    },
+    {
+      "type": "then",
+      "pattern": "ответ соответствует JSON схеме из файла \"{schema_file}\"",
+      "function_name": "check_json_schema_from_file",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1044
+    },
+    {
+      "type": "then",
+      "pattern": "сравнить ответ с эталоном из файла \"{file_path}\"",
+      "function_name": "compare_response_with_file",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1049
+    },
+    {
+      "type": "then",
+      "pattern": "сравнить ответ с эталоном из файла \"{file_path}\" игнорируя поля:",
+      "function_name": "compare_response_with_file_ignore",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1054
+    },
+    {
+      "type": "then",
+      "pattern": "тест завершен успешно",
+      "function_name": "test_completed_successfully",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1060
+    },
+    {
+      "type": "then",
+      "pattern": "тест завершен с ошибкой \"{error_message}\"",
+      "function_name": "test_completed_with_error",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1065
+    },
+    {
+      "type": "then",
+      "pattern": "пропустить тест с причиной \"{reason}\"",
+      "function_name": "skip_test",
+      "docstring": null,
+      "source_file": "common_steps.py",
+      "line_number": 1070
+    },
+    {
+      "type": "given",
+      "pattern": "настроен REST клиент для сервера \"{server_name}\"",
+      "function_name": "setup_rest_client",
+      "docstring": "Настройка REST клиента для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 16
+    },
+    {
+      "type": "given",
+      "pattern": "настроен REST клиент для сервера \"{server_name}\" с базовым URL \"{base_url}\"",
+      "function_name": "setup_rest_client_with_url",
+      "docstring": "Настройка REST клиента с базовым URL.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 28
+    },
+    {
+      "type": "given",
+      "pattern": "установлен заголовок \"{header_name}\" со значением \"{header_value}\" для сервера \"{server_name}\"",
+      "function_name": "set_server_header",
+      "docstring": "Установка заголовка для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 40
+    },
+    {
+      "type": "given",
+      "pattern": "установлена OAuth2 авторизация для сервера \"{server_name}\" с токеном \"{token}\"",
+      "function_name": "set_oauth2_auth",
+      "docstring": "Установка OAuth2 авторизации.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 53
+    },
+    {
+      "type": "given",
+      "pattern": "установлена Basic авторизация для сервера \"{server_name}\" логин \"{login}\" пароль \"{password}\"",
+      "function_name": "set_basic_auth_for_server",
+      "docstring": "Установка Basic авторизации для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 67
+    },
+    {
+      "type": "given",
+      "pattern": "установлен API ключ \"{api_key}\" для сервера \"{server_name}\"",
+      "function_name": "set_api_key_for_server",
+      "docstring": "Установка API ключа для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 82
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут {timeout:d} секунд для сервера \"{server_name}\"",
+      "function_name": "set_server_timeout",
+      "docstring": "Установка таймаута для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 93
+    },
+    {
+      "type": "given",
+      "pattern": "установлен retry policy с {retries:d} попытками для сервера \"{server_name}\"",
+      "function_name": "set_retry_policy",
+      "docstring": "Установка политики повторных попыток.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 104
+    },
+    {
+      "type": "given",
+      "pattern": "включено логирование запросов для сервера \"{server_name}\"",
+      "function_name": "enable_request_logging_for_server",
+      "docstring": "Включение логирования запросов для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 115
+    },
+    {
+      "type": "given",
+      "pattern": "установлен прокси \"{proxy_url}\" для сервера \"{server_name}\"",
+      "function_name": "set_proxy_for_server",
+      "docstring": "Установка прокси для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 126
+    },
+    {
+      "type": "given",
+      "pattern": "отключена проверка SSL для сервера \"{server_name}\"",
+      "function_name": "disable_ssl_for_server",
+      "docstring": "Отключение проверки SSL для сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 137
+    },
+    {
+      "type": "given",
+      "pattern": "установлен сертификат клиента \"{cert_path}\" для сервера \"{server_name}\"",
+      "function_name": "set_client_cert",
+      "docstring": "Установка клиентского сертификата.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 148
+    },
+    {
+      "type": "when",
+      "pattern": "Отправить \"{method_path}\" на REST сервер \"{server_name}\" с хедерами \"{headers}\" с body из файла \"{file_path}\"",
+      "function_name": "send_rest_request_with_headers_from_file",
+      "docstring": "Отправка REST запроса с заголовками и телом из файла.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 163
+    },
+    {
+      "type": "when",
+      "pattern": "Отправить \"{method_path}\" на REST сервер \"{server_name}\" с хедерами \"{headers}\"",
+      "function_name": "send_rest_request_with_headers",
+      "docstring": "Отправка REST запроса с заголовками без тела.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 192
+    },
+    {
+      "type": "when",
+      "pattern": "отправить GET запрос на сервер \"{server_name}\" endpoint \"{endpoint}\"",
+      "function_name": "send_get_to_server",
+      "docstring": "Отправка GET запроса на сервер.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 219
+    },
+    {
+      "type": "when",
+      "pattern": "отправить POST запрос на сервер \"{server_name}\" endpoint \"{endpoint}\" с телом:",
+      "function_name": "send_post_to_server",
+      "docstring": "Отправка POST запроса на сервер с телом.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 235
+    },
+    {
+      "type": "when",
+      "pattern": "отправить PUT запрос на сервер \"{server_name}\" endpoint \"{endpoint}\" с телом:",
+      "function_name": "send_put_to_server",
+      "docstring": "Отправка PUT запроса на сервер с телом.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 253
+    },
+    {
+      "type": "when",
+      "pattern": "отправить PATCH запрос на сервер \"{server_name}\" endpoint \"{endpoint}\" с телом:",
+      "function_name": "send_patch_to_server",
+      "docstring": "Отправка PATCH запроса на сервер с телом.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 271
+    },
+    {
+      "type": "when",
+      "pattern": "отправить DELETE запрос на сервер \"{server_name}\" endpoint \"{endpoint}\"",
+      "function_name": "send_delete_to_server",
+      "docstring": "Отправка DELETE запроса на сервер.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 289
+    },
+    {
+      "type": "when",
+      "pattern": "отправить HEAD запрос на сервер \"{server_name}\" endpoint \"{endpoint}\"",
+      "function_name": "send_head_to_server",
+      "docstring": "Отправка HEAD запроса на сервер.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 305
+    },
+    {
+      "type": "when",
+      "pattern": "отправить OPTIONS запрос на сервер \"{server_name}\" endpoint \"{endpoint}\"",
+      "function_name": "send_options_to_server",
+      "docstring": "Отправка OPTIONS запроса на сервер.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 321
+    },
+    {
+      "type": "when",
+      "pattern": "отправить запрос с файлом \"{file_path}\" на сервер \"{server_name}\" endpoint \"{endpoint}\"",
+      "function_name": "send_file_to_server",
+      "docstring": "Отправка файла на сервер.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 337
+    },
+    {
+      "type": "when",
+      "pattern": "отправить multipart запрос на сервер \"{server_name}\" endpoint \"{endpoint}\" с файлами:",
+      "function_name": "send_multipart_to_server",
+      "docstring": "Отправка multipart запроса с файлами.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 354
+    },
+    {
+      "type": "when",
+      "pattern": "отправить form-data запрос на сервер \"{server_name}\" endpoint \"{endpoint}\":",
+      "function_name": "send_form_data_to_server",
+      "docstring": "Отправка form-data запроса.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 372
+    },
+    {
+      "type": "when",
+      "pattern": "отправить XML запрос на сервер \"{server_name}\" endpoint \"{endpoint}\":",
+      "function_name": "send_xml_to_server",
+      "docstring": "Отправка XML запроса.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 390
+    },
+    {
+      "type": "when",
+      "pattern": "отправить GraphQL запрос на сервер \"{server_name}\":",
+      "function_name": "send_graphql_to_server",
+      "docstring": "Отправка GraphQL запроса.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 408
+    },
+    {
+      "type": "when",
+      "pattern": "отправить GraphQL mutation на сервер \"{server_name}\":",
+      "function_name": "send_graphql_mutation_to_server",
+      "docstring": "Отправка GraphQL mutation.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 425
+    },
+    {
+      "type": "when",
+      "pattern": "отправить запрос с query параметрами на сервер \"{server_name}\" endpoint \"{endpoint}\":",
+      "function_name": "send_request_with_query_params",
+      "docstring": "Отправка запроса с query параметрами.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 442
+    },
+    {
+      "type": "when",
+      "pattern": "отправить запрос с path параметрами на сервер \"{server_name}\" endpoint \"{endpoint}\"",
+      "function_name": "send_request_with_path_params",
+      "docstring": "Отправка запроса с path параметрами.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 460
+    },
+    {
+      "type": "when",
+      "pattern": "отправить асинхронный запрос на сервер \"{server_name}\" endpoint \"{endpoint}\"",
+      "function_name": "send_async_request",
+      "docstring": "Отправка асинхронного запроса.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 480
+    },
+    {
+      "type": "when",
+      "pattern": "проверить статус асинхронной задачи \"{task_id}\" на сервере \"{server_name}\"",
+      "function_name": "check_async_task_status",
+      "docstring": "Проверка статуса асинхронной задачи.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 497
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать завершения асинхронной задачи \"{task_id}\" на сервере \"{server_name}\" в течение {timeout:d} секунд",
+      "function_name": "wait_for_async_task",
+      "docstring": "Ожидание завершения асинхронной задачи.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 510
+    },
+    {
+      "type": "when",
+      "pattern": "отправить пакет запросов на сервер \"{server_name}\":",
+      "function_name": "send_batch_requests_to_server",
+      "docstring": "Отправка пакета запросов.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 523
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить health check на сервере \"{server_name}\"",
+      "function_name": "health_check",
+      "docstring": "Выполнение health check.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 540
+    },
+    {
+      "type": "when",
+      "pattern": "получить OpenAPI спецификацию с сервера \"{server_name}\"",
+      "function_name": "get_openapi_spec",
+      "docstring": "Получение OpenAPI спецификации.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 553
+    },
+    {
+      "type": "when",
+      "pattern": "повторить последний запрос на сервер \"{server_name}\"",
+      "function_name": "repeat_last_request_to_server",
+      "docstring": "Повторение последнего запроса.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 566
+    },
+    {
+      "type": "when",
+      "pattern": "повторить последний запрос на сервер \"{server_name}\" {times:d} раз",
+      "function_name": "repeat_last_request_multiple",
+      "docstring": "Повторение последнего запроса несколько раз.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 573
+    },
+    {
+      "type": "when",
+      "pattern": "отправить запрос с retry на сервер \"{server_name}\" endpoint \"{endpoint}\" с {retries:d} попытками",
+      "function_name": "send_request_with_retry",
+      "docstring": "Отправка запроса с retry.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 579
+    },
+    {
+      "type": "when",
+      "pattern": "загрузить файл с сервера \"{server_name}\" endpoint \"{endpoint}\" в \"{file_path}\"",
+      "function_name": "download_file_from_server",
+      "docstring": "Загрузка файла с сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 597
+    },
+    {
+      "type": "when",
+      "pattern": "отправить запрос с кастомным Content-Type \"{content_type}\" на сервер \"{server_name}\" endpoint \"{endpoint}\":",
+      "function_name": "send_request_with_custom_content_type",
+      "docstring": "Отправка запроса с кастомным Content-Type.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 611
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить ответ с кодом {status_code:d}",
+      "function_name": "check_response_code_only",
+      "docstring": "Проверка только кода ответа.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 633
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить хедеры из последнего ответа",
+      "function_name": "check_response_headers",
+      "docstring": "Проверка заголовков ответа по таблице.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 641
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить ответ с кодом {status_code:d} в течение {timeout:d} секунд",
+      "function_name": "check_response_with_timeout",
+      "docstring": "Проверка кода ответа с таймаутом (polling).",
+      "source_file": "rest_api_steps.py",
+      "line_number": 648
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить ответ с кодом {status_code:d} и файлом с размером больше {size:d} кБ",
+      "function_name": "check_response_with_file_size",
+      "docstring": "Проверка кода ответа и размера файла в ответе.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 656
+    },
+    {
+      "type": "then",
+      "pattern": "код ответа сервера \"{server_name}\" равен {status_code:d}",
+      "function_name": "check_server_response_code",
+      "docstring": "Проверка кода ответа от конкретного сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 665
+    },
+    {
+      "type": "then",
+      "pattern": "ответ содержит JSON поле \"{field}\" со значением \"{value}\"",
+      "function_name": "check_json_field_value",
+      "docstring": "Проверка значения JSON поля.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 673
+    },
+    {
+      "type": "then",
+      "pattern": "ответ содержит JSON поле \"{field}\"",
+      "function_name": "check_json_field_exists",
+      "docstring": "Проверка наличия JSON поля.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 682
+    },
+    {
+      "type": "then",
+      "pattern": "ответ не содержит JSON поле \"{field}\"",
+      "function_name": "check_json_field_not_exists",
+      "docstring": "Проверка отсутствия JSON поля.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 690
+    },
+    {
+      "type": "then",
+      "pattern": "ответ содержит JSON массив \"{field}\" с {count:d} элементами",
+      "function_name": "check_json_array_count",
+      "docstring": "Проверка количества элементов в JSON массиве.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 698
+    },
+    {
+      "type": "then",
+      "pattern": "ответ содержит JSON массив \"{field}\" с элементом где \"{key}\" равен \"{value}\"",
+      "function_name": "check_json_array_contains_element",
+      "docstring": "Проверка наличия элемента в JSON массиве.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 707
+    },
+    {
+      "type": "then",
+      "pattern": "ответ содержит вложенное поле \"{path}\" со значением \"{value}\"",
+      "function_name": "check_nested_json_field",
+      "docstring": "Проверка значения вложенного JSON поля.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 717
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" равен \"{value}\"",
+      "function_name": "check_response_header_value",
+      "docstring": "Проверка значения заголовка ответа.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 733
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" содержит \"{substring}\"",
+      "function_name": "check_response_header_contains",
+      "docstring": "Проверка что заголовок содержит подстроку.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 742
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" существует",
+      "function_name": "check_response_header_exists",
+      "docstring": "Проверка наличия заголовка ответа.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 751
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок ответа \"{header}\" не существует",
+      "function_name": "check_response_header_not_exists",
+      "docstring": "Проверка отсутствия заголовка ответа.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 759
+    },
+    {
+      "type": "then",
+      "pattern": "время ответа сервера меньше {max_time:d} миллисекунд",
+      "function_name": "check_response_time_ms",
+      "docstring": "Проверка времени ответа в миллисекундах.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 767
+    },
+    {
+      "type": "then",
+      "pattern": "время ответа сервера меньше {max_time:d} секунд",
+      "function_name": "check_response_time_sec",
+      "docstring": "Проверка времени ответа в секундах.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 775
+    },
+    {
+      "type": "then",
+      "pattern": "размер ответа меньше {max_size:d} байт",
+      "function_name": "check_response_size_bytes",
+      "docstring": "Проверка размера ответа в байтах.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 783
+    },
+    {
+      "type": "then",
+      "pattern": "размер ответа больше {min_size:d} байт",
+      "function_name": "check_response_size_greater",
+      "docstring": "Проверка что размер ответа больше указанного.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 792
+    },
+    {
+      "type": "then",
+      "pattern": "ответ соответствует JSON схеме:",
+      "function_name": "check_response_json_schema",
+      "docstring": "Проверка соответствия ответа JSON схеме.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 801
+    },
+    {
+      "type": "then",
+      "pattern": "ответ соответствует JSON схеме из файла \"{schema_file}\"",
+      "function_name": "check_response_json_schema_from_file",
+      "docstring": "Проверка соответствия ответа JSON схеме из файла.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 808
+    },
+    {
+      "type": "then",
+      "pattern": "ответ является валидным JSON",
+      "function_name": "check_response_valid_json",
+      "docstring": "Проверка что ответ является валидным JSON.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 815
+    },
+    {
+      "type": "then",
+      "pattern": "ответ является валидным XML",
+      "function_name": "check_response_valid_xml",
+      "docstring": "Проверка что ответ является валидным XML.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 823
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить значение поля \"{field}\" из ответа в переменную \"{var_name}\"",
+      "function_name": "save_response_field_to_variable",
+      "docstring": "Сохранение значения поля из ответа в переменную.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 831
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить значение вложенного поля \"{path}\" из ответа в переменную \"{var_name}\"",
+      "function_name": "save_nested_field_to_variable",
+      "docstring": "Сохранение значения вложенного поля из ответа в переменную.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 840
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить заголовок \"{header}\" из ответа в переменную \"{var_name}\"",
+      "function_name": "save_response_header_to_variable",
+      "docstring": "Сохранение заголовка из ответа в переменную.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 856
+    },
+    {
+      "type": "then",
+      "pattern": "сохранить время ответа в переменную \"{var_name}\"",
+      "function_name": "save_response_time_to_var",
+      "docstring": "Сохранение времени ответа в переменную.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 865
+    },
+    {
+      "type": "then",
+      "pattern": "сравнить ответ с эталоном из файла \"{file_path}\"",
+      "function_name": "compare_response_with_reference",
+      "docstring": "Сравнение ответа с эталоном из файла.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 873
+    },
+    {
+      "type": "then",
+      "pattern": "сравнить ответ с эталоном из файла \"{file_path}\" игнорируя поля:",
+      "function_name": "compare_response_with_reference_ignore_fields",
+      "docstring": "Сравнение ответа с эталоном игнорируя указанные поля.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 880
+    },
+    {
+      "type": "then",
+      "pattern": "вывести тело ответа",
+      "function_name": "print_response_body",
+      "docstring": "Вывод тела ответа.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 888
+    },
+    {
+      "type": "then",
+      "pattern": "вывести заголовки ответа",
+      "function_name": "print_response_headers_debug",
+      "docstring": "Вывод заголовков ответа.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 895
+    },
+    {
+      "type": "then",
+      "pattern": "вывести время ответа",
+      "function_name": "print_response_time",
+      "docstring": "Вывод времени ответа.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 902
+    },
+    {
+      "type": "then",
+      "pattern": "сервер \"{server_name}\" доступен",
+      "function_name": "check_server_available",
+      "docstring": "Проверка доступности сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 909
+    },
+    {
+      "type": "then",
+      "pattern": "сервер \"{server_name}\" недоступен",
+      "function_name": "check_server_unavailable",
+      "docstring": "Проверка недоступности сервера.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 916
+    },
+    {
+      "type": "then",
+      "pattern": "закрыть REST клиент для сервера \"{server_name}\"",
+      "function_name": "close_rest_client",
+      "docstring": "Закрытие REST клиента.",
+      "source_file": "rest_api_steps.py",
+      "line_number": 923
+    },
+    {
+      "type": "given",
+      "pattern": "установлено подключение к Kafka кластеру \"{cluster_name}\"",
+      "function_name": "setup_kafka_connection",
+      "docstring": "Установка подключения к Kafka кластеру.",
+      "source_file": "kafka_steps.py",
+      "line_number": 16
+    },
+    {
+      "type": "given",
+      "pattern": "установлено подключение к Kafka кластеру \"{cluster_name}\" с параметрами:",
+      "function_name": "setup_kafka_connection_with_params",
+      "docstring": "Установка подключения к Kafka кластеру с параметрами.",
+      "source_file": "kafka_steps.py",
+      "line_number": 28
+    },
+    {
+      "type": "given",
+      "pattern": "создан продюсер для кластера \"{cluster_name}\"",
+      "function_name": "create_kafka_producer",
+      "docstring": "Создание Kafka продюсера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 40
+    },
+    {
+      "type": "given",
+      "pattern": "создан продюсер для кластера \"{cluster_name}\" с конфигурацией:",
+      "function_name": "create_kafka_producer_with_config",
+      "docstring": "Создание Kafka продюсера с конфигурацией.",
+      "source_file": "kafka_steps.py",
+      "line_number": 52
+    },
+    {
+      "type": "given",
+      "pattern": "создан консьюмер для кластера \"{cluster_name}\" в группе \"{group_id}\"",
+      "function_name": "create_kafka_consumer",
+      "docstring": "Создание Kafka консьюмера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 65
+    },
+    {
+      "type": "given",
+      "pattern": "создан консьюмер для кластера \"{cluster_name}\" в группе \"{group_id}\" с конфигурацией:",
+      "function_name": "create_kafka_consumer_with_config",
+      "docstring": "Создание Kafka консьюмера с конфигурацией.",
+      "source_file": "kafka_steps.py",
+      "line_number": 78
+    },
+    {
+      "type": "given",
+      "pattern": "консьюмер подписан на топик \"{topic_name}\" кластера \"{cluster_name}\"",
+      "function_name": "subscribe_to_topic",
+      "docstring": "Подписка консьюмера на топик.",
+      "source_file": "kafka_steps.py",
+      "line_number": 92
+    },
+    {
+      "type": "given",
+      "pattern": "консьюмер подписан на топики кластера \"{cluster_name}\":",
+      "function_name": "subscribe_to_topics",
+      "docstring": "Подписка консьюмера на несколько топиков.",
+      "source_file": "kafka_steps.py",
+      "line_number": 103
+    },
+    {
+      "type": "given",
+      "pattern": "установлен offset консьюмера на \"{offset}\" для топика \"{topic_name}\"",
+      "function_name": "set_consumer_offset",
+      "docstring": "Установка offset консьюмера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 113
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут чтения сообщений {timeout:d} секунд",
+      "function_name": "set_kafka_read_timeout",
+      "docstring": "Установка таймаута чтения сообщений.",
+      "source_file": "kafka_steps.py",
+      "line_number": 122
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут отправки сообщений {timeout:d} секунд",
+      "function_name": "set_kafka_send_timeout",
+      "docstring": "Установка таймаута отправки сообщений.",
+      "source_file": "kafka_steps.py",
+      "line_number": 129
+    },
+    {
+      "type": "given",
+      "pattern": "включен режим exactly-once для продюсера",
+      "function_name": "enable_exactly_once",
+      "docstring": "Включение режима exactly-once.",
+      "source_file": "kafka_steps.py",
+      "line_number": 136
+    },
+    {
+      "type": "given",
+      "pattern": "установлен acks \"{acks}\" для продюсера",
+      "function_name": "set_producer_acks",
+      "docstring": "Установка уровня подтверждений для продюсера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 143
+    },
+    {
+      "type": "given",
+      "pattern": "установлен compression type \"{compression}\" для продюсера",
+      "function_name": "set_producer_compression",
+      "docstring": "Установка типа сжатия для продюсера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 150
+    },
+    {
+      "type": "given",
+      "pattern": "очищен топик \"{topic_name}\" в кластере \"{cluster_name}\"",
+      "function_name": "clear_kafka_topic",
+      "docstring": "Очистка топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 157
+    },
+    {
+      "type": "when",
+      "pattern": "Отправить сообщение в кафку \"{kafka_name}\" в топик \"{topic_name}\" из файла \"{file_path}\"",
+      "function_name": "send_kafka_message_from_file",
+      "docstring": "Отправка сообщения в Kafka топик из файла.",
+      "source_file": "kafka_steps.py",
+      "line_number": 167
+    },
+    {
+      "type": "when",
+      "pattern": "отправить сообщение в топик \"{topic_name}\" кластера \"{cluster_name}\":",
+      "function_name": "send_kafka_message_inline",
+      "docstring": "Отправка сообщения в Kafka топик.",
+      "source_file": "kafka_steps.py",
+      "line_number": 183
+    },
+    {
+      "type": "when",
+      "pattern": "отправить сообщение в топик \"{topic_name}\" кластера \"{cluster_name}\" с ключом \"{key}\":",
+      "function_name": "send_kafka_message_with_key",
+      "docstring": "Отправка сообщения в Kafka топик с ключом.",
+      "source_file": "kafka_steps.py",
+      "line_number": 200
+    },
+    {
+      "type": "when",
+      "pattern": "отправить сообщение в топик \"{topic_name}\" кластера \"{cluster_name}\" в партицию {partition:d}:",
+      "function_name": "send_kafka_message_to_partition",
+      "docstring": "Отправка сообщения в конкретную партицию.",
+      "source_file": "kafka_steps.py",
+      "line_number": 217
+    },
+    {
+      "type": "when",
+      "pattern": "отправить сообщение в топик \"{topic_name}\" кластера \"{cluster_name}\" с заголовками:",
+      "function_name": "send_kafka_message_with_headers",
+      "docstring": "Отправка сообщения с заголовками.",
+      "source_file": "kafka_steps.py",
+      "line_number": 233
+    },
+    {
+      "type": "when",
+      "pattern": "отправить пакет сообщений в топик \"{topic_name}\" кластера \"{cluster_name}\":",
+      "function_name": "send_kafka_batch",
+      "docstring": "Отправка пакета сообщений.",
+      "source_file": "kafka_steps.py",
+      "line_number": 265
+    },
+    {
+      "type": "when",
+      "pattern": "отправить {count:d} сообщений в топик \"{topic_name}\" кластера \"{cluster_name}\"",
+      "function_name": "send_kafka_multiple_messages",
+      "docstring": "Отправка нескольких сообщений.",
+      "source_file": "kafka_steps.py",
+      "line_number": 279
+    },
+    {
+      "type": "when",
+      "pattern": "прочитать сообщение из топика \"{topic_name}\" кластера \"{cluster_name}\"",
+      "function_name": "read_kafka_message",
+      "docstring": "Чтение одного сообщения из топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 292
+    },
+    {
+      "type": "when",
+      "pattern": "прочитать {count:d} сообщений из топика \"{topic_name}\" кластера \"{cluster_name}\"",
+      "function_name": "read_kafka_messages",
+      "docstring": "Чтение нескольких сообщений из топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 308
+    },
+    {
+      "type": "when",
+      "pattern": "прочитать сообщения из топика \"{topic_name}\" кластера \"{cluster_name}\" за последние {seconds:d} секунд",
+      "function_name": "read_kafka_messages_by_time",
+      "docstring": "Чтение сообщений за указанный период.",
+      "source_file": "kafka_steps.py",
+      "line_number": 321
+    },
+    {
+      "type": "when",
+      "pattern": "прочитать сообщения из топика \"{topic_name}\" кластера \"{cluster_name}\" с offset {offset:d}",
+      "function_name": "read_kafka_messages_from_offset",
+      "docstring": "Чтение сообщений начиная с указанного offset.",
+      "source_file": "kafka_steps.py",
+      "line_number": 334
+    },
+    {
+      "type": "when",
+      "pattern": "прочитать сообщения из топика \"{topic_name}\" кластера \"{cluster_name}\" с ключом \"{key}\"",
+      "function_name": "read_kafka_messages_by_key",
+      "docstring": "Чтение сообщений по ключу.",
+      "source_file": "kafka_steps.py",
+      "line_number": 347
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать сообщение в топике \"{topic_name}\" кластера \"{cluster_name}\" в течение {timeout:d} секунд",
+      "function_name": "wait_for_kafka_message",
+      "docstring": "Ожидание сообщения в топике.",
+      "source_file": "kafka_steps.py",
+      "line_number": 360
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать сообщение с ключом \"{key}\" в топике \"{topic_name}\" кластера \"{cluster_name}\" в течение {timeout:d} секунд",
+      "function_name": "wait_for_kafka_message_with_key",
+      "docstring": "Ожидание сообщения с определенным ключом.",
+      "source_file": "kafka_steps.py",
+      "line_number": 373
+    },
+    {
+      "type": "when",
+      "pattern": "подтвердить получение сообщения",
+      "function_name": "commit_kafka_offset",
+      "docstring": "Подтверждение получения сообщения (commit offset).",
+      "source_file": "kafka_steps.py",
+      "line_number": 386
+    },
+    {
+      "type": "when",
+      "pattern": "подтвердить получение сообщений для топика \"{topic_name}\"",
+      "function_name": "commit_kafka_offset_for_topic",
+      "docstring": "Подтверждение получения сообщений для топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 393
+    },
+    {
+      "type": "when",
+      "pattern": "сбросить offset консьюмера на начало для топика \"{topic_name}\"",
+      "function_name": "reset_kafka_offset_to_beginning",
+      "docstring": "Сброс offset на начало топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 400
+    },
+    {
+      "type": "when",
+      "pattern": "сбросить offset консьюмера на конец для топика \"{topic_name}\"",
+      "function_name": "reset_kafka_offset_to_end",
+      "docstring": "Сброс offset на конец топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 406
+    },
+    {
+      "type": "when",
+      "pattern": "сбросить offset консьюмера на {offset:d} для топика \"{topic_name}\"",
+      "function_name": "reset_kafka_offset_to_value",
+      "docstring": "Сброс offset на указанное значение.",
+      "source_file": "kafka_steps.py",
+      "line_number": 412
+    },
+    {
+      "type": "when",
+      "pattern": "приостановить консьюмер для топика \"{topic_name}\"",
+      "function_name": "pause_kafka_consumer",
+      "docstring": "Приостановка консьюмера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 418
+    },
+    {
+      "type": "when",
+      "pattern": "возобновить консьюмер для топика \"{topic_name}\"",
+      "function_name": "resume_kafka_consumer",
+      "docstring": "Возобновление консьюмера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 424
+    },
+    {
+      "type": "when",
+      "pattern": "создать топик \"{topic_name}\" в кластере \"{cluster_name}\"",
+      "function_name": "create_kafka_topic",
+      "docstring": "Создание топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 430
+    },
+    {
+      "type": "when",
+      "pattern": "создать топик \"{topic_name}\" в кластере \"{cluster_name}\" с {partitions:d} партициями",
+      "function_name": "create_kafka_topic_with_partitions",
+      "docstring": "Создание топика с указанным количеством партиций.",
+      "source_file": "kafka_steps.py",
+      "line_number": 436
+    },
+    {
+      "type": "when",
+      "pattern": "создать топик \"{topic_name}\" в кластере \"{cluster_name}\" с конфигурацией:",
+      "function_name": "create_kafka_topic_with_config",
+      "docstring": "Создание топика с конфигурацией.",
+      "source_file": "kafka_steps.py",
+      "line_number": 442
+    },
+    {
+      "type": "when",
+      "pattern": "удалить топик \"{topic_name}\" в кластере \"{cluster_name}\"",
+      "function_name": "delete_kafka_topic",
+      "docstring": "Удаление топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 448
+    },
+    {
+      "type": "when",
+      "pattern": "изменить количество партиций топика \"{topic_name}\" на {partitions:d}",
+      "function_name": "alter_kafka_topic_partitions",
+      "docstring": "Изменение количества партиций топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 454
+    },
+    {
+      "type": "when",
+      "pattern": "отправить сообщение в транзакции в топик \"{topic_name}\" кластера \"{cluster_name}\":",
+      "function_name": "send_kafka_transactional_message",
+      "docstring": "Отправка сообщения в транзакции.",
+      "source_file": "kafka_steps.py",
+      "line_number": 460
+    },
+    {
+      "type": "when",
+      "pattern": "начать Kafka транзакцию",
+      "function_name": "begin_kafka_transaction",
+      "docstring": "Начало Kafka транзакции.",
+      "source_file": "kafka_steps.py",
+      "line_number": 475
+    },
+    {
+      "type": "when",
+      "pattern": "зафиксировать Kafka транзакцию",
+      "function_name": "commit_kafka_transaction",
+      "docstring": "Фиксация Kafka транзакции.",
+      "source_file": "kafka_steps.py",
+      "line_number": 482
+    },
+    {
+      "type": "when",
+      "pattern": "откатить Kafka транзакцию",
+      "function_name": "abort_kafka_transaction",
+      "docstring": "Откат Kafka транзакции.",
+      "source_file": "kafka_steps.py",
+      "line_number": 491
+    },
+    {
+      "type": "then",
+      "pattern": "сообщение успешно отправлено",
+      "function_name": "check_message_sent",
+      "docstring": "Проверка успешной отправки сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 504
+    },
+    {
+      "type": "then",
+      "pattern": "offset отправленного сообщения сохранен в переменную \"{var_name}\"",
+      "function_name": "save_sent_offset",
+      "docstring": "Сохранение offset отправленного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 512
+    },
+    {
+      "type": "then",
+      "pattern": "партиция отправленного сообщения равна {partition:d}",
+      "function_name": "check_sent_partition",
+      "docstring": "Проверка партиции отправленного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 520
+    },
+    {
+      "type": "then",
+      "pattern": "получено сообщение из топика",
+      "function_name": "check_message_received",
+      "docstring": "Проверка получения сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 528
+    },
+    {
+      "type": "then",
+      "pattern": "получено {count:d} сообщений из топика",
+      "function_name": "check_messages_count_received",
+      "docstring": "Проверка количества полученных сообщений.",
+      "source_file": "kafka_steps.py",
+      "line_number": 536
+    },
+    {
+      "type": "then",
+      "pattern": "тело полученного сообщения содержит \"{text}\"",
+      "function_name": "check_received_message_contains",
+      "docstring": "Проверка содержимого полученного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 545
+    },
+    {
+      "type": "then",
+      "pattern": "тело полученного сообщения равно:",
+      "function_name": "check_received_message_equals",
+      "docstring": "Проверка точного соответствия тела сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 554
+    },
+    {
+      "type": "then",
+      "pattern": "ключ полученного сообщения равен \"{key}\"",
+      "function_name": "check_received_message_key",
+      "docstring": "Проверка ключа полученного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 561
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок \"{header}\" полученного сообщения равен \"{value}\"",
+      "function_name": "check_received_message_header",
+      "docstring": "Проверка заголовка полученного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 569
+    },
+    {
+      "type": "then",
+      "pattern": "offset полученного сообщения сохранен в переменную \"{var_name}\"",
+      "function_name": "save_received_offset",
+      "docstring": "Сохранение offset полученного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 578
+    },
+    {
+      "type": "then",
+      "pattern": "партиция полученного сообщения сохранена в переменную \"{var_name}\"",
+      "function_name": "save_received_partition",
+      "docstring": "Сохранение партиции полученного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 586
+    },
+    {
+      "type": "then",
+      "pattern": "тело полученного сообщения сохранено в переменную \"{var_name}\"",
+      "function_name": "save_received_message_body",
+      "docstring": "Сохранение тела полученного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 594
+    },
+    {
+      "type": "then",
+      "pattern": "топик \"{topic_name}\" существует в кластере \"{cluster_name}\"",
+      "function_name": "check_topic_exists",
+      "docstring": "Проверка существования топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 602
+    },
+    {
+      "type": "then",
+      "pattern": "топик \"{topic_name}\" не существует в кластере \"{cluster_name}\"",
+      "function_name": "check_topic_not_exists",
+      "docstring": "Проверка отсутствия топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 609
+    },
+    {
+      "type": "then",
+      "pattern": "топик \"{topic_name}\" имеет {partitions:d} партиций",
+      "function_name": "check_topic_partitions",
+      "docstring": "Проверка количества партиций топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 616
+    },
+    {
+      "type": "then",
+      "pattern": "топик \"{topic_name}\" имеет replication factor {factor:d}",
+      "function_name": "check_topic_replication_factor",
+      "docstring": "Проверка replication factor топика.",
+      "source_file": "kafka_steps.py",
+      "line_number": 623
+    },
+    {
+      "type": "then",
+      "pattern": "lag консьюмера для топика \"{topic_name}\" равен {lag:d}",
+      "function_name": "check_consumer_lag",
+      "docstring": "Проверка lag консьюмера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 630
+    },
+    {
+      "type": "then",
+      "pattern": "lag консьюмера для топика \"{topic_name}\" меньше {max_lag:d}",
+      "function_name": "check_consumer_lag_less",
+      "docstring": "Проверка что lag консьюмера меньше указанного.",
+      "source_file": "kafka_steps.py",
+      "line_number": 637
+    },
+    {
+      "type": "then",
+      "pattern": "подключение к Kafka кластеру \"{cluster_name}\" активно",
+      "function_name": "check_kafka_connection_active",
+      "docstring": "Проверка активности подключения к Kafka.",
+      "source_file": "kafka_steps.py",
+      "line_number": 644
+    },
+    {
+      "type": "then",
+      "pattern": "закрыть подключение к Kafka кластеру \"{cluster_name}\"",
+      "function_name": "close_kafka_connection",
+      "docstring": "Закрытие подключения к Kafka кластеру.",
+      "source_file": "kafka_steps.py",
+      "line_number": 652
+    },
+    {
+      "type": "then",
+      "pattern": "закрыть продюсер для кластера \"{cluster_name}\"",
+      "function_name": "close_kafka_producer",
+      "docstring": "Закрытие Kafka продюсера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 660
+    },
+    {
+      "type": "then",
+      "pattern": "закрыть консьюмер для кластера \"{cluster_name}\"",
+      "function_name": "close_kafka_consumer",
+      "docstring": "Закрытие Kafka консьюмера.",
+      "source_file": "kafka_steps.py",
+      "line_number": 668
+    },
+    {
+      "type": "then",
+      "pattern": "вывести полученное сообщение",
+      "function_name": "print_received_message",
+      "docstring": "Вывод полученного сообщения.",
+      "source_file": "kafka_steps.py",
+      "line_number": 676
+    },
+    {
+      "type": "given",
+      "pattern": "установлено подключение к базе данных \"{db_name}\"",
+      "function_name": "setup_db_connection",
+      "docstring": "Установка подключения к базе данных.",
+      "source_file": "database_steps.py",
+      "line_number": 14
+    },
+    {
+      "type": "given",
+      "pattern": "установлено подключение к базе данных \"{db_name}\" с параметрами:",
+      "function_name": "setup_db_connection_with_params",
+      "docstring": "Установка подключения к базе данных с параметрами.",
+      "source_file": "database_steps.py",
+      "line_number": 26
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут запроса к базе \"{db_name}\" {timeout:d} секунд",
+      "function_name": "set_db_query_timeout",
+      "docstring": "Установка таймаута запроса к базе данных.",
+      "source_file": "database_steps.py",
+      "line_number": 38
+    },
+    {
+      "type": "given",
+      "pattern": "установлен уровень изоляции транзакций \"{isolation_level}\" для базы \"{db_name}\"",
+      "function_name": "set_isolation_level",
+      "docstring": "Установка уровня изоляции транзакций.",
+      "source_file": "database_steps.py",
+      "line_number": 49
+    },
+    {
+      "type": "given",
+      "pattern": "включен режим автокоммита для базы \"{db_name}\"",
+      "function_name": "enable_autocommit",
+      "docstring": "Включение режима автокоммита.",
+      "source_file": "database_steps.py",
+      "line_number": 60
+    },
+    {
+      "type": "given",
+      "pattern": "отключен режим автокоммита для базы \"{db_name}\"",
+      "function_name": "disable_autocommit",
+      "docstring": "Отключение режима автокоммита.",
+      "source_file": "database_steps.py",
+      "line_number": 71
+    },
+    {
+      "type": "given",
+      "pattern": "установлена схема \"{schema_name}\" для базы \"{db_name}\"",
+      "function_name": "set_db_schema",
+      "docstring": "Установка схемы базы данных.",
+      "source_file": "database_steps.py",
+      "line_number": 82
+    },
+    {
+      "type": "given",
+      "pattern": "загружены тестовые данные в базу \"{db_name}\" из файла \"{file_path}\"",
+      "function_name": "load_test_data_from_file",
+      "docstring": "Загрузка тестовых данных из файла.",
+      "source_file": "database_steps.py",
+      "line_number": 93
+    },
+    {
+      "type": "given",
+      "pattern": "очищена таблица \"{table_name}\" в базе \"{db_name}\"",
+      "function_name": "clear_table",
+      "docstring": "Очистка таблицы в базе данных.",
+      "source_file": "database_steps.py",
+      "line_number": 99
+    },
+    {
+      "type": "given",
+      "pattern": "создана временная таблица \"{table_name}\" в базе \"{db_name}\"",
+      "function_name": "create_temp_table",
+      "docstring": "Создание временной таблицы.",
+      "source_file": "database_steps.py",
+      "line_number": 105
+    },
+    {
+      "type": "given",
+      "pattern": "создана временная таблица \"{table_name}\" в базе \"{db_name}\" со структурой:",
+      "function_name": "create_temp_table_with_structure",
+      "docstring": "Создание временной таблицы со структурой.",
+      "source_file": "database_steps.py",
+      "line_number": 111
+    },
+    {
+      "type": "when",
+      "pattern": "Выполнить запрос в базу \"{db_name}\"",
+      "function_name": "execute_db_query",
+      "docstring": "Выполнение SQL запроса в указанную базу данных.",
+      "source_file": "database_steps.py",
+      "line_number": 121
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить SELECT запрос в базу \"{db_name}\":",
+      "function_name": "execute_select_query",
+      "docstring": "Выполнение SELECT запроса.",
+      "source_file": "database_steps.py",
+      "line_number": 137
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить INSERT запрос в базу \"{db_name}\":",
+      "function_name": "execute_insert_query",
+      "docstring": "Выполнение INSERT запроса.",
+      "source_file": "database_steps.py",
+      "line_number": 153
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить UPDATE запрос в базу \"{db_name}\":",
+      "function_name": "execute_update_query",
+      "docstring": "Выполнение UPDATE запроса.",
+      "source_file": "database_steps.py",
+      "line_number": 167
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить DELETE запрос в базу \"{db_name}\":",
+      "function_name": "execute_delete_query",
+      "docstring": "Выполнение DELETE запроса.",
+      "source_file": "database_steps.py",
+      "line_number": 180
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить TRUNCATE таблицы \"{table_name}\" в базе \"{db_name}\"",
+      "function_name": "execute_truncate",
+      "docstring": "Выполнение TRUNCATE таблицы.",
+      "source_file": "database_steps.py",
+      "line_number": 193
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить запрос из файла \"{file_path}\" в базу \"{db_name}\"",
+      "function_name": "execute_query_from_file",
+      "docstring": "Выполнение SQL запроса из файла.",
+      "source_file": "database_steps.py",
+      "line_number": 206
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить пакет запросов в базу \"{db_name}\":",
+      "function_name": "execute_batch_queries",
+      "docstring": "Выполнение пакета SQL запросов.",
+      "source_file": "database_steps.py",
+      "line_number": 219
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить хранимую процедуру \"{proc_name}\" в базе \"{db_name}\"",
+      "function_name": "execute_stored_proc",
+      "docstring": "Выполнение хранимой процедуры.",
+      "source_file": "database_steps.py",
+      "line_number": 232
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить хранимую процедуру \"{proc_name}\" в базе \"{db_name}\" с параметрами:",
+      "function_name": "execute_stored_proc_with_params",
+      "docstring": "Выполнение хранимой процедуры с параметрами.",
+      "source_file": "database_steps.py",
+      "line_number": 244
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить функцию \"{func_name}\" в базе \"{db_name}\"",
+      "function_name": "execute_db_function",
+      "docstring": "Выполнение функции базы данных.",
+      "source_file": "database_steps.py",
+      "line_number": 258
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить функцию \"{func_name}\" в базе \"{db_name}\" с параметрами:",
+      "function_name": "execute_db_function_with_params",
+      "docstring": "Выполнение функции базы данных с параметрами.",
+      "source_file": "database_steps.py",
+      "line_number": 270
+    },
+    {
+      "type": "when",
+      "pattern": "начать транзакцию в базе \"{db_name}\"",
+      "function_name": "begin_db_transaction",
+      "docstring": "Начало транзакции.",
+      "source_file": "database_steps.py",
+      "line_number": 284
+    },
+    {
+      "type": "when",
+      "pattern": "зафиксировать транзакцию в базе \"{db_name}\"",
+      "function_name": "commit_db_transaction",
+      "docstring": "Фиксация транзакции.",
+      "source_file": "database_steps.py",
+      "line_number": 293
+    },
+    {
+      "type": "when",
+      "pattern": "откатить транзакцию в базе \"{db_name}\"",
+      "function_name": "rollback_db_transaction",
+      "docstring": "Откат транзакции.",
+      "source_file": "database_steps.py",
+      "line_number": 302
+    },
+    {
+      "type": "when",
+      "pattern": "создать точку сохранения \"{savepoint_name}\" в базе \"{db_name}\"",
+      "function_name": "create_savepoint",
+      "docstring": "Создание точки сохранения.",
+      "source_file": "database_steps.py",
+      "line_number": 311
+    },
+    {
+      "type": "when",
+      "pattern": "откатить к точке сохранения \"{savepoint_name}\" в базе \"{db_name}\"",
+      "function_name": "rollback_to_savepoint",
+      "docstring": "Откат к точке сохранения.",
+      "source_file": "database_steps.py",
+      "line_number": 322
+    },
+    {
+      "type": "when",
+      "pattern": "вставить данные в таблицу \"{table_name}\" базы \"{db_name}\":",
+      "function_name": "insert_data_to_table",
+      "docstring": "Вставка данных в таблицу из datatable.",
+      "source_file": "database_steps.py",
+      "line_number": 328
+    },
+    {
+      "type": "when",
+      "pattern": "обновить данные в таблице \"{table_name}\" базы \"{db_name}\" где \"{condition}\":",
+      "function_name": "update_data_in_table",
+      "docstring": "Обновление данных в таблице.",
+      "source_file": "database_steps.py",
+      "line_number": 341
+    },
+    {
+      "type": "when",
+      "pattern": "удалить данные из таблицы \"{table_name}\" базы \"{db_name}\" где \"{condition}\"",
+      "function_name": "delete_data_from_table",
+      "docstring": "Удаление данных из таблицы.",
+      "source_file": "database_steps.py",
+      "line_number": 354
+    },
+    {
+      "type": "when",
+      "pattern": "экспортировать результат запроса в файл \"{file_path}\"",
+      "function_name": "export_query_result",
+      "docstring": "Экспорт результата запроса в файл.",
+      "source_file": "database_steps.py",
+      "line_number": 366
+    },
+    {
+      "type": "when",
+      "pattern": "импортировать данные из файла \"{file_path}\" в таблицу \"{table_name}\" базы \"{db_name}\"",
+      "function_name": "import_data_from_file",
+      "docstring": "Импорт данных из файла в таблицу.",
+      "source_file": "database_steps.py",
+      "line_number": 372
+    },
+    {
+      "type": "when",
+      "pattern": "создать индекс \"{index_name}\" на таблице \"{table_name}\" базы \"{db_name}\" для колонок \"{columns}\"",
+      "function_name": "create_index",
+      "docstring": "Создание индекса.",
+      "source_file": "database_steps.py",
+      "line_number": 384
+    },
+    {
+      "type": "when",
+      "pattern": "удалить индекс \"{index_name}\" с таблицы \"{table_name}\" базы \"{db_name}\"",
+      "function_name": "drop_index",
+      "docstring": "Удаление индекса.",
+      "source_file": "database_steps.py",
+      "line_number": 390
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить VACUUM на таблице \"{table_name}\" базы \"{db_name}\"",
+      "function_name": "vacuum_table",
+      "docstring": "Выполнение VACUUM на таблице.",
+      "source_file": "database_steps.py",
+      "line_number": 396
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить ANALYZE на таблице \"{table_name}\" базы \"{db_name}\"",
+      "function_name": "analyze_table",
+      "docstring": "Выполнение ANALYZE на таблице.",
+      "source_file": "database_steps.py",
+      "line_number": 402
+    },
+    {
+      "type": "when",
+      "pattern": "заблокировать таблицу \"{table_name}\" в базе \"{db_name}\" в режиме \"{lock_mode}\"",
+      "function_name": "lock_table",
+      "docstring": "Блокировка таблицы.",
+      "source_file": "database_steps.py",
+      "line_number": 408
+    },
+    {
+      "type": "when",
+      "pattern": "разблокировать таблицу \"{table_name}\" в базе \"{db_name}\"",
+      "function_name": "unlock_table",
+      "docstring": "Разблокировка таблицы.",
+      "source_file": "database_steps.py",
+      "line_number": 414
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить запрос с параметрами в базу \"{db_name}\":",
+      "function_name": "execute_parameterized_query",
+      "docstring": "Выполнение параметризованного запроса.",
+      "source_file": "database_steps.py",
+      "line_number": 420
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить запрос с подстановкой переменных в базу \"{db_name}\":",
+      "function_name": "execute_query_with_variables",
+      "docstring": "Выполнение запроса с подстановкой переменных.",
+      "source_file": "database_steps.py",
+      "line_number": 433
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса содержит {count:d} строк",
+      "function_name": "check_row_count",
+      "docstring": "Проверка количества строк в результате.",
+      "source_file": "database_steps.py",
+      "line_number": 454
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса содержит более {count:d} строк",
+      "function_name": "check_row_count_greater",
+      "docstring": "Проверка что строк больше указанного количества.",
+      "source_file": "database_steps.py",
+      "line_number": 462
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса содержит менее {count:d} строк",
+      "function_name": "check_row_count_less",
+      "docstring": "Проверка что строк меньше указанного количества.",
+      "source_file": "database_steps.py",
+      "line_number": 470
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса не пустой",
+      "function_name": "check_result_not_empty",
+      "docstring": "Проверка что результат не пустой.",
+      "source_file": "database_steps.py",
+      "line_number": 478
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса пустой",
+      "function_name": "check_result_empty",
+      "docstring": "Проверка что результат пустой.",
+      "source_file": "database_steps.py",
+      "line_number": 486
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса содержит колонку \"{column_name}\"",
+      "function_name": "check_column_exists",
+      "docstring": "Проверка наличия колонки в результате.",
+      "source_file": "database_steps.py",
+      "line_number": 494
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса содержит значение \"{value}\" в колонке \"{column_name}\"",
+      "function_name": "check_column_value",
+      "docstring": "Проверка значения в колонке.",
+      "source_file": "database_steps.py",
+      "line_number": 503
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса в первой строке содержит \"{value}\" в колонке \"{column_name}\"",
+      "function_name": "check_first_row_value",
+      "docstring": "Проверка значения в первой строке.",
+      "source_file": "database_steps.py",
+      "line_number": 512
+    },
+    {
+      "type": "then",
+      "pattern": "количество затронутых строк равно {count:d}",
+      "function_name": "check_affected_rows",
+      "docstring": "Проверка количества затронутых строк.",
+      "source_file": "database_steps.py",
+      "line_number": 521
+    },
+    {
+      "type": "then",
+      "pattern": "количество затронутых строк больше {count:d}",
+      "function_name": "check_affected_rows_greater",
+      "docstring": "Проверка что затронуто больше строк.",
+      "source_file": "database_steps.py",
+      "line_number": 529
+    },
+    {
+      "type": "then",
+      "pattern": "ID вставленной записи сохранен в переменную \"{var_name}\"",
+      "function_name": "save_inserted_id",
+      "docstring": "Сохранение ID вставленной записи.",
+      "source_file": "database_steps.py",
+      "line_number": 537
+    },
+    {
+      "type": "then",
+      "pattern": "значение колонки \"{column_name}\" из первой строки сохранено в переменную \"{var_name}\"",
+      "function_name": "save_column_value",
+      "docstring": "Сохранение значения колонки в переменную.",
+      "source_file": "database_steps.py",
+      "line_number": 545
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса соответствует данным:",
+      "function_name": "check_result_matches_data",
+      "docstring": "Проверка соответствия результата данным.",
+      "source_file": "database_steps.py",
+      "line_number": 555
+    },
+    {
+      "type": "then",
+      "pattern": "результат запроса содержит данные:",
+      "function_name": "check_result_contains_data",
+      "docstring": "Проверка что результат содержит данные.",
+      "source_file": "database_steps.py",
+      "line_number": 562
+    },
+    {
+      "type": "then",
+      "pattern": "таблица \"{table_name}\" в базе \"{db_name}\" существует",
+      "function_name": "check_table_exists",
+      "docstring": "Проверка существования таблицы.",
+      "source_file": "database_steps.py",
+      "line_number": 569
+    },
+    {
+      "type": "then",
+      "pattern": "таблица \"{table_name}\" в базе \"{db_name}\" не существует",
+      "function_name": "check_table_not_exists",
+      "docstring": "Проверка отсутствия таблицы.",
+      "source_file": "database_steps.py",
+      "line_number": 576
+    },
+    {
+      "type": "then",
+      "pattern": "таблица \"{table_name}\" в базе \"{db_name}\" содержит {count:d} записей",
+      "function_name": "check_table_record_count",
+      "docstring": "Проверка количества записей в таблице.",
+      "source_file": "database_steps.py",
+      "line_number": 583
+    },
+    {
+      "type": "then",
+      "pattern": "таблица \"{table_name}\" в базе \"{db_name}\" пустая",
+      "function_name": "check_table_empty",
+      "docstring": "Проверка что таблица пустая.",
+      "source_file": "database_steps.py",
+      "line_number": 590
+    },
+    {
+      "type": "then",
+      "pattern": "индекс \"{index_name}\" существует на таблице \"{table_name}\" базы \"{db_name}\"",
+      "function_name": "check_index_exists",
+      "docstring": "Проверка существования индекса.",
+      "source_file": "database_steps.py",
+      "line_number": 597
+    },
+    {
+      "type": "then",
+      "pattern": "индекс \"{index_name}\" не существует на таблице \"{table_name}\" базы \"{db_name}\"",
+      "function_name": "check_index_not_exists",
+      "docstring": "Проверка отсутствия индекса.",
+      "source_file": "database_steps.py",
+      "line_number": 604
+    },
+    {
+      "type": "then",
+      "pattern": "транзакция в базе \"{db_name}\" активна",
+      "function_name": "check_transaction_active",
+      "docstring": "Проверка что транзакция активна.",
+      "source_file": "database_steps.py",
+      "line_number": 611
+    },
+    {
+      "type": "then",
+      "pattern": "транзакция в базе \"{db_name}\" не активна",
+      "function_name": "check_transaction_not_active",
+      "docstring": "Проверка что транзакция не активна.",
+      "source_file": "database_steps.py",
+      "line_number": 619
+    },
+    {
+      "type": "then",
+      "pattern": "время выполнения запроса меньше {max_time:d} миллисекунд",
+      "function_name": "check_query_execution_time",
+      "docstring": "Проверка времени выполнения запроса.",
+      "source_file": "database_steps.py",
+      "line_number": 627
+    },
+    {
+      "type": "then",
+      "pattern": "время выполнения запроса меньше {max_time:d} секунд",
+      "function_name": "check_query_execution_time_seconds",
+      "docstring": "Проверка времени выполнения запроса в секундах.",
+      "source_file": "database_steps.py",
+      "line_number": 634
+    },
+    {
+      "type": "then",
+      "pattern": "подключение к базе \"{db_name}\" активно",
+      "function_name": "check_connection_active",
+      "docstring": "Проверка активности подключения.",
+      "source_file": "database_steps.py",
+      "line_number": 641
+    },
+    {
+      "type": "then",
+      "pattern": "закрыть подключение к базе \"{db_name}\"",
+      "function_name": "close_db_connection",
+      "docstring": "Закрытие подключения к базе данных.",
+      "source_file": "database_steps.py",
+      "line_number": 649
+    },
+    {
+      "type": "then",
+      "pattern": "вывести результат запроса",
+      "function_name": "print_query_result",
+      "docstring": "Вывод результата запроса.",
+      "source_file": "database_steps.py",
+      "line_number": 657
+    },
+    {
+      "type": "given",
+      "pattern": "открыт браузер \"{browser_name}\"",
+      "function_name": "open_browser",
+      "docstring": "Открытие браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 16
+    },
+    {
+      "type": "given",
+      "pattern": "открыт браузер \"{browser_name}\" в режиме \"{mode}\"",
+      "function_name": "open_browser_with_mode",
+      "docstring": "Открытие браузера в определенном режиме.",
+      "source_file": "ui_steps.py",
+      "line_number": 26
+    },
+    {
+      "type": "given",
+      "pattern": "установлен размер окна {width:d}x{height:d}",
+      "function_name": "set_window_size",
+      "docstring": "Установка размера окна браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 37
+    },
+    {
+      "type": "given",
+      "pattern": "браузер развернут на весь экран",
+      "function_name": "maximize_browser",
+      "docstring": "Разворачивание браузера на весь экран.",
+      "source_file": "ui_steps.py",
+      "line_number": 44
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут ожидания элементов {timeout:d} секунд",
+      "function_name": "set_element_timeout",
+      "docstring": "Установка таймаута ожидания элементов.",
+      "source_file": "ui_steps.py",
+      "line_number": 51
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут загрузки страницы {timeout:d} секунд",
+      "function_name": "set_page_load_timeout",
+      "docstring": "Установка таймаута загрузки страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 58
+    },
+    {
+      "type": "given",
+      "pattern": "установлен таймаут выполнения скриптов {timeout:d} секунд",
+      "function_name": "set_script_timeout",
+      "docstring": "Установка таймаута выполнения скриптов.",
+      "source_file": "ui_steps.py",
+      "line_number": 65
+    },
+    {
+      "type": "given",
+      "pattern": "включен режим мобильной эмуляции \"{device_name}\"",
+      "function_name": "enable_mobile_emulation",
+      "docstring": "Включение режима мобильной эмуляции.",
+      "source_file": "ui_steps.py",
+      "line_number": 72
+    },
+    {
+      "type": "given",
+      "pattern": "установлен User-Agent \"{user_agent}\"",
+      "function_name": "set_browser_user_agent",
+      "docstring": "Установка User-Agent браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 79
+    },
+    {
+      "type": "given",
+      "pattern": "установлен язык браузера \"{language}\"",
+      "function_name": "set_browser_language",
+      "docstring": "Установка языка браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 86
+    },
+    {
+      "type": "given",
+      "pattern": "включен режим инкогнито",
+      "function_name": "enable_incognito_mode",
+      "docstring": "Включение режима инкогнито.",
+      "source_file": "ui_steps.py",
+      "line_number": 93
+    },
+    {
+      "type": "given",
+      "pattern": "отключены уведомления браузера",
+      "function_name": "disable_browser_notifications",
+      "docstring": "Отключение уведомлений браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 100
+    },
+    {
+      "type": "given",
+      "pattern": "отключены всплывающие окна",
+      "function_name": "disable_popups",
+      "docstring": "Отключение всплывающих окон.",
+      "source_file": "ui_steps.py",
+      "line_number": 107
+    },
+    {
+      "type": "given",
+      "pattern": "установлен прокси \"{proxy_url}\" для браузера",
+      "function_name": "set_browser_proxy",
+      "docstring": "Установка прокси для браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 114
+    },
+    {
+      "type": "given",
+      "pattern": "загружено расширение браузера \"{extension_path}\"",
+      "function_name": "load_browser_extension",
+      "docstring": "Загрузка расширения браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 121
+    },
+    {
+      "type": "given",
+      "pattern": "пользователь авторизован в системе",
+      "function_name": "user_is_authenticated",
+      "docstring": "Предусловие: пользователь авторизован.",
+      "source_file": "ui_steps.py",
+      "line_number": 130
+    },
+    {
+      "type": "given",
+      "pattern": "пользователь авторизован как \"{role}\"",
+      "function_name": "user_is_authenticated_as_role",
+      "docstring": "Предусловие: пользователь авторизован с ролью.",
+      "source_file": "ui_steps.py",
+      "line_number": 137
+    },
+    {
+      "type": "when",
+      "pattern": "открыть страницу \"{url}\"",
+      "function_name": "open_page",
+      "docstring": "Открытие страницы по URL.",
+      "source_file": "ui_steps.py",
+      "line_number": 148
+    },
+    {
+      "type": "when",
+      "pattern": "открыть страницу \"{url}\" в новой вкладке",
+      "function_name": "open_page_in_new_tab",
+      "docstring": "Открытие страницы в новой вкладке.",
+      "source_file": "ui_steps.py",
+      "line_number": 155
+    },
+    {
+      "type": "when",
+      "pattern": "перейти назад",
+      "function_name": "navigate_back",
+      "docstring": "Переход на предыдущую страницу.",
+      "source_file": "ui_steps.py",
+      "line_number": 165
+    },
+    {
+      "type": "when",
+      "pattern": "перейти вперед",
+      "function_name": "navigate_forward",
+      "docstring": "Переход на следующую страницу.",
+      "source_file": "ui_steps.py",
+      "line_number": 171
+    },
+    {
+      "type": "when",
+      "pattern": "обновить страницу",
+      "function_name": "refresh_page",
+      "docstring": "Обновление страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 177
+    },
+    {
+      "type": "when",
+      "pattern": "принудительно обновить страницу",
+      "function_name": "hard_refresh_page",
+      "docstring": "Принудительное обновление страницы (без кэша).",
+      "source_file": "ui_steps.py",
+      "line_number": 183
+    },
+    {
+      "type": "when",
+      "pattern": "переключиться на вкладку {tab_index:d}",
+      "function_name": "switch_to_tab",
+      "docstring": "Переключение на вкладку по индексу.",
+      "source_file": "ui_steps.py",
+      "line_number": 189
+    },
+    {
+      "type": "when",
+      "pattern": "переключиться на вкладку с URL содержащим \"{url_part}\"",
+      "function_name": "switch_to_tab_by_url",
+      "docstring": "Переключение на вкладку по части URL.",
+      "source_file": "ui_steps.py",
+      "line_number": 195
+    },
+    {
+      "type": "when",
+      "pattern": "закрыть текущую вкладку",
+      "function_name": "close_current_tab",
+      "docstring": "Закрытие текущей вкладки.",
+      "source_file": "ui_steps.py",
+      "line_number": 201
+    },
+    {
+      "type": "when",
+      "pattern": "закрыть все вкладки кроме текущей",
+      "function_name": "close_other_tabs",
+      "docstring": "Закрытие всех вкладок кроме текущей.",
+      "source_file": "ui_steps.py",
+      "line_number": 207
+    },
+    {
+      "type": "when",
+      "pattern": "переключиться на iframe \"{iframe_selector}\"",
+      "function_name": "switch_to_iframe",
+      "docstring": "Переключение на iframe.",
+      "source_file": "ui_steps.py",
+      "line_number": 213
+    },
+    {
+      "type": "when",
+      "pattern": "переключиться на основной контент",
+      "function_name": "switch_to_default_content",
+      "docstring": "Переключение на основной контент из iframe.",
+      "source_file": "ui_steps.py",
+      "line_number": 219
+    },
+    {
+      "type": "when",
+      "pattern": "переключиться на родительский фрейм",
+      "function_name": "switch_to_parent_frame",
+      "docstring": "Переключение на родительский фрейм.",
+      "source_file": "ui_steps.py",
+      "line_number": 225
+    },
+    {
+      "type": "when",
+      "pattern": "Логин в систему: логин {login}, пароль {password}",
+      "function_name": "login_to_system",
+      "docstring": "Авторизация в системе.",
+      "source_file": "ui_steps.py",
+      "line_number": 235
+    },
+    {
+      "type": "when",
+      "pattern": "ввести логин \"{login}\"",
+      "function_name": "enter_login",
+      "docstring": "Ввод логина.",
+      "source_file": "ui_steps.py",
+      "line_number": 248
+    },
+    {
+      "type": "when",
+      "pattern": "ввести пароль \"{password}\"",
+      "function_name": "enter_password",
+      "docstring": "Ввод пароля.",
+      "source_file": "ui_steps.py",
+      "line_number": 254
+    },
+    {
+      "type": "when",
+      "pattern": "нажать кнопку входа",
+      "function_name": "click_login_button",
+      "docstring": "Нажатие кнопки входа.",
+      "source_file": "ui_steps.py",
+      "line_number": 260
+    },
+    {
+      "type": "when",
+      "pattern": "выйти из системы",
+      "function_name": "logout",
+      "docstring": "Выход из системы.",
+      "source_file": "ui_steps.py",
+      "line_number": 267
+    },
+    {
+      "type": "when",
+      "pattern": "авторизоваться через SSO",
+      "function_name": "login_via_sso",
+      "docstring": "Авторизация через SSO.",
+      "source_file": "ui_steps.py",
+      "line_number": 274
+    },
+    {
+      "type": "when",
+      "pattern": "авторизоваться через OAuth провайдер \"{provider}\"",
+      "function_name": "login_via_oauth",
+      "docstring": "Авторизация через OAuth провайдер.",
+      "source_file": "ui_steps.py",
+      "line_number": 281
+    },
+    {
+      "type": "when",
+      "pattern": "кликнуть на элемент \"{selector}\"",
+      "function_name": "click_element",
+      "docstring": "Клик на элемент.",
+      "source_file": "ui_steps.py",
+      "line_number": 292
+    },
+    {
+      "type": "when",
+      "pattern": "кликнуть на элемент с текстом \"{text}\"",
+      "function_name": "click_element_by_text",
+      "docstring": "Клик на элемент по тексту.",
+      "source_file": "ui_steps.py",
+      "line_number": 298
+    },
+    {
+      "type": "when",
+      "pattern": "дважды кликнуть на элемент \"{selector}\"",
+      "function_name": "double_click_element",
+      "docstring": "Двойной клик на элемент.",
+      "source_file": "ui_steps.py",
+      "line_number": 304
+    },
+    {
+      "type": "when",
+      "pattern": "кликнуть правой кнопкой на элемент \"{selector}\"",
+      "function_name": "right_click_element",
+      "docstring": "Клик правой кнопкой на элемент.",
+      "source_file": "ui_steps.py",
+      "line_number": 310
+    },
+    {
+      "type": "when",
+      "pattern": "навести курсор на элемент \"{selector}\"",
+      "function_name": "hover_element",
+      "docstring": "Наведение курсора на элемент.",
+      "source_file": "ui_steps.py",
+      "line_number": 316
+    },
+    {
+      "type": "when",
+      "pattern": "ввести текст \"{text}\" в поле \"{selector}\"",
+      "function_name": "enter_text",
+      "docstring": "Ввод текста в поле.",
+      "source_file": "ui_steps.py",
+      "line_number": 322
+    },
+    {
+      "type": "when",
+      "pattern": "очистить поле \"{selector}\"",
+      "function_name": "clear_field",
+      "docstring": "Очистка поля.",
+      "source_file": "ui_steps.py",
+      "line_number": 328
+    },
+    {
+      "type": "when",
+      "pattern": "очистить и ввести текст \"{text}\" в поле \"{selector}\"",
+      "function_name": "clear_and_enter_text",
+      "docstring": "Очистка поля и ввод текста.",
+      "source_file": "ui_steps.py",
+      "line_number": 334
+    },
+    {
+      "type": "when",
+      "pattern": "добавить текст \"{text}\" в поле \"{selector}\"",
+      "function_name": "append_text",
+      "docstring": "Добавление текста в поле.",
+      "source_file": "ui_steps.py",
+      "line_number": 340
+    },
+    {
+      "type": "when",
+      "pattern": "нажать клавишу \"{key}\"",
+      "function_name": "press_key",
+      "docstring": "Нажатие клавиши.",
+      "source_file": "ui_steps.py",
+      "line_number": 346
+    },
+    {
+      "type": "when",
+      "pattern": "нажать комбинацию клавиш \"{keys}\"",
+      "function_name": "press_key_combination",
+      "docstring": "Нажатие комбинации клавиш.",
+      "source_file": "ui_steps.py",
+      "line_number": 352
+    },
+    {
+      "type": "when",
+      "pattern": "нажать Enter в поле \"{selector}\"",
+      "function_name": "press_enter_in_field",
+      "docstring": "Нажатие Enter в поле.",
+      "source_file": "ui_steps.py",
+      "line_number": 358
+    },
+    {
+      "type": "when",
+      "pattern": "нажать Tab в поле \"{selector}\"",
+      "function_name": "press_tab_in_field",
+      "docstring": "Нажатие Tab в поле.",
+      "source_file": "ui_steps.py",
+      "line_number": 364
+    },
+    {
+      "type": "when",
+      "pattern": "выбрать значение \"{value}\" в выпадающем списке \"{selector}\"",
+      "function_name": "select_dropdown_value",
+      "docstring": "Выбор значения в выпадающем списке.",
+      "source_file": "ui_steps.py",
+      "line_number": 370
+    },
+    {
+      "type": "when",
+      "pattern": "выбрать значение по индексу {index:d} в выпадающем списке \"{selector}\"",
+      "function_name": "select_dropdown_by_index",
+      "docstring": "Выбор значения по индексу в выпадающем списке.",
+      "source_file": "ui_steps.py",
+      "line_number": 376
+    },
+    {
+      "type": "when",
+      "pattern": "выбрать несколько значений в списке \"{selector}\":",
+      "function_name": "select_multiple_values",
+      "docstring": "Выбор нескольких значений в списке.",
+      "source_file": "ui_steps.py",
+      "line_number": 382
+    },
+    {
+      "type": "when",
+      "pattern": "установить чекбокс \"{selector}\"",
+      "function_name": "check_checkbox",
+      "docstring": "Установка чекбокса.",
+      "source_file": "ui_steps.py",
+      "line_number": 389
+    },
+    {
+      "type": "when",
+      "pattern": "снять чекбокс \"{selector}\"",
+      "function_name": "uncheck_checkbox",
+      "docstring": "Снятие чекбокса.",
+      "source_file": "ui_steps.py",
+      "line_number": 395
+    },
+    {
+      "type": "when",
+      "pattern": "переключить чекбокс \"{selector}\"",
+      "function_name": "toggle_checkbox",
+      "docstring": "Переключение чекбокса.",
+      "source_file": "ui_steps.py",
+      "line_number": 401
+    },
+    {
+      "type": "when",
+      "pattern": "выбрать радиокнопку \"{selector}\"",
+      "function_name": "select_radio_button",
+      "docstring": "Выбор радиокнопки.",
+      "source_file": "ui_steps.py",
+      "line_number": 407
+    },
+    {
+      "type": "when",
+      "pattern": "загрузить файл \"{file_path}\" в поле \"{selector}\"",
+      "function_name": "upload_file",
+      "docstring": "Загрузка файла.",
+      "source_file": "ui_steps.py",
+      "line_number": 413
+    },
+    {
+      "type": "when",
+      "pattern": "загрузить файлы в поле \"{selector}\":",
+      "function_name": "upload_multiple_files",
+      "docstring": "Загрузка нескольких файлов.",
+      "source_file": "ui_steps.py",
+      "line_number": 419
+    },
+    {
+      "type": "when",
+      "pattern": "перетащить элемент \"{source}\" на элемент \"{target}\"",
+      "function_name": "drag_and_drop",
+      "docstring": "Перетаскивание элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 426
+    },
+    {
+      "type": "when",
+      "pattern": "прокрутить страницу вниз на {pixels:d} пикселей",
+      "function_name": "scroll_down",
+      "docstring": "Прокрутка страницы вниз.",
+      "source_file": "ui_steps.py",
+      "line_number": 432
+    },
+    {
+      "type": "when",
+      "pattern": "прокрутить страницу вверх на {pixels:d} пикселей",
+      "function_name": "scroll_up",
+      "docstring": "Прокрутка страницы вверх.",
+      "source_file": "ui_steps.py",
+      "line_number": 438
+    },
+    {
+      "type": "when",
+      "pattern": "прокрутить к элементу \"{selector}\"",
+      "function_name": "scroll_to_element",
+      "docstring": "Прокрутка к элементу.",
+      "source_file": "ui_steps.py",
+      "line_number": 444
+    },
+    {
+      "type": "when",
+      "pattern": "прокрутить в начало страницы",
+      "function_name": "scroll_to_top",
+      "docstring": "Прокрутка в начало страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 450
+    },
+    {
+      "type": "when",
+      "pattern": "прокрутить в конец страницы",
+      "function_name": "scroll_to_bottom",
+      "docstring": "Прокрутка в конец страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 456
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать {seconds:d} секунд",
+      "function_name": "wait_seconds",
+      "docstring": "Ожидание указанное количество секунд.",
+      "source_file": "ui_steps.py",
+      "line_number": 466
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать появления элемента \"{selector}\"",
+      "function_name": "wait_for_element_visible",
+      "docstring": "Ожидание появления элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 472
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать появления элемента \"{selector}\" в течение {timeout:d} секунд",
+      "function_name": "wait_for_element_visible_timeout",
+      "docstring": "Ожидание появления элемента с таймаутом.",
+      "source_file": "ui_steps.py",
+      "line_number": 478
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать исчезновения элемента \"{selector}\"",
+      "function_name": "wait_for_element_invisible",
+      "docstring": "Ожидание исчезновения элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 484
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать исчезновения элемента \"{selector}\" в течение {timeout:d} секунд",
+      "function_name": "wait_for_element_invisible_timeout",
+      "docstring": "Ожидание исчезновения элемента с таймаутом.",
+      "source_file": "ui_steps.py",
+      "line_number": 490
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать кликабельности элемента \"{selector}\"",
+      "function_name": "wait_for_element_clickable",
+      "docstring": "Ожидание кликабельности элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 496
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать загрузки страницы",
+      "function_name": "wait_for_page_load",
+      "docstring": "Ожидание загрузки страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 502
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать завершения AJAX запросов",
+      "function_name": "wait_for_ajax",
+      "docstring": "Ожидание завершения AJAX запросов.",
+      "source_file": "ui_steps.py",
+      "line_number": 508
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать текст \"{text}\" на странице",
+      "function_name": "wait_for_text",
+      "docstring": "Ожидание появления текста на странице.",
+      "source_file": "ui_steps.py",
+      "line_number": 514
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать текст \"{text}\" в элементе \"{selector}\"",
+      "function_name": "wait_for_text_in_element",
+      "docstring": "Ожидание появления текста в элементе.",
+      "source_file": "ui_steps.py",
+      "line_number": 520
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать изменения URL на \"{url}\"",
+      "function_name": "wait_for_url",
+      "docstring": "Ожидание изменения URL.",
+      "source_file": "ui_steps.py",
+      "line_number": 526
+    },
+    {
+      "type": "when",
+      "pattern": "ожидать URL содержащий \"{url_part}\"",
+      "function_name": "wait_for_url_contains",
+      "docstring": "Ожидание URL содержащего подстроку.",
+      "source_file": "ui_steps.py",
+      "line_number": 532
+    },
+    {
+      "type": "when",
+      "pattern": "Сформировать отчет",
+      "function_name": "generate_report",
+      "docstring": "Формирование отчета с параметрами из таблицы.",
+      "source_file": "ui_steps.py",
+      "line_number": 542
+    },
+    {
+      "type": "when",
+      "pattern": "заполнить форму:",
+      "function_name": "fill_form",
+      "docstring": "Заполнение формы из таблицы.",
+      "source_file": "ui_steps.py",
+      "line_number": 554
+    },
+    {
+      "type": "when",
+      "pattern": "заполнить форму данными:",
+      "function_name": "fill_form_with_data",
+      "docstring": "Заполнение формы данными из docstring.",
+      "source_file": "ui_steps.py",
+      "line_number": 560
+    },
+    {
+      "type": "when",
+      "pattern": "отправить форму",
+      "function_name": "submit_form",
+      "docstring": "Отправка формы.",
+      "source_file": "ui_steps.py",
+      "line_number": 566
+    },
+    {
+      "type": "when",
+      "pattern": "отправить форму \"{form_selector}\"",
+      "function_name": "submit_specific_form",
+      "docstring": "Отправка конкретной формы.",
+      "source_file": "ui_steps.py",
+      "line_number": 572
+    },
+    {
+      "type": "when",
+      "pattern": "сбросить форму",
+      "function_name": "reset_form",
+      "docstring": "Сброс формы.",
+      "source_file": "ui_steps.py",
+      "line_number": 578
+    },
+    {
+      "type": "when",
+      "pattern": "сбросить форму \"{form_selector}\"",
+      "function_name": "reset_specific_form",
+      "docstring": "Сброс конкретной формы.",
+      "source_file": "ui_steps.py",
+      "line_number": 584
+    },
+    {
+      "type": "when",
+      "pattern": "выбрать дату \"{date}\" в календаре \"{selector}\"",
+      "function_name": "select_date",
+      "docstring": "Выбор даты в календаре.",
+      "source_file": "ui_steps.py",
+      "line_number": 590
+    },
+    {
+      "type": "when",
+      "pattern": "выбрать диапазон дат с \"{start_date}\" по \"{end_date}\" в календаре \"{selector}\"",
+      "function_name": "select_date_range",
+      "docstring": "Выбор диапазона дат в календаре.",
+      "source_file": "ui_steps.py",
+      "line_number": 596
+    },
+    {
+      "type": "when",
+      "pattern": "установить время \"{time}\" в поле \"{selector}\"",
+      "function_name": "set_time",
+      "docstring": "Установка времени в поле.",
+      "source_file": "ui_steps.py",
+      "line_number": 602
+    },
+    {
+      "type": "when",
+      "pattern": "установить значение слайдера \"{selector}\" на {value:d}",
+      "function_name": "set_slider_value",
+      "docstring": "Установка значения слайдера.",
+      "source_file": "ui_steps.py",
+      "line_number": 608
+    },
+    {
+      "type": "when",
+      "pattern": "кликнуть на строку {row:d} в таблице \"{table_selector}\"",
+      "function_name": "click_table_row",
+      "docstring": "Клик на строку в таблице.",
+      "source_file": "ui_steps.py",
+      "line_number": 618
+    },
+    {
+      "type": "when",
+      "pattern": "кликнуть на ячейку в строке {row:d} колонке {col:d} таблицы \"{table_selector}\"",
+      "function_name": "click_table_cell",
+      "docstring": "Клик на ячейку в таблице.",
+      "source_file": "ui_steps.py",
+      "line_number": 624
+    },
+    {
+      "type": "when",
+      "pattern": "отсортировать таблицу \"{table_selector}\" по колонке \"{column}\"",
+      "function_name": "sort_table_by_column",
+      "docstring": "Сортировка таблицы по колонке.",
+      "source_file": "ui_steps.py",
+      "line_number": 630
+    },
+    {
+      "type": "when",
+      "pattern": "отфильтровать таблицу \"{table_selector}\" по значению \"{value}\" в колонке \"{column}\"",
+      "function_name": "filter_table",
+      "docstring": "Фильтрация таблицы.",
+      "source_file": "ui_steps.py",
+      "line_number": 636
+    },
+    {
+      "type": "when",
+      "pattern": "перейти на страницу {page:d} в таблице \"{table_selector}\"",
+      "function_name": "go_to_table_page",
+      "docstring": "Переход на страницу в таблице.",
+      "source_file": "ui_steps.py",
+      "line_number": 642
+    },
+    {
+      "type": "when",
+      "pattern": "установить количество строк на странице {count:d} в таблице \"{table_selector}\"",
+      "function_name": "set_table_page_size",
+      "docstring": "Установка количества строк на странице.",
+      "source_file": "ui_steps.py",
+      "line_number": 648
+    },
+    {
+      "type": "when",
+      "pattern": "выбрать все строки в таблице \"{table_selector}\"",
+      "function_name": "select_all_table_rows",
+      "docstring": "Выбор всех строк в таблице.",
+      "source_file": "ui_steps.py",
+      "line_number": 654
+    },
+    {
+      "type": "when",
+      "pattern": "снять выбор со всех строк в таблице \"{table_selector}\"",
+      "function_name": "deselect_all_table_rows",
+      "docstring": "Снятие выбора со всех строк в таблице.",
+      "source_file": "ui_steps.py",
+      "line_number": 660
+    },
+    {
+      "type": "when",
+      "pattern": "подтвердить диалоговое окно",
+      "function_name": "accept_dialog",
+      "docstring": "Подтверждение диалогового окна.",
+      "source_file": "ui_steps.py",
+      "line_number": 670
+    },
+    {
+      "type": "when",
+      "pattern": "отклонить диалоговое окно",
+      "function_name": "dismiss_dialog",
+      "docstring": "Отклонение диалогового окна.",
+      "source_file": "ui_steps.py",
+      "line_number": 676
+    },
+    {
+      "type": "when",
+      "pattern": "ввести текст \"{text}\" в диалоговое окно",
+      "function_name": "enter_text_in_dialog",
+      "docstring": "Ввод текста в диалоговое окно.",
+      "source_file": "ui_steps.py",
+      "line_number": 682
+    },
+    {
+      "type": "when",
+      "pattern": "закрыть модальное окно",
+      "function_name": "close_modal",
+      "docstring": "Закрытие модального окна.",
+      "source_file": "ui_steps.py",
+      "line_number": 688
+    },
+    {
+      "type": "when",
+      "pattern": "закрыть модальное окно \"{modal_selector}\"",
+      "function_name": "close_specific_modal",
+      "docstring": "Закрытие конкретного модального окна.",
+      "source_file": "ui_steps.py",
+      "line_number": 694
+    },
+    {
+      "type": "when",
+      "pattern": "нажать кнопку \"{button_text}\" в модальном окне",
+      "function_name": "click_modal_button",
+      "docstring": "Нажатие кнопки в модальном окне.",
+      "source_file": "ui_steps.py",
+      "line_number": 700
+    },
+    {
+      "type": "when",
+      "pattern": "сделать скриншот",
+      "function_name": "take_screenshot",
+      "docstring": "Создание скриншота.",
+      "source_file": "ui_steps.py",
+      "line_number": 710
+    },
+    {
+      "type": "when",
+      "pattern": "сделать скриншот с именем \"{name}\"",
+      "function_name": "take_screenshot_with_name",
+      "docstring": "Создание скриншота с именем.",
+      "source_file": "ui_steps.py",
+      "line_number": 718
+    },
+    {
+      "type": "when",
+      "pattern": "сделать скриншот элемента \"{selector}\"",
+      "function_name": "take_element_screenshot",
+      "docstring": "Создание скриншота элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 725
+    },
+    {
+      "type": "when",
+      "pattern": "сделать скриншот всей страницы",
+      "function_name": "take_full_page_screenshot",
+      "docstring": "Создание скриншота всей страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 733
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить JavaScript:",
+      "function_name": "execute_javascript",
+      "docstring": "Выполнение JavaScript кода.",
+      "source_file": "ui_steps.py",
+      "line_number": 741
+    },
+    {
+      "type": "when",
+      "pattern": "выполнить JavaScript \"{script}\"",
+      "function_name": "execute_javascript_inline",
+      "docstring": "Выполнение JavaScript кода (inline).",
+      "source_file": "ui_steps.py",
+      "line_number": 747
+    },
+    {
+      "type": "then",
+      "pattern": "Проверить наличие элемента \"{selector}\" на странице",
+      "function_name": "check_element_presence",
+      "docstring": "Проверка наличия элемента на странице по селектору.",
+      "source_file": "ui_steps.py",
+      "line_number": 757
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" отображается на странице",
+      "function_name": "check_element_visible",
+      "docstring": "Проверка видимости элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 769
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" не отображается на странице",
+      "function_name": "check_element_not_visible",
+      "docstring": "Проверка что элемент не видим.",
+      "source_file": "ui_steps.py",
+      "line_number": 776
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" существует на странице",
+      "function_name": "check_element_exists",
+      "docstring": "Проверка существования элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 783
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" не существует на странице",
+      "function_name": "check_element_not_exists",
+      "docstring": "Проверка отсутствия элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 790
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" активен",
+      "function_name": "check_element_enabled",
+      "docstring": "Проверка что элемент активен.",
+      "source_file": "ui_steps.py",
+      "line_number": 797
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" неактивен",
+      "function_name": "check_element_disabled",
+      "docstring": "Проверка что элемент неактивен.",
+      "source_file": "ui_steps.py",
+      "line_number": 804
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" выбран",
+      "function_name": "check_element_selected",
+      "docstring": "Проверка что элемент выбран.",
+      "source_file": "ui_steps.py",
+      "line_number": 811
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" не выбран",
+      "function_name": "check_element_not_selected",
+      "docstring": "Проверка что элемент не выбран.",
+      "source_file": "ui_steps.py",
+      "line_number": 818
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" содержит текст \"{text}\"",
+      "function_name": "check_element_text",
+      "docstring": "Проверка текста элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 825
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" имеет точный текст \"{text}\"",
+      "function_name": "check_element_exact_text",
+      "docstring": "Проверка точного текста элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 832
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" не содержит текст \"{text}\"",
+      "function_name": "check_element_not_contains_text",
+      "docstring": "Проверка что элемент не содержит текст.",
+      "source_file": "ui_steps.py",
+      "line_number": 839
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" имеет значение \"{value}\"",
+      "function_name": "check_element_value",
+      "docstring": "Проверка значения элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 846
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" имеет атрибут \"{attribute}\" со значением \"{value}\"",
+      "function_name": "check_element_attribute",
+      "docstring": "Проверка атрибута элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 853
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" имеет CSS свойство \"{property}\" со значением \"{value}\"",
+      "function_name": "check_element_css",
+      "docstring": "Проверка CSS свойства элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 860
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" имеет класс \"{class_name}\"",
+      "function_name": "check_element_has_class",
+      "docstring": "Проверка наличия класса у элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 867
+    },
+    {
+      "type": "then",
+      "pattern": "элемент \"{selector}\" не имеет класс \"{class_name}\"",
+      "function_name": "check_element_not_has_class",
+      "docstring": "Проверка отсутствия класса у элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 874
+    },
+    {
+      "type": "then",
+      "pattern": "количество элементов \"{selector}\" равно {count:d}",
+      "function_name": "check_elements_count",
+      "docstring": "Проверка количества элементов.",
+      "source_file": "ui_steps.py",
+      "line_number": 881
+    },
+    {
+      "type": "then",
+      "pattern": "количество элементов \"{selector}\" больше {count:d}",
+      "function_name": "check_elements_count_greater",
+      "docstring": "Проверка что элементов больше указанного количества.",
+      "source_file": "ui_steps.py",
+      "line_number": 888
+    },
+    {
+      "type": "then",
+      "pattern": "количество элементов \"{selector}\" меньше {count:d}",
+      "function_name": "check_elements_count_less",
+      "docstring": "Проверка что элементов меньше указанного количества.",
+      "source_file": "ui_steps.py",
+      "line_number": 895
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок страницы равен \"{title}\"",
+      "function_name": "check_page_title",
+      "docstring": "Проверка заголовка страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 906
+    },
+    {
+      "type": "then",
+      "pattern": "заголовок страницы содержит \"{text}\"",
+      "function_name": "check_page_title_contains",
+      "docstring": "Проверка что заголовок содержит текст.",
+      "source_file": "ui_steps.py",
+      "line_number": 913
+    },
+    {
+      "type": "then",
+      "pattern": "URL страницы равен \"{url}\"",
+      "function_name": "check_page_url",
+      "docstring": "Проверка URL страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 920
+    },
+    {
+      "type": "then",
+      "pattern": "URL страницы содержит \"{url_part}\"",
+      "function_name": "check_page_url_contains",
+      "docstring": "Проверка что URL содержит подстроку.",
+      "source_file": "ui_steps.py",
+      "line_number": 927
+    },
+    {
+      "type": "then",
+      "pattern": "URL страницы соответствует паттерну \"{pattern}\"",
+      "function_name": "check_page_url_matches",
+      "docstring": "Проверка URL по паттерну.",
+      "source_file": "ui_steps.py",
+      "line_number": 934
+    },
+    {
+      "type": "then",
+      "pattern": "страница содержит текст \"{text}\"",
+      "function_name": "check_page_contains_text",
+      "docstring": "Проверка наличия текста на странице.",
+      "source_file": "ui_steps.py",
+      "line_number": 941
+    },
+    {
+      "type": "then",
+      "pattern": "страница не содержит текст \"{text}\"",
+      "function_name": "check_page_not_contains_text",
+      "docstring": "Проверка отсутствия текста на странице.",
+      "source_file": "ui_steps.py",
+      "line_number": 948
+    },
+    {
+      "type": "then",
+      "pattern": "страница загружена полностью",
+      "function_name": "check_page_loaded",
+      "docstring": "Проверка что страница загружена.",
+      "source_file": "ui_steps.py",
+      "line_number": 955
+    },
+    {
+      "type": "then",
+      "pattern": "на странице нет JavaScript ошибок",
+      "function_name": "check_no_js_errors",
+      "docstring": "Проверка отсутствия JavaScript ошибок.",
+      "source_file": "ui_steps.py",
+      "line_number": 962
+    },
+    {
+      "type": "then",
+      "pattern": "на странице нет консольных ошибок",
+      "function_name": "check_no_console_errors",
+      "docstring": "Проверка отсутствия консольных ошибок.",
+      "source_file": "ui_steps.py",
+      "line_number": 969
+    },
+    {
+      "type": "then",
+      "pattern": "таблица \"{table_selector}\" содержит {count:d} строк",
+      "function_name": "check_table_row_count",
+      "docstring": "Проверка количества строк в таблице.",
+      "source_file": "ui_steps.py",
+      "line_number": 980
+    },
+    {
+      "type": "then",
+      "pattern": "таблица \"{table_selector}\" содержит строку с текстом \"{text}\"",
+      "function_name": "check_table_contains_row",
+      "docstring": "Проверка наличия строки с текстом в таблице.",
+      "source_file": "ui_steps.py",
+      "line_number": 987
+    },
+    {
+      "type": "then",
+      "pattern": "ячейка в строке {row:d} колонке {col:d} таблицы \"{table_selector}\" содержит \"{text}\"",
+      "function_name": "check_table_cell_text",
+      "docstring": "Проверка текста в ячейке таблицы.",
+      "source_file": "ui_steps.py",
+      "line_number": 994
+    },
+    {
+      "type": "then",
+      "pattern": "колонка \"{column}\" таблицы \"{table_selector}\" отсортирована по возрастанию",
+      "function_name": "check_table_sorted_asc",
+      "docstring": "Проверка сортировки колонки по возрастанию.",
+      "source_file": "ui_steps.py",
+      "line_number": 1001
+    },
+    {
+      "type": "then",
+      "pattern": "колонка \"{column}\" таблицы \"{table_selector}\" отсортирована по убыванию",
+      "function_name": "check_table_sorted_desc",
+      "docstring": "Проверка сортировки колонки по убыванию.",
+      "source_file": "ui_steps.py",
+      "line_number": 1008
+    },
+    {
+      "type": "then",
+      "pattern": "модальное окно отображается",
+      "function_name": "check_modal_visible",
+      "docstring": "Проверка что модальное окно отображается.",
+      "source_file": "ui_steps.py",
+      "line_number": 1019
+    },
+    {
+      "type": "then",
+      "pattern": "модальное окно \"{modal_selector}\" отображается",
+      "function_name": "check_specific_modal_visible",
+      "docstring": "Проверка что конкретное модальное окно отображается.",
+      "source_file": "ui_steps.py",
+      "line_number": 1026
+    },
+    {
+      "type": "then",
+      "pattern": "модальное окно не отображается",
+      "function_name": "check_modal_not_visible",
+      "docstring": "Проверка что модальное окно не отображается.",
+      "source_file": "ui_steps.py",
+      "line_number": 1033
+    },
+    {
+      "type": "then",
+      "pattern": "модальное окно содержит текст \"{text}\"",
+      "function_name": "check_modal_contains_text",
+      "docstring": "Проверка текста в модальном окне.",
+      "source_file": "ui_steps.py",
+      "line_number": 1040
+    },
+    {
+      "type": "then",
+      "pattern": "поле \"{selector}\" имеет ошибку валидации",
+      "function_name": "check_field_has_error",
+      "docstring": "Проверка наличия ошибки валидации у поля.",
+      "source_file": "ui_steps.py",
+      "line_number": 1051
+    },
+    {
+      "type": "then",
+      "pattern": "поле \"{selector}\" имеет ошибку валидации \"{error_text}\"",
+      "function_name": "check_field_error_text",
+      "docstring": "Проверка текста ошибки валидации.",
+      "source_file": "ui_steps.py",
+      "line_number": 1058
+    },
+    {
+      "type": "then",
+      "pattern": "поле \"{selector}\" не имеет ошибок валидации",
+      "function_name": "check_field_no_error",
+      "docstring": "Проверка отсутствия ошибок валидации.",
+      "source_file": "ui_steps.py",
+      "line_number": 1065
+    },
+    {
+      "type": "then",
+      "pattern": "форма валидна",
+      "function_name": "check_form_valid",
+      "docstring": "Проверка валидности формы.",
+      "source_file": "ui_steps.py",
+      "line_number": 1072
+    },
+    {
+      "type": "then",
+      "pattern": "форма невалидна",
+      "function_name": "check_form_invalid",
+      "docstring": "Проверка невалидности формы.",
+      "source_file": "ui_steps.py",
+      "line_number": 1079
+    },
+    {
+      "type": "then",
+      "pattern": "пользователь авторизован",
+      "function_name": "check_user_authenticated",
+      "docstring": "Проверка что пользователь авторизован.",
+      "source_file": "ui_steps.py",
+      "line_number": 1090
+    },
+    {
+      "type": "then",
+      "pattern": "пользователь не авторизован",
+      "function_name": "check_user_not_authenticated",
+      "docstring": "Проверка что пользователь не авторизован.",
+      "source_file": "ui_steps.py",
+      "line_number": 1098
+    },
+    {
+      "type": "then",
+      "pattern": "отображается страница входа",
+      "function_name": "check_login_page_displayed",
+      "docstring": "Проверка что отображается страница входа.",
+      "source_file": "ui_steps.py",
+      "line_number": 1106
+    },
+    {
+      "type": "then",
+      "pattern": "отображается сообщение об ошибке авторизации",
+      "function_name": "check_auth_error_displayed",
+      "docstring": "Проверка отображения ошибки авторизации.",
+      "source_file": "ui_steps.py",
+      "line_number": 1113
+    },
+    {
+      "type": "then",
+      "pattern": "открыто {count:d} вкладок",
+      "function_name": "check_tabs_count",
+      "docstring": "Проверка количества открытых вкладок.",
+      "source_file": "ui_steps.py",
+      "line_number": 1124
+    },
+    {
+      "type": "then",
+      "pattern": "cookie \"{cookie_name}\" существует",
+      "function_name": "check_cookie_exists",
+      "docstring": "Проверка существования cookie.",
+      "source_file": "ui_steps.py",
+      "line_number": 1131
+    },
+    {
+      "type": "then",
+      "pattern": "cookie \"{cookie_name}\" имеет значение \"{value}\"",
+      "function_name": "check_cookie_value",
+      "docstring": "Проверка значения cookie.",
+      "source_file": "ui_steps.py",
+      "line_number": 1138
+    },
+    {
+      "type": "then",
+      "pattern": "cookie \"{cookie_name}\" не существует",
+      "function_name": "check_cookie_not_exists",
+      "docstring": "Проверка отсутствия cookie.",
+      "source_file": "ui_steps.py",
+      "line_number": 1145
+    },
+    {
+      "type": "then",
+      "pattern": "localStorage содержит ключ \"{key}\"",
+      "function_name": "check_localstorage_key",
+      "docstring": "Проверка наличия ключа в localStorage.",
+      "source_file": "ui_steps.py",
+      "line_number": 1152
+    },
+    {
+      "type": "then",
+      "pattern": "localStorage содержит ключ \"{key}\" со значением \"{value}\"",
+      "function_name": "check_localstorage_value",
+      "docstring": "Проверка значения в localStorage.",
+      "source_file": "ui_steps.py",
+      "line_number": 1159
+    },
+    {
+      "type": "then",
+      "pattern": "sessionStorage содержит ключ \"{key}\"",
+      "function_name": "check_sessionstorage_key",
+      "docstring": "Проверка наличия ключа в sessionStorage.",
+      "source_file": "ui_steps.py",
+      "line_number": 1166
+    },
+    {
+      "type": "then",
+      "pattern": "вывести текст элемента \"{selector}\"",
+      "function_name": "print_element_text",
+      "docstring": "Вывод текста элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 1177
+    },
+    {
+      "type": "then",
+      "pattern": "вывести значение элемента \"{selector}\"",
+      "function_name": "print_element_value",
+      "docstring": "Вывод значения элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 1183
+    },
+    {
+      "type": "then",
+      "pattern": "вывести URL страницы",
+      "function_name": "print_page_url",
+      "docstring": "Вывод URL страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 1189
+    },
+    {
+      "type": "then",
+      "pattern": "вывести заголовок страницы",
+      "function_name": "print_page_title",
+      "docstring": "Вывод заголовка страницы.",
+      "source_file": "ui_steps.py",
+      "line_number": 1196
+    },
+    {
+      "type": "then",
+      "pattern": "вывести HTML элемента \"{selector}\"",
+      "function_name": "print_element_html",
+      "docstring": "Вывод HTML элемента.",
+      "source_file": "ui_steps.py",
+      "line_number": 1202
+    },
+    {
+      "type": "then",
+      "pattern": "закрыть браузер",
+      "function_name": "close_browser",
+      "docstring": "Закрытие браузера.",
+      "source_file": "ui_steps.py",
+      "line_number": 1208
+    }
+  ]
+}
