@@ -1,15 +1,10 @@
-import os
-from dataclasses import dataclass
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
-
-@dataclass
-class Config:
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    MODEL_NAME: str = os.getenv("MODEL_NAME", "gpt-4o")
-    TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.7"))
-    GENERATIONS_PER_FEATURE: int = int(os.getenv("GENERATIONS_PER_FEATURE", "1"))
+class Config(BaseSettings):
+    OPENAI_API_KEY: str = ""
+    MODEL_NAME: str = "gpt-4o"
+    TEMPERATURE: float = 0.7
+    GENERATIONS_PER_FEATURE: int = 1
     
     PROMPT_TEMPLATE: str = """
 Ты опытный QA инженер.
@@ -26,6 +21,12 @@ Gherkin Feature:
 
 Текст теста:
 """
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
 # Default configuration instance
 config = Config()
