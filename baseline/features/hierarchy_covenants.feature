@@ -1,12 +1,15 @@
+@api @calc @hierarchy
 Feature: Hierarchy Covenants
 
-Scenario: Проверка расчета ставки в системе
-    Given подготовлен тестовый контекст
+  Scenario: Расчет ставки в системе
     When присвоить переменной "traceId" случайную строку длиной 36
-    When установить переменную "enableFeature" значением "No"
-    When Отправить "/calc" на REST сервер "calc_hierarchy_service" с body из файла "calc_request.json"
+    And установить переменную "enableFeature" значением "No"
+    When Отправить "POST /calc?calculatorName=Calc" на REST сервер "calc_hierarchy_service" с body из файла "calc_request.json"
     Then код ответа сервера "calc_hierarchy_service" равен 200
-    Then тело ответа содержит поле "dont_check_array_len" со значением "true"
-    Then ответ содержит JSON массив "outAttributes" с элементом где "rateAdjustment" равен "${rateAdjustment_1}"
-    Then переменная "traceId" равна "${traceId}"
+    And ответ является валидным JSON
+    And ответ содержит JSON поле "dont_check_array_len" со значением "true"
+    And ответ содержит JSON массив "outAttributes" с элементом где "rateAdjustment" равен "${rateAdjustment_1}"
+    And ответ содержит JSON поле "traceId"
+    And сохранить значение поля "traceId" из ответа в переменную "traceId_response"
+    And переменная "traceId_response" равна "${traceId}"
     Then Выполнить python код

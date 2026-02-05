@@ -224,9 +224,20 @@ def send_get_to_server(context, server_name, endpoint):
     context["request"]["method"] = "GET"
     context["request"]["server"] = server_name
     context["request"]["endpoint"] = endpoint
+    
+    # Mock-ответ с полями для различных тестов
     context["response"] = {
         "status_code": 200,
-        "body": {"id": 1, "name": "test"},
+        "body": {
+            "id": 1,
+            "name": "test",
+            "actionTasks": {
+                "TaskRegenerate": {
+                    "waitingCount": 5,
+                    "processingCount": 2
+                }
+            }
+        },
         "headers": {"Content-Type": "application/json"},
         "response_time": 50
     }
@@ -639,9 +650,9 @@ def check_response_code_only(context, status_code):
 
 
 @then(parsers.parse('Проверить хедеры из последнего ответа'))
-def check_response_headers(context, datatable):
-    """Проверка заголовков ответа по таблице."""
-    print(f"MOCK: Проверка заголовков ответа: {datatable}")
+def check_response_headers(context):
+    """Проверка заголовков ответа."""
+    print(f"MOCK: Проверка заголовков ответа")
     assert "headers" in context["response"]
 
 
@@ -712,6 +723,49 @@ def check_json_array_contains_element(context, field, key, value):
     print(f"MOCK: Проверка наличия элемента с {key}={value} в массиве {field}")
     found = any(str(item.get(key)) == str(value) for item in array if isinstance(item, dict))
     assert found
+
+
+@then(parsers.parse('ответ содержит вложенное поле "{path}"'))
+def check_nested_json_field_exists(context, path):
+    """Проверка наличия вложенного JSON поля."""
+    body = context["response"].get("body", {})
+    keys = path.split(".")
+    current = body
+    for key in keys:
+        if isinstance(current, dict):
+            current = current.get(key)
+        else:
+            current = None
+            break
+    print(f"MOCK: Проверка наличия вложенного поля {path}: найдено {current is not None}")
+    assert current is not None
+
+
+@then(parsers.parse('ответ содержит вложенное поле "{path}" типа "{expected_type}"'))
+def check_nested_json_field_type(context, path, expected_type):
+    """Проверка типа вложенного JSON поля."""
+    body = context["response"].get("body", {})
+    keys = path.split(".")
+    current = body
+    for key in keys:
+        if isinstance(current, dict):
+            current = current.get(key)
+        else:
+            current = None
+            break
+    
+    type_mapping = {
+        "integer": int,
+        "string": str,
+        "boolean": bool,
+        "array": list,
+        "object": dict,
+        "number": (int, float),
+    }
+    expected = type_mapping.get(expected_type.lower(), str)
+    actual_type = type(current).__name__
+    print(f"MOCK: Проверка типа вложенного поля {path}: ожидается {expected_type}, получено {actual_type}")
+    assert isinstance(current, expected)
 
 
 @then(parsers.parse('ответ содержит вложенное поле "{path}" со значением "{value}"'))

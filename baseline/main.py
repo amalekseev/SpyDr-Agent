@@ -231,15 +231,14 @@ def convert_to_gherkin(
 
 Используй ТОЛЬКО шаги из списка выше. Подставляй конкретные значения вместо параметров в фигурных скобках.
 Сгенерируй полный feature файл в формате Gherkin."""
-
+    
     response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
         ],
-        temperature=0.3,  # Низкая температура для более детерминированного вывода
-        max_tokens=4096
+        #temperature=0.3
     )
     
     return response.choices[0].message.content.strip()
@@ -359,7 +358,7 @@ def run_pipeline(
     input_dir: str,
     output_dir: Optional[str] = None,
     steps_file: Optional[str] = None,
-    model: str = "gpt-4o",
+    model: str = "gpt-4.1-nano",
     verbose: bool = False
 ) -> dict:
     """
@@ -505,7 +504,7 @@ def main():
     
     parser.add_argument(
         "-m", "--model",
-        default="gpt-4o",
+        default="gpt-4.1-nano",
         help="Модель OpenAI для использования (по умолчанию: gpt-4o)"
     )
     

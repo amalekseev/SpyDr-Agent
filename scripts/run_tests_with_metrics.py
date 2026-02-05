@@ -21,7 +21,7 @@ class MetricsCollector:
 
 def main():
     # Путь к тестам
-    test_path = "gherkin/tests"
+    test_path = "baseline/features"
     
     if not os.path.exists(test_path):
         print(f"Ошибка: Директория {test_path} не найдена.")

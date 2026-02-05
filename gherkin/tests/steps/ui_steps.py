@@ -540,13 +540,12 @@ def wait_for_url_contains(context, url_part):
 # ============================================================================
 
 @when(parsers.parse('Сформировать отчет'))
-def generate_report(context, datatable):
-    """Формирование отчета с параметрами из таблицы."""
+def generate_report(context):
+    """Формирование отчета."""
     print(f"MOCK: Формирование отчета")
-    print(f"MOCK: Параметры: {datatable}")
     
     context["report"] = {
-        "parameters": datatable,
+        "parameters": None,
         "generated": True
     }
 

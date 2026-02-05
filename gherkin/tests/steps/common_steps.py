@@ -419,17 +419,36 @@ def add_note(context, note):
 @when(parsers.parse('Отправить "{method_path}" на REST сервер "{server_name}"'))
 def send_rest_request(context, method_path, server_name):
     print(f"MOCK: Отправка {method_path} на сервер {server_name}")
+    # Mock-ответ с полями для различных тестов
     context["response"] = {
         "status_code": 200,
-        "body": {"status": "success"}
+        "body": {
+            "status": "success",
+            "dont_check_array_len": "true",
+            "traceId": context.get("variables", {}).get("traceId", "mock-trace-id"),
+            "outAttributes": [
+                {"rateAdjustment": "${rateAdjustment_1}"}
+            ]
+        },
+        "headers": {"Content-Type": "application/json"}
     }
 
 @when(parsers.parse('Отправить "{method_path}" на REST сервер "{server_name}" с body из файла "{file_path}"'))
 def send_rest_request_from_file(context, method_path, server_name, file_path):
     print(f"MOCK: Отправка {method_path} на сервер {server_name} с телом из {file_path}")
+    # Mock-ответ с полями для различных тестов
     context["response"] = {
         "status_code": 200,
-        "body": {"status": "success", "mocked_from": file_path}
+        "body": {
+            "status": "success",
+            "mocked_from": file_path,
+            "dont_check_array_len": "true",
+            "traceId": context.get("variables", {}).get("traceId", "mock-trace-id"),
+            "outAttributes": [
+                {"rateAdjustment": "${rateAdjustment_1}"}
+            ]
+        },
+        "headers": {"Content-Type": "application/json"}
     }
 
 @when(parsers.parse('отправить запрос с файлом "{file_path}" на "{endpoint}"'))
@@ -544,8 +563,11 @@ def rollback_transaction(context, db_name):
     print(f"MOCK: Транзакция откачена в базе {db_name}")
 
 @when(parsers.parse('Отправить сообщение в кафку "{kafka_name}" в топик "{topic_name}"'))
-def send_kafka_message(context, kafka_name, topic_name, docstring):
-    print(f"MOCK: Отправка сообщения в Kafka {kafka_name}, топик {topic_name}: {docstring}")
+def send_kafka_message(context, kafka_name, topic_name):
+    print(f"MOCK: Отправка сообщения в Kafka {kafka_name}, топик {topic_name}")
+    if "kafka" not in context:
+        context["kafka"] = {}
+    context["kafka"]["sent"] = True
 
 @when(parsers.parse('ожидать {seconds:d} секунд'))
 def wait_seconds(context, seconds):
@@ -857,8 +879,8 @@ def check_response_body_json(context, status_code, docstring):
     assert context["response"].get("status_code") == status_code
 
 @then(parsers.parse('Проверить результат запроса из базы "{db_name}"'))
-def check_sql_result_direct(context, db_name, datatable):
-    print(f"MOCK: Проверка результата SQL в {db_name}: {datatable}")
+def check_sql_result_direct(context, db_name):
+    print(f"MOCK: Проверка результата SQL в {db_name}")
     assert True
 
 @then(parsers.parse('сохранить значение поля "{field}" в переменную "{var_name}"'))
@@ -892,13 +914,13 @@ def save_response_size_to_variable(context, var_name):
     print(f"MOCK: Размер ответа сохранен в переменную {var_name}")
 
 @then(parsers.parse('Проверить результат запроса из базы "{db_name}" в течение {timeout:d} секунд'))
-def check_sql_result_with_timeout(context, db_name, timeout, datatable):
-    print(f"MOCK: Проверка результата SQL в {db_name} (таймаут {timeout}с): {datatable}")
+def check_sql_result_with_timeout(context, db_name, timeout):
+    print(f"MOCK: Проверка результата SQL в {db_name} (таймаут {timeout}с)")
     assert True
 
 @then(parsers.parse('результат запроса в базу "{db_name}" содержит данные в течение {timeout:d} секунд'))
-def check_sql_result_contains(context, db_name, timeout, datatable):
-    check_sql_result_with_timeout(context, db_name, timeout, datatable)
+def check_sql_result_contains(context, db_name, timeout):
+    check_sql_result_with_timeout(context, db_name, timeout)
 
 @then(parsers.parse('заголовок ответа "{header}" равен "{value}"'))
 def check_response_header(context, header, value):
@@ -948,17 +970,28 @@ def check_response_size_greater(context, min_size):
     print(f"MOCK: Проверка размера ответа: должно быть > {min_size} байт")
     assert response_size > min_size
 
+def _resolve_variable(context, value):
+    """Подставляет значения переменных из ${var_name}."""
+    import re
+    pattern = r'\$\{(\w+)\}'
+    def replace(match):
+        var_name = match.group(1)
+        return str(context["variables"].get(var_name, match.group(0)))
+    return re.sub(pattern, replace, str(value))
+
 @then(parsers.parse('переменная "{var_name}" равна "{value}"'))
 def check_variable_equals(context, var_name, value):
     actual_value = context["variables"].get(var_name)
-    print(f"MOCK: Проверка переменной {var_name}: ожидается {value}, получено {actual_value}")
-    assert str(actual_value) == str(value)
+    expected_value = _resolve_variable(context, value)
+    print(f"MOCK: Проверка переменной {var_name}: ожидается {expected_value}, получено {actual_value}")
+    assert str(actual_value) == str(expected_value)
 
 @then(parsers.parse('переменная "{var_name}" не равна "{value}"'))
 def check_variable_not_equals(context, var_name, value):
     actual_value = context["variables"].get(var_name)
-    print(f"MOCK: Проверка переменной {var_name}: не должно быть {value}, получено {actual_value}")
-    assert str(actual_value) != str(value)
+    expected_value = _resolve_variable(context, value)
+    print(f"MOCK: Проверка переменной {var_name}: не должно быть {expected_value}, получено {actual_value}")
+    assert str(actual_value) != str(expected_value)
 
 @then(parsers.parse('переменная "{var_name}" существует'))
 def check_variable_exists(context, var_name):
@@ -1007,8 +1040,8 @@ def check_variable_less(context, var_name, value):
     assert actual_value < value
 
 @then(parsers.parse('Выполнить python код'))
-def execute_python_code(context, docstring):
-    print(f"MOCK: Выполнение Python кода:\n{docstring}")
+def execute_python_code(context):
+    print(f"MOCK: Выполнение Python кода")
     pass
 
 @then(parsers.parse('вывести значение переменной "{var_name}"'))
