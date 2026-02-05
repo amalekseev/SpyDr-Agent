@@ -8,3 +8,7 @@ scenarios('../features')
 
 # Импортируем шаги, чтобы pytest-bdd их "видел"
 from steps.common_steps import *
+from steps.database_steps import *
+from steps.rest_api_steps import *
+from steps.ui_steps import *
+from steps.kafka_steps import *
