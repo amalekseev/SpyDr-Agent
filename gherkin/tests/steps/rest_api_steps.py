@@ -254,7 +254,7 @@ def send_post_to_server(context, server_name, endpoint, docstring):
     context["request"]["endpoint"] = endpoint
     context["request"]["body"] = docstring
     context["response"] = {
-        "status_code": 201,
+        "status_code": 200,
         "body": {"id": 123, "status": "created"},
         "headers": {"Content-Type": "application/json", "Location": f"{endpoint}/123"},
         "response_time": 100
@@ -355,7 +355,7 @@ def send_file_to_server(context, file_path, server_name, endpoint):
     context["request"]["endpoint"] = endpoint
     context["request"]["file"] = file_path
     context["response"] = {
-        "status_code": 201,
+        "status_code": 200,
         "body": {"file_id": str(uuid.uuid4()), "filename": file_path, "size": 1024},
         "headers": {"Content-Type": "application/json"},
         "response_time": 200
@@ -373,7 +373,7 @@ def send_multipart_to_server(context, server_name, endpoint, docstring):
     context["request"]["endpoint"] = endpoint
     context["request"]["files"] = files
     context["response"] = {
-        "status_code": 201,
+        "status_code": 200,
         "body": {"uploaded_files": len(files)},
         "headers": {"Content-Type": "application/json"},
         "response_time": 300

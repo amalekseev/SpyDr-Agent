@@ -251,7 +251,7 @@ def send_post_request_with_body(context, endpoint, docstring):
     
     # Mocking the response
     context["response"] = {
-        "status_code": 201,
+        "status_code": 200,
         "body": {"status": "success", "id": 123, "data": context["request"]["body"]}
     }
     print(f"MOCK: Отправлен POST запрос на {full_url}")
@@ -459,7 +459,7 @@ def send_file_upload(context, file_path, endpoint):
     context["request"]["file"] = file_path
     
     context["response"] = {
-        "status_code": 201,
+        "status_code": 200,
         "body": {"status": "uploaded", "filename": file_path}
     }
     print(f"MOCK: Отправлен файл {file_path} на {full_url}")
@@ -473,7 +473,7 @@ def send_multipart_request(context, endpoint, docstring):
     context["request"]["files"] = docstring.split("\n")
     
     context["response"] = {
-        "status_code": 201,
+        "status_code": 200,
         "body": {"status": "uploaded", "files_count": len(context["request"]["files"])}
     }
     print(f"MOCK: Отправлен multipart запрос на {full_url}")
