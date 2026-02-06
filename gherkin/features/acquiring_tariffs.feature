@@ -4,7 +4,7 @@ Feature: Проверка тарифов
   @business_regress @single
   Scenario: Проверка всех тарифов
     # Выполнение запроса рекомендованных тарифов
-    When Присвоить переменной "requestId" значение "${UUID_short}"
+    When Присвоить переменной "requestId" значение "${UUID}"
     When Присвоить переменной "requestTime" значение "${CUR_DATE(%Y-%m-%dT%H:%M:%S)}"
     When Присвоить переменной "serviceName" значение "urn:mock:autotest"
     When Присвоить переменной "systemIdentifier" значение "urn:mock:system"
@@ -13,7 +13,7 @@ Feature: Проверка тарифов
 
     # Выполнение расчета
     When Присвоить переменной "contractId" значение "${UNIC_NUMBER(7)}"
-    When Присвоить переменной "calcRequestId" значение "${UUID_short}"
+    When Присвоить переменной "calcRequestId" значение "${UUID}"
 
     # Параметры для расчета
     When Присвоить переменной "percentValue" значение "0.8"

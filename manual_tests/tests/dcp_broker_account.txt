@@ -1,0 +1,50 @@
+Название теста: Загрузка нового счета и его отмена
+Предусловия: Имеется доступ к Kafka-кластеру "kafka_mock"; подключение к базам данных "postgres_mock_raw" и "postgres_mock_main"; подготовлен шаблон сообщения для загрузки счета в файле data/kafka_templates/mock_account.xml.
+
+Шаги:
+Часть 1: Создание счета
+1. Сформировать уникальные данные для нового счета:
+   - accountIdentifier: "6" + 10 случайных цифр
+   - accountNumber: "1-00-0" + 11 случайных цифр
+   - currencyCode: "CUR"
+   - openDate: вчерашняя дата (формат ГГГГ-ММ-ДД)
+   - closeDate: завтрашняя дата (формат ГГГГ-ММ-ДД)
+   - bankCode: равен accountNumber
+   - firstAgreementId: "01" + 10 случайных цифр
+   - secondAgreementId: "01" + 10 случайных цифр
+   - firstAgreementNumber: равен firstAgreementId
+   - secondAgreementNumber: равен secondAgreementId
+   - firstRelationType: "TYPE_" + 4 цифры + "_" + 2 цифры
+   - secondRelationType: "TYPE_" + 4 цифры + "_" + 2 цифры
+   - firstContractType: "A" + 5 случайных цифр
+   - secondContractType: "B" + 5 случайных цифр
+2. Отправить сообщение в Kafka "kafka_mock" в топик "MOCK-INCOMING-ACCOUNT" из файла data/kafka_templates/mock_account.xml с подставленными значениями переменных.
+3. В течение 120 секунд периодически выполнять запрос к базе "postgres_mock_raw": выбрать из таблицы mock_raw.raw_internal_account запись, где status = 5, owner_id = 10000000001, account_id = accountIdentifier, account_name = accountNumber, account_currency = currencyCode, bank_acc_code = bankCode, owner_brief = 'MOCK_OWNER', institution_brief = 'MOCK_INST' (последняя запись, отсортированная по id desc, limit 1).
+4. Убедиться, что запись найдена и содержит: account_type = 'MOCK_TYPE', source_id = 'CD', is_open = 1, oper_type = 'U', account_open_date = openDate 00:00:00, account_close_date = closeDate 00:00:00. Сохранить id записи как recordIdFirst.
+5. В течение 60 секунд выполнить запрос к базе "postgres_mock_raw": посчитать количество записей в таблице mock_raw.raw_internal_account_agreement, где raw_internal_account_id = recordIdFirst, agreement_id входит в (firstAgreementId, secondAgreementId), agreement_number входит в (firstAgreementNumber, secondAgreementNumber), agreement_brief = 'MOCK_TYPE', account_rel_type входит в (firstRelationType, secondRelationType), agreement_type входит в (firstContractType, secondContractType).
+6. Убедиться, что количество найденных договоров равно 2.
+7. В течение 60 секунд выполнить запрос к базе "postgres_mock_main": посчитать количество контрактов и получить account_id из таблицы mock_main.contract, где agreement_number входит в (firstAgreementNumber, secondAgreementNumber), agreement_brief = 'MOCK_TYPE', account_rel_type входит в (firstRelationType, secondRelationType), agreement_type входит в (firstContractType, secondContractType), сгруппированных по account_id.
+8. Убедиться, что количество контрактов равно 2. Сохранить account_id как linkedAccountId.
+9. В течение 60 секунд выполнить запрос к базе "postgres_mock_main": посчитать количество записей в таблице mock_main.account, где source_account_number = accountNumber, open_date = openDate, close_date = closeDate, currency_id = 1, type_id = 1, id = linkedAccountId.
+10. Убедиться, что количество найденных счетов равно 1.
+
+Часть 2: Закрытие счета
+11. Установить параметры закрытия: operationType = "D", isOpenFlag = "false", closeDate = текущая дата.
+12. Отправить сообщение в Kafka "kafka_mock" в топик "MOCK-INCOMING-ACCOUNT" из того же файла data/kafka_templates/mock_account.xml с обновленными параметрами.
+13. В течение 120 секунд периодически выполнять запрос к базе "postgres_mock_raw": выбрать из таблицы mock_raw.raw_internal_account запись с теми же фильтрами, что и в шаге 3, но дополнительно: oper_type = 'D', is_open = 0 (0::bit).
+14. Убедиться, что запись найдена и содержит: account_type = 'MOCK_TYPE', source_id = 'CD', is_open = 0, oper_type = 'D', account_open_date = openDate 00:00:00, account_close_date = closeDate (текущая дата) 00:00:00. Сохранить id как recordIdSecond.
+15. В течение 60 секунд выполнить запрос к базе "postgres_mock_raw": посчитать количество записей в таблице mock_raw.raw_internal_account_agreement, где raw_internal_account_id = recordIdSecond, с теми же фильтрами по договорам, что и в шаге 5.
+16. Убедиться, что количество договоров равно 2.
+17. В течение 60 секунд выполнить запрос к базе "postgres_mock_main": посчитать количество контрактов и получить account_id из таблицы mock_main.contract с теми же фильтрами, что и в шаге 7.
+18. Убедиться, что количество контрактов равно 2 и account_id равен linkedAccountId.
+19. В течение 60 секунд выполнить запрос к базе "postgres_mock_main": посчитать количество записей в таблице mock_main.account с теми же фильтрами, что и в шаге 9, но с closeDate = текущая дата.
+20. Убедиться, что количество найденных счетов равно 1.
+
+Ожидаемый результат:
+- Новый счет корректно создан: в postgres_mock_raw появляется запись с account_type='MOCK_TYPE', source_id='CD', is_open=1, oper_type='U' и корректными датами.
+- С созданным счетом связаны ровно 2 договора в таблице raw_internal_account_agreement.
+- В postgres_mock_main опубликованы 2 контракта, связанных с созданным счетом.
+- В postgres_mock_main создан счет с корректным номером, датами, currency_id=1, type_id=1.
+- После закрытия: в postgres_mock_raw появляется запись с oper_type='D', is_open=0 и обновленной датой закрытия.
+- Договоры и контракты сохранены и связаны с закрытым счетом.
+- Счет в postgres_mock_main обновлен с новой датой закрытия.

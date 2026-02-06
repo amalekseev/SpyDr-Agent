@@ -4,7 +4,7 @@ Feature: Проверка расчета дельт
   @business_regress @crit_regress
   Scenario: Проверка расчета дельт при росте параметра
     # Выполнение запроса рекомендованных тарифов
-    When Присвоить переменной "requestId" значение "${UUID_short}"
+    When Присвоить переменной "requestId" значение "${UUID}"
     When Присвоить переменной "requestTime" значение "${CUR_DATE(%Y-%m-%dT%H:%M:%S)}"
     When Присвоить переменной "serviceName" значение "urn:mock:autotest"
     When Присвоить переменной "systemIdentifier" значение "urn:mock:system"
@@ -13,7 +13,7 @@ Feature: Проверка расчета дельт
 
     # Выполнение расчета с большим параметром
     When Присвоить переменной "contractIdInitial" значение "${UNIC_NUMBER(7)}"
-    When Присвоить переменной "calcRequestId" значение "${UUID_short}"
+    When Присвоить переменной "calcRequestId" значение "${UUID}"
 
     # Параметры для расчета
     When Присвоить переменной "percentValue" значение "0.8"
@@ -56,14 +56,14 @@ Feature: Проверка расчета дельт
     Then Проверить ответ с кодом 200
 
     # Выполнение запроса для изменения расчета
-    When Присвоить переменной "changeRequestId" значение "${UUID_short}"
+    When Присвоить переменной "changeRequestId" значение "${UUID}"
     When Присвоить переменной "contractIdChange" значение "${UNIC_NUMBER(7)}"
     When Отправить "POST /mock-gateway/v1/tariffs/recommended" на REST сервер "rest_mock" с хедерами "rqUid:${requestId},rqTm:${requestTime},spName:${serviceName},systemId:${systemIdentifier}" с body из файла "resources/mock/request_change.json"
     Then Проверить ответ с кодом 200 и body из файла "resources/mock/response_change.json"
 
     # Расчет изменения
     When Присвоить переменной "contractIdFinal" значение "${UNIC_NUMBER(7)}"
-    When Присвоить переменной "finalCalcRequestId" значение "${UUID_short}"
+    When Присвоить переменной "finalCalcRequestId" значение "${UUID}"
 
     When Присвоить переменной "percentValueFinal" значение "0.8"
     When Присвоить переменной "limitValueFinal" значение "3000000"

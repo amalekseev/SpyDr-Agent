@@ -38,7 +38,7 @@ class LLMClient:
             response = self.client.chat.completions.create(
                 model=config.MODEL_NAME,
                 messages=[
-                    {"role": "system", "content": "Ты помощник QA."},
+                    {"role": "system", "content": config.SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=config.TEMPERATURE,

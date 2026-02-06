@@ -1,0 +1,59 @@
+Название теста: Проверка расчета дельт при росте параметра
+Предусловия:
+1. Имеется доступ к REST API сервера "rest_mock".
+2. Имеется доступ к базе данных "postgres_mock".
+3. Подготовлены файлы запросов и ожидаемых ответов:
+   - request_recommended.json, response_recommended.json
+   - request_delta.json
+   - request_status_working.json
+   - request_status_active.json
+   - request_change.json, response_change.json
+   - request_change_profitability.json
+4. Имеются инструменты для отправки HTTP-запросов (например, Postman) и доступа к базе данных.
+5. Текущая дата известна и может быть использована для отправки запросов.
+
+Шаги:
+1. Сформировать уникальный идентификатор запроса (requestId) и текущую дату/время в формате ГГГГ-ММ-ДДTЧЧ:ММ:СС (requestTime). Задать системные параметры: serviceName = "urn:mock:autotest", systemIdentifier = "urn:mock:system".
+2. Отправить POST-запрос на эндпоинт /mock-gateway/v1/tariffs/recommended сервера "rest_mock" с заголовками rqUid, rqTm, spName, systemId. В теле запроса использовать данные из файла request_recommended.json.
+3. Убедиться, что ответ сервера получен успешно (статус 200) и его тело соответствует содержимому файла response_recommended.json.
+4. Сгенерировать уникальный номер договора из 7 цифр (contractIdInitial) и новый UUID для идентификатора запроса расчета (calcRequestId).
+5. Установить параметры расчета: процентное значение (percentValue) = 0.8, лимит (limitValue) = 5 000 000.
+6. Отправить POST-запрос на эндпоинт /mock-gateway/v1/calculation/profitability сервера "rest_mock" с заголовками rqUid = calcRequestId и прежними системными заголовками. В теле запроса использовать данные из файла request_delta.json.
+7. Убедиться, что ответ получен успешно (статус 200) и содержит следующие поля (сохранить их значения):
+   - compensation (сохранить как compensationInitial)
+   - impactOnLimit (сохранить как impactOnLimitInitial)
+   - lostIncomeChanging (сохранить как lostIncomeInitial)
+   - crossSaleProfitChanging (сохранить как crossSaleProfitInitial)
+8. В базе данных "postgres_mock" выполнить SQL-запрос: обновить таблицу mock_schema.limit_table, установив limit_amt = 10 000 000 для записей, у которых division_cd входит в подзапрос из mock_schema.division_table, объединенный с mock_schema.limit_table по division_cd, где status_cd = 'active' и limit_cd = 'MOCK'.
+9. Зафиксировать текущую дату (currentDate) и дату через 365 дней (futureDate).
+10. Сгенерировать новый UUID (statusRequestIdWorking). Отправить POST-запрос на эндпоинт /mock-status/v1/agreement/change-status сервера "rest_mock" с заголовками rqUid = statusRequestIdWorking и прежними системными заголовками. В теле запроса использовать файл request_status_working.json для перевода договора в статус "В работе".
+11. Убедиться, что ответ сервера получен успешно (статус 200).
+12. Сгенерировать новый UUID (statusRequestIdActive). Отправить POST-запрос на тот же эндпоинт с заголовком rqUid = statusRequestIdActive и телом из файла request_status_active.json для перевода договора в статус "Действует".
+13. Убедиться, что ответ сервера получен успешно (статус 200).
+14. Сгенерировать новый UUID (changeRequestId) и новый номер договора из 7 цифр (contractIdChange). Отправить POST-запрос на эндпоинт /mock-gateway/v1/tariffs/recommended сервера "rest_mock" с заголовками rqUid = requestId (исходный) и прежними системными заголовками. В теле запроса использовать файл request_change.json.
+15. Убедиться, что ответ получен успешно (статус 200) и тело совпадает с содержимым файла response_change.json.
+16. Сгенерировать новый номер договора из 7 цифр (contractIdFinal) и новый UUID (finalCalcRequestId).
+17. Установить параметры финального расчета: процентное значение (percentValueFinal) = 0.8, лимит (limitValueFinal) = 3 000 000.
+18. Отправить POST-запрос на эндпоинт /mock-gateway/v1/change/profitability-calculation сервера "rest_mock" с заголовками rqUid = finalCalcRequestId и прежними системными заголовками. В теле запроса использовать данные из файла request_change_profitability.json.
+19. Убедиться, что ответ успешен (статус 200) и содержит следующие поля (сохранить их значения):
+    - compensation (compensationFinal)
+    - compensationDelta (compensationDeltaValue)
+    - impactOnLimit (impactOnLimitFinal)
+    - impactOnLimitDelta (impactOnLimitDeltaValue)
+    - lostIncomeChanging (lostIncomeFinal)
+    - lostIncomeChangingDelta (lostIncomeDeltaValue)
+    - crossSaleProfitChanging (crossSaleProfitFinal)
+    - crossSaleProfitChangingDelta (crossSaleProfitDeltaValue)
+20. Рассчитать разницу в днях между currentDate и futureDate.
+21. Убедиться, что разница в днях положительная.
+22. Проверить, что дельта компенсации соответствует формуле: (compensationFinal - compensationInitial) / 365 * количество дней.
+
+Ожидаемый результат:
+- Все HTTP-запросы выполняются успешно без ошибок (статус 200).
+- Ответы на запросы рекомендованных тарифов соответствуют ожидаемым данным из файлов response_recommended.json и response_change.json.
+- Начальный расчет возвращает поля compensation, impactOnLimit, lostIncomeChanging, crossSaleProfitChanging.
+- В базе данных успешно обновлены лимиты до 10 000 000.
+- Статусы договора корректно изменены на "В работе" и "Действует".
+- Финальный расчет возвращает как основные значения, так и дельты для каждого показателя.
+- Разница в днях между currentDate и futureDate положительная.
+- Дельта компенсации соответствует формуле: (compensationFinal - compensationInitial) / 365 * количество дней.
