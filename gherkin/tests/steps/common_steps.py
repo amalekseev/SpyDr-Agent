@@ -5,6 +5,7 @@ import uuid
 import time
 import re
 from datetime import datetime, timedelta
+from steps.soft_assert import soft_assert
 
 @pytest.fixture
 def context():
@@ -714,174 +715,182 @@ def send_parallel_requests(context, count, endpoint):
 def check_status_code(context, status_code):
     actual_code = context["response"].get("status_code")
     print(f"MOCK: Проверка кода ответа: ожидается {status_code}, получено {actual_code}")
-    assert actual_code == status_code
+    soft_assert(actual_code == status_code)
 
 @then(parsers.parse('код ответа должен быть одним из {status_codes}'))
 def check_status_code_in_list(context, status_codes):
     actual_code = context["response"].get("status_code")
     expected_codes = [int(code.strip()) for code in status_codes.split(",")]
     print(f"MOCK: Проверка кода ответа: ожидается один из {expected_codes}, получено {actual_code}")
-    assert actual_code in expected_codes
+    soft_assert(actual_code in expected_codes)
 
 @then(parsers.parse('код ответа должен быть в диапазоне от {min_code:d} до {max_code:d}'))
 def check_status_code_range(context, min_code, max_code):
     actual_code = context["response"].get("status_code")
     print(f"MOCK: Проверка кода ответа: ожидается от {min_code} до {max_code}, получено {actual_code}")
-    assert min_code <= actual_code <= max_code
+    soft_assert(min_code <= actual_code <= max_code)
 
 @then(parsers.parse('тело ответа содержит поле "{field}" со значением "{value}"'))
 def check_response_field(context, field, value):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка поля {field}: ожидается {value}, получено {actual_value}")
-    assert str(actual_value) == str(value)
+    soft_assert(str(actual_value) == str(value))
 
 @then(parsers.parse('тело ответа содержит поле "{field}"'))
 def check_response_field_exists(context, field):
     body = context["response"].get("body", {})
     print(f"MOCK: Проверка наличия поля {field}")
-    assert field in body
+    soft_assert(field in body)
 
 @then(parsers.parse('тело ответа не содержит поле "{field}"'))
 def check_response_field_not_exists(context, field):
     body = context["response"].get("body", {})
     print(f"MOCK: Проверка отсутствия поля {field}")
-    assert field not in body
+    soft_assert(field not in body)
 
 @then(parsers.parse('тело ответа содержит поле "{field}" со значением не равным "{value}"'))
 def check_response_field_not_equals(context, field, value):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка поля {field}: не должно быть {value}, получено {actual_value}")
-    assert str(actual_value) != str(value)
+    soft_assert(str(actual_value) != str(value))
 
 @then(parsers.parse('тело ответа содержит поле "{field}" со значением больше {value:d}'))
 def check_response_field_greater(context, field, value):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка поля {field}: должно быть > {value}, получено {actual_value}")
-    assert int(actual_value) > value
+    if actual_value is None:
+        soft_assert(False, f"field '{field}' is missing in response body")
+        return
+    try:
+        numeric_value = float(actual_value)
+    except (TypeError, ValueError):
+        soft_assert(False, f"field '{field}' is not a number: {actual_value}")
+        return
+    soft_assert(numeric_value > value)
 
 @then(parsers.parse('тело ответа содержит поле "{field}" со значением меньше {value:d}'))
 def check_response_field_less(context, field, value):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка поля {field}: должно быть < {value}, получено {actual_value}")
-    assert int(actual_value) < value
+    soft_assert(int(actual_value) < value)
 
 @then(parsers.parse('тело ответа содержит поле "{field}" со значением в диапазоне от {min_val:d} до {max_val:d}'))
 def check_response_field_range(context, field, min_val, max_val):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка поля {field}: должно быть от {min_val} до {max_val}, получено {actual_value}")
-    assert min_val <= int(actual_value) <= max_val
+    soft_assert(min_val <= int(actual_value) <= max_val)
 
 @then(parsers.parse('тело ответа содержит поле "{field}" соответствующее регулярному выражению "{pattern}"'))
 def check_response_field_regex(context, field, pattern):
     actual_value = str(context["response"].get("body", {}).get(field))
     print(f"MOCK: Проверка поля {field} по regex {pattern}, получено {actual_value}")
-    assert re.match(pattern, actual_value)
+    soft_assert(re.match(pattern, actual_value))
 
 @then(parsers.parse('тело ответа содержит поле "{field}" типа "{expected_type}"'))
 def check_response_field_type(context, field, expected_type):
     actual_value = context["response"].get("body", {}).get(field)
     type_map = {"string": str, "int": int, "float": float, "bool": bool, "list": list, "dict": dict}
     print(f"MOCK: Проверка типа поля {field}: ожидается {expected_type}")
-    assert isinstance(actual_value, type_map.get(expected_type, str))
+    soft_assert(isinstance(actual_value, type_map.get(expected_type, str)))
 
 @then(parsers.parse('тело ответа содержит поле "{field}" с длиной {length:d}'))
 def check_response_field_length(context, field, length):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка длины поля {field}: ожидается {length}, получено {len(str(actual_value))})")
-    assert len(str(actual_value)) == length
+    soft_assert(len(str(actual_value)) == length)
 
 @then(parsers.parse('тело ответа содержит поле "{field}" с длиной больше {length:d}'))
 def check_response_field_length_greater(context, field, length):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка длины поля {field}: должно быть > {length}")
-    assert len(str(actual_value)) > length
+    soft_assert(len(str(actual_value)) > length)
 
 @then(parsers.parse('тело ответа содержит поле "{field}" с длиной меньше {length:d}'))
 def check_response_field_length_less(context, field, length):
     actual_value = context["response"].get("body", {}).get(field)
     print(f"MOCK: Проверка длины поля {field}: должно быть < {length}")
-    assert len(str(actual_value)) < length
+    soft_assert(len(str(actual_value)) < length)
 
 @then(parsers.parse('тело ответа содержит массив "{field}" с {count:d} элементами'))
 def check_response_array_count(context, field, count):
     actual_value = context["response"].get("body", {}).get(field, [])
     print(f"MOCK: Проверка количества элементов в {field}: ожидается {count}, получено {len(actual_value)}")
-    assert len(actual_value) == count
+    soft_assert(len(actual_value) == count)
 
 @then(parsers.parse('тело ответа содержит массив "{field}" с количеством элементов больше {count:d}'))
 def check_response_array_count_greater(context, field, count):
     actual_value = context["response"].get("body", {}).get(field, [])
     print(f"MOCK: Проверка количества элементов в {field}: должно быть > {count}")
-    assert len(actual_value) > count
+    soft_assert(len(actual_value) > count)
 
 @then(parsers.parse('тело ответа содержит массив "{field}" с количеством элементов меньше {count:d}'))
 def check_response_array_count_less(context, field, count):
     actual_value = context["response"].get("body", {}).get(field, [])
     print(f"MOCK: Проверка количества элементов в {field}: должно быть < {count}")
-    assert len(actual_value) < count
+    soft_assert(len(actual_value) < count)
 
 @then(parsers.parse('тело ответа содержит непустой массив "{field}"'))
 def check_response_array_not_empty(context, field):
     actual_value = context["response"].get("body", {}).get(field, [])
     print(f"MOCK: Проверка что массив {field} не пустой")
-    assert len(actual_value) > 0
+    soft_assert(len(actual_value) > 0)
 
 @then(parsers.parse('тело ответа содержит пустой массив "{field}"'))
 def check_response_array_empty(context, field):
     actual_value = context["response"].get("body", {}).get(field, [])
     print(f"MOCK: Проверка что массив {field} пустой")
-    assert len(actual_value) == 0
+    soft_assert(len(actual_value) == 0)
 
 @then(parsers.parse('тело ответа содержит текст "{text}"'))
 def check_response_contains_text(context, text):
     body = str(context["response"].get("body", {}))
     print(f"MOCK: Проверка наличия текста '{text}' в ответе")
-    assert text in body
+    soft_assert(text in body)
 
 @then(parsers.parse('тело ответа не содержит текст "{text}"'))
 def check_response_not_contains_text(context, text):
     body = str(context["response"].get("body", {}))
     print(f"MOCK: Проверка отсутствия текста '{text}' в ответе")
-    assert text not in body
+    soft_assert(text not in body)
 
 @then(parsers.parse('тело ответа является валидным JSON'))
 def check_response_valid_json(context):
     body = context["response"].get("body")
     print(f"MOCK: Проверка что ответ является валидным JSON")
-    assert body is not None
+    soft_assert(body is not None)
 
 @then(parsers.parse('тело ответа является валидным XML'))
 def check_response_valid_xml(context):
     body = context["response"].get("body")
     print(f"MOCK: Проверка что ответ является валидным XML")
-    assert body is not None
+    soft_assert(body is not None)
 
 @then(parsers.parse('тело ответа не пустое'))
 def check_response_not_empty(context):
     body = context["response"].get("body")
     print(f"MOCK: Проверка что ответ не пустой")
-    assert body is not None and body != {}
+    soft_assert(body is not None and body != {})
 
 @then(parsers.parse('тело ответа пустое'))
 def check_response_empty(context):
     body = context["response"].get("body")
     print(f"MOCK: Проверка что ответ пустой")
-    assert body is None or body == {}
+    soft_assert(body is None or body == {})
 
 @then(parsers.parse('Проверить ответ с кодом {status_code:d} и body из файла "{file_path}"'))
 def check_response_from_file(context, status_code, file_path):
     print(f"MOCK: Проверка ответа {status_code} с телом из {file_path}")
-    assert context["response"].get("status_code") == status_code
+    soft_assert(context["response"].get("status_code") == status_code)
 
 @then(parsers.parse('Проверить ответ с кодом {status_code:d} и body'))
 def check_response_body_json(context, status_code, docstring):
     print(f"MOCK: Проверка ответа {status_code} и JSON body: {docstring}")
-    assert context["response"].get("status_code") == status_code
+    soft_assert(context["response"].get("status_code") == status_code)
 
 @then(parsers.parse('Проверить результат запроса из базы "{db_name}"'))
 def check_sql_result_direct(context, db_name):
     print(f"MOCK: Проверка результата SQL в {db_name}")
-    assert True
+    soft_assert(True)
 
 @then(parsers.parse('сохранить значение поля "{field}" в переменную "{var_name}"'))
 def save_variable(context, field, var_name):
@@ -916,7 +925,7 @@ def save_response_size_to_variable(context, var_name):
 @then(parsers.parse('Проверить результат запроса из базы "{db_name}" в течение {timeout:d} секунд'))
 def check_sql_result_with_timeout(context, db_name, timeout):
     print(f"MOCK: Проверка результата SQL в {db_name} (таймаут {timeout}с)")
-    assert True
+    soft_assert(True)
 
 @then(parsers.parse('результат запроса в базу "{db_name}" содержит данные в течение {timeout:d} секунд'))
 def check_sql_result_contains(context, db_name, timeout):
@@ -926,49 +935,49 @@ def check_sql_result_contains(context, db_name, timeout):
 def check_response_header(context, header, value):
     actual_value = context["response"].get("headers", {}).get(header)
     print(f"MOCK: Проверка заголовка {header}: ожидается {value}, получено {actual_value}")
-    assert str(actual_value) == str(value)
+    soft_assert(str(actual_value) == str(value))
 
 @then(parsers.parse('заголовок ответа "{header}" существует'))
 def check_response_header_exists(context, header):
     headers = context["response"].get("headers", {})
     print(f"MOCK: Проверка наличия заголовка {header}")
-    assert header in headers
+    soft_assert(header in headers)
 
 @then(parsers.parse('заголовок ответа "{header}" не существует'))
 def check_response_header_not_exists(context, header):
     headers = context["response"].get("headers", {})
     print(f"MOCK: Проверка отсутствия заголовка {header}")
-    assert header not in headers
+    soft_assert(header not in headers)
 
 @then(parsers.parse('заголовок ответа "{header}" содержит "{substring}"'))
 def check_response_header_contains(context, header, substring):
     actual_value = str(context["response"].get("headers", {}).get(header, ""))
     print(f"MOCK: Проверка что заголовок {header} содержит {substring}")
-    assert substring in actual_value
+    soft_assert(substring in actual_value)
 
 @then(parsers.parse('время ответа меньше {max_time:d} миллисекунд'))
 def check_response_time(context, max_time):
     response_time = context["response"].get("response_time", 50)
     print(f"MOCK: Проверка времени ответа: должно быть < {max_time}мс, получено {response_time}мс")
-    assert response_time < max_time
+    soft_assert(response_time < max_time)
 
 @then(parsers.parse('время ответа меньше {max_time:d} секунд'))
 def check_response_time_seconds(context, max_time):
     response_time = context["response"].get("response_time", 50) / 1000
     print(f"MOCK: Проверка времени ответа: должно быть < {max_time}с")
-    assert response_time < max_time
+    soft_assert(response_time < max_time)
 
 @then(parsers.parse('размер ответа меньше {max_size:d} байт'))
 def check_response_size(context, max_size):
     response_size = len(str(context["response"].get("body", {})))
     print(f"MOCK: Проверка размера ответа: должно быть < {max_size} байт")
-    assert response_size < max_size
+    soft_assert(response_size < max_size)
 
 @then(parsers.parse('размер ответа больше {min_size:d} байт'))
 def check_response_size_greater(context, min_size):
     response_size = len(str(context["response"].get("body", {})))
     print(f"MOCK: Проверка размера ответа: должно быть > {min_size} байт")
-    assert response_size > min_size
+    soft_assert(response_size > min_size)
 
 def _resolve_variable(context, value):
     """Подставляет значения переменных из ${var_name}."""
@@ -984,60 +993,60 @@ def check_variable_equals(context, var_name, value):
     actual_value = context["variables"].get(var_name)
     expected_value = _resolve_variable(context, value)
     print(f"MOCK: Проверка переменной {var_name}: ожидается {expected_value}, получено {actual_value}")
-    assert str(actual_value) == str(expected_value)
+    soft_assert(str(actual_value) == str(expected_value))
 
 @then(parsers.parse('переменная "{var_name}" не равна "{value}"'))
 def check_variable_not_equals(context, var_name, value):
     actual_value = context["variables"].get(var_name)
     expected_value = _resolve_variable(context, value)
     print(f"MOCK: Проверка переменной {var_name}: не должно быть {expected_value}, получено {actual_value}")
-    assert str(actual_value) != str(expected_value)
+    soft_assert(str(actual_value) != str(expected_value))
 
 @then(parsers.parse('переменная "{var_name}" существует'))
 def check_variable_exists(context, var_name):
     print(f"MOCK: Проверка существования переменной {var_name}")
-    assert var_name in context["variables"]
+    soft_assert(var_name in context["variables"])
 
 @then(parsers.parse('переменная "{var_name}" не существует'))
 def check_variable_not_exists(context, var_name):
     print(f"MOCK: Проверка отсутствия переменной {var_name}")
-    assert var_name not in context["variables"]
+    soft_assert(var_name not in context["variables"])
 
 @then(parsers.parse('переменная "{var_name}" не пустая'))
 def check_variable_not_empty(context, var_name):
     actual_value = context["variables"].get(var_name)
     print(f"MOCK: Проверка что переменная {var_name} не пустая")
-    assert actual_value is not None and actual_value != ""
+    soft_assert(actual_value is not None and actual_value != "")
 
 @then(parsers.parse('переменная "{var_name}" пустая'))
 def check_variable_empty(context, var_name):
     actual_value = context["variables"].get(var_name)
     print(f"MOCK: Проверка что переменная {var_name} пустая")
-    assert actual_value is None or actual_value == ""
+    soft_assert(actual_value is None or actual_value == "")
 
 @then(parsers.parse('переменная "{var_name}" содержит "{substring}"'))
 def check_variable_contains(context, var_name, substring):
     actual_value = str(context["variables"].get(var_name, ""))
     print(f"MOCK: Проверка что переменная {var_name} содержит {substring}")
-    assert substring in actual_value
+    soft_assert(substring in actual_value)
 
 @then(parsers.parse('переменная "{var_name}" соответствует регулярному выражению "{pattern}"'))
 def check_variable_regex(context, var_name, pattern):
     actual_value = str(context["variables"].get(var_name, ""))
     print(f"MOCK: Проверка переменной {var_name} по regex {pattern}")
-    assert re.match(pattern, actual_value)
+    soft_assert(re.match(pattern, actual_value))
 
 @then(parsers.parse('переменная "{var_name}" больше {value:d}'))
 def check_variable_greater(context, var_name, value):
     actual_value = int(context["variables"].get(var_name, 0))
     print(f"MOCK: Проверка переменной {var_name}: должно быть > {value}")
-    assert actual_value > value
+    soft_assert(actual_value > value)
 
 @then(parsers.parse('переменная "{var_name}" меньше {value:d}'))
 def check_variable_less(context, var_name, value):
     actual_value = int(context["variables"].get(var_name, 0))
     print(f"MOCK: Проверка переменной {var_name}: должно быть < {value}")
-    assert actual_value < value
+    soft_assert(actual_value < value)
 
 @then(parsers.parse('Выполнить python код'))
 def execute_python_code(context):
@@ -1072,33 +1081,33 @@ def print_timer(context, timer_name):
 @then(parsers.parse('ответ соответствует JSON схеме:'))
 def check_json_schema(context, docstring):
     print(f"MOCK: Проверка соответствия JSON схеме: {docstring}")
-    assert True
+    soft_assert(True)
 
 @then(parsers.parse('ответ соответствует JSON схеме из файла "{schema_file}"'))
 def check_json_schema_from_file(context, schema_file):
     print(f"MOCK: Проверка соответствия JSON схеме из файла {schema_file}")
-    assert True
+    soft_assert(True)
 
 @then(parsers.parse('сравнить ответ с эталоном из файла "{file_path}"'))
 def compare_response_with_file(context, file_path):
     print(f"MOCK: Сравнение ответа с эталоном из {file_path}")
-    assert True
+    soft_assert(True)
 
 @then(parsers.parse('сравнить ответ с эталоном из файла "{file_path}" игнорируя поля:'))
 def compare_response_with_file_ignore(context, file_path, docstring):
     ignored_fields = docstring.strip().split("\n")
     print(f"MOCK: Сравнение ответа с эталоном из {file_path}, игнорируя {ignored_fields}")
-    assert True
+    soft_assert(True)
 
 @then(parsers.parse('тест завершен успешно'))
 def step_test_completed_successfully(context):
     print(f"MOCK: Тест завершен успешно")
-    assert True
+    soft_assert(True)
 
 @then(parsers.parse('тест завершен с ошибкой "{error_message}"'))
 def step_test_completed_with_error(context, error_message):
     print(f"MOCK: Тест завершен с ошибкой: {error_message}")
-    assert False, error_message
+    soft_assert(False, error_message)
 
 @then(parsers.parse('пропустить тест с причиной "{reason}"'))
 def skip_test(context, reason):

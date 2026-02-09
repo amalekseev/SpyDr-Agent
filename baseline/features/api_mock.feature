@@ -1,6 +1,6 @@
 Feature: Api Mock
 
-  @api @create
+  @api @items @create
   Scenario: Создание новой записи через API методом POST
     Given установлен базовый URL "https://api.example.com"
     Given установлен Content-Type "application/json"
@@ -15,7 +15,7 @@ Feature: Api Mock
     Then тело ответа содержит поле "status" со значением "success"
     Then сохранить значение поля "id" в переменную "item_id"
 
-  @api @get
+  @api @items @get
   Scenario: Получение данных записи по идентификатору через API методом GET
     Given установлен базовый URL "https://api.example.com"
     When отправить GET запрос на "/items/123"

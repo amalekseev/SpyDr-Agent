@@ -1,15 +1,16 @@
 Feature: Tfm Monitoring
 
-  @monitoring @statistics
+  @rest @monitoring
   Scenario: Проверка статистики сервиса
     Given настроен REST клиент для сервера "app_service"
     When отправить GET запрос на сервер "app_service" endpoint "/service/monitoring/statistics"
     Then код ответа сервера "app_service" равен 200
     Then ответ содержит JSON поле "actionTasks"
-    Then ответ содержит JSON массив "actionTasks.TaskRegenerate.waitingCount" с 1 элементами
-    Then тело ответа содержит поле "actionTasks.TaskRegenerate.waitingCount" типа "integer"
+    Then ответ содержит JSON массив "actionTasks.TaskRegenerate.waitingCount" с количеством элементов больше 0
+    Then ответ содержит вложенное поле "actionTasks.TaskRegenerate.waitingCount" со значением "{integer}"
 
-  @kafka @integration @database
+
+  @kafka @db @integration
   Scenario: Проверка загрузки данных из внешнего источника
     Given установлено подключение к базе данных "postgres"
     Given установлено подключение к Kafka кластеру "kafka_app"
@@ -26,3 +27,4 @@ Feature: Tfm Monitoring
       SELECT * FROM APP_SCHEMA.ACCOUNT_BALANCE WHERE POSITION_ID = '00001'
       """
     Then результат запроса в базу "postgres" содержит данные в течение 60 секунд
+    Then результат запроса содержит значение "00001" в колонке "POSITION_ID"

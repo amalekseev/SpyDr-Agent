@@ -3,6 +3,7 @@ UI шаги для тестирования.
 Включает шаги для работы с веб-интерфейсом, навигации, взаимодействия с элементами,
 работы с формами, таблицами, модальными окнами и другими UI компонентами.
 """
+from steps.soft_assert import soft_assert
 from pytest_bdd import given, when, then, parsers
 import json
 import uuid
@@ -762,140 +763,140 @@ def check_element_presence(context, selector):
         "selector": selector,
         "found": True
     }
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" отображается на странице'))
 def check_element_visible(context, selector):
     """Проверка видимости элемента."""
     print(f"MOCK: Проверка видимости элемента {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" не отображается на странице'))
 def check_element_not_visible(context, selector):
     """Проверка что элемент не видим."""
     print(f"MOCK: Проверка что элемент {selector} не видим")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" существует на странице'))
 def check_element_exists(context, selector):
     """Проверка существования элемента."""
     print(f"MOCK: Проверка существования элемента {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" не существует на странице'))
 def check_element_not_exists(context, selector):
     """Проверка отсутствия элемента."""
     print(f"MOCK: Проверка отсутствия элемента {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" активен'))
 def check_element_enabled(context, selector):
     """Проверка что элемент активен."""
     print(f"MOCK: Проверка что элемент {selector} активен")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" неактивен'))
 def check_element_disabled(context, selector):
     """Проверка что элемент неактивен."""
     print(f"MOCK: Проверка что элемент {selector} неактивен")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" выбран'))
 def check_element_selected(context, selector):
     """Проверка что элемент выбран."""
     print(f"MOCK: Проверка что элемент {selector} выбран")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" не выбран'))
 def check_element_not_selected(context, selector):
     """Проверка что элемент не выбран."""
     print(f"MOCK: Проверка что элемент {selector} не выбран")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" содержит текст "{text}"'))
 def check_element_text(context, selector, text):
     """Проверка текста элемента."""
     print(f"MOCK: Проверка что элемент {selector} содержит текст '{text}'")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" имеет точный текст "{text}"'))
 def check_element_exact_text(context, selector, text):
     """Проверка точного текста элемента."""
     print(f"MOCK: Проверка что элемент {selector} имеет текст '{text}'")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" не содержит текст "{text}"'))
 def check_element_not_contains_text(context, selector, text):
     """Проверка что элемент не содержит текст."""
     print(f"MOCK: Проверка что элемент {selector} не содержит текст '{text}'")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" имеет значение "{value}"'))
 def check_element_value(context, selector, value):
     """Проверка значения элемента."""
     print(f"MOCK: Проверка что элемент {selector} имеет значение '{value}'")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" имеет атрибут "{attribute}" со значением "{value}"'))
 def check_element_attribute(context, selector, attribute, value):
     """Проверка атрибута элемента."""
     print(f"MOCK: Проверка атрибута {attribute}={value} у элемента {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" имеет CSS свойство "{property}" со значением "{value}"'))
 def check_element_css(context, selector, property, value):
     """Проверка CSS свойства элемента."""
     print(f"MOCK: Проверка CSS свойства {property}={value} у элемента {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" имеет класс "{class_name}"'))
 def check_element_has_class(context, selector, class_name):
     """Проверка наличия класса у элемента."""
     print(f"MOCK: Проверка что элемент {selector} имеет класс {class_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('элемент "{selector}" не имеет класс "{class_name}"'))
 def check_element_not_has_class(context, selector, class_name):
     """Проверка отсутствия класса у элемента."""
     print(f"MOCK: Проверка что элемент {selector} не имеет класс {class_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('количество элементов "{selector}" равно {count:d}'))
 def check_elements_count(context, selector, count):
     """Проверка количества элементов."""
     print(f"MOCK: Проверка количества элементов {selector}: ожидается {count}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('количество элементов "{selector}" больше {count:d}'))
 def check_elements_count_greater(context, selector, count):
     """Проверка что элементов больше указанного количества."""
     print(f"MOCK: Проверка что элементов {selector} > {count}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('количество элементов "{selector}" меньше {count:d}'))
 def check_elements_count_less(context, selector, count):
     """Проверка что элементов меньше указанного количества."""
     print(f"MOCK: Проверка что элементов {selector} < {count}")
-    assert True
+    soft_assert(True)
 
 
 # ============================================================================
@@ -906,70 +907,70 @@ def check_elements_count_less(context, selector, count):
 def check_page_title(context, title):
     """Проверка заголовка страницы."""
     print(f"MOCK: Проверка заголовка страницы: ожидается '{title}'")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('заголовок страницы содержит "{text}"'))
 def check_page_title_contains(context, text):
     """Проверка что заголовок содержит текст."""
     print(f"MOCK: Проверка что заголовок содержит '{text}'")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('URL страницы равен "{url}"'))
 def check_page_url(context, url):
     """Проверка URL страницы."""
     print(f"MOCK: Проверка URL страницы: ожидается {url}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('URL страницы содержит "{url_part}"'))
 def check_page_url_contains(context, url_part):
     """Проверка что URL содержит подстроку."""
     print(f"MOCK: Проверка что URL содержит {url_part}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('URL страницы соответствует паттерну "{pattern}"'))
 def check_page_url_matches(context, pattern):
     """Проверка URL по паттерну."""
     print(f"MOCK: Проверка URL по паттерну {pattern}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('страница содержит текст "{text}"'))
 def check_page_contains_text(context, text):
     """Проверка наличия текста на странице."""
     print(f"MOCK: Проверка наличия текста '{text}' на странице")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('страница не содержит текст "{text}"'))
 def check_page_not_contains_text(context, text):
     """Проверка отсутствия текста на странице."""
     print(f"MOCK: Проверка отсутствия текста '{text}' на странице")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('страница загружена полностью'))
 def check_page_loaded(context):
     """Проверка что страница загружена."""
     print(f"MOCK: Проверка что страница загружена полностью")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('на странице нет JavaScript ошибок'))
 def check_no_js_errors(context):
     """Проверка отсутствия JavaScript ошибок."""
     print(f"MOCK: Проверка отсутствия JavaScript ошибок")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('на странице нет консольных ошибок'))
 def check_no_console_errors(context):
     """Проверка отсутствия консольных ошибок."""
     print(f"MOCK: Проверка отсутствия консольных ошибок")
-    assert True
+    soft_assert(True)
 
 
 # ============================================================================
@@ -980,35 +981,35 @@ def check_no_console_errors(context):
 def check_table_row_count(context, table_selector, count):
     """Проверка количества строк в таблице."""
     print(f"MOCK: Проверка количества строк в таблице {table_selector}: ожидается {count}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('таблица "{table_selector}" содержит строку с текстом "{text}"'))
 def check_table_contains_row(context, table_selector, text):
     """Проверка наличия строки с текстом в таблице."""
     print(f"MOCK: Проверка наличия строки с текстом '{text}' в таблице {table_selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('ячейка в строке {row:d} колонке {col:d} таблицы "{table_selector}" содержит "{text}"'))
 def check_table_cell_text(context, row, col, table_selector, text):
     """Проверка текста в ячейке таблицы."""
     print(f"MOCK: Проверка ячейки [{row}, {col}] в таблице {table_selector}: ожидается '{text}'")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('колонка "{column}" таблицы "{table_selector}" отсортирована по возрастанию'))
 def check_table_sorted_asc(context, column, table_selector):
     """Проверка сортировки колонки по возрастанию."""
     print(f"MOCK: Проверка сортировки колонки {column} по возрастанию")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('колонка "{column}" таблицы "{table_selector}" отсортирована по убыванию'))
 def check_table_sorted_desc(context, column, table_selector):
     """Проверка сортировки колонки по убыванию."""
     print(f"MOCK: Проверка сортировки колонки {column} по убыванию")
-    assert True
+    soft_assert(True)
 
 
 # ============================================================================
@@ -1019,28 +1020,28 @@ def check_table_sorted_desc(context, column, table_selector):
 def check_modal_visible(context):
     """Проверка что модальное окно отображается."""
     print(f"MOCK: Проверка что модальное окно отображается")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('модальное окно "{modal_selector}" отображается'))
 def check_specific_modal_visible(context, modal_selector):
     """Проверка что конкретное модальное окно отображается."""
     print(f"MOCK: Проверка что модальное окно {modal_selector} отображается")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('модальное окно не отображается'))
 def check_modal_not_visible(context):
     """Проверка что модальное окно не отображается."""
     print(f"MOCK: Проверка что модальное окно не отображается")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('модальное окно содержит текст "{text}"'))
 def check_modal_contains_text(context, text):
     """Проверка текста в модальном окне."""
     print(f"MOCK: Проверка что модальное окно содержит текст '{text}'")
-    assert True
+    soft_assert(True)
 
 
 # ============================================================================
@@ -1051,35 +1052,35 @@ def check_modal_contains_text(context, text):
 def check_field_has_error(context, selector):
     """Проверка наличия ошибки валидации у поля."""
     print(f"MOCK: Проверка наличия ошибки валидации у поля {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('поле "{selector}" имеет ошибку валидации "{error_text}"'))
 def check_field_error_text(context, selector, error_text):
     """Проверка текста ошибки валидации."""
     print(f"MOCK: Проверка ошибки валидации '{error_text}' у поля {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('поле "{selector}" не имеет ошибок валидации'))
 def check_field_no_error(context, selector):
     """Проверка отсутствия ошибок валидации."""
     print(f"MOCK: Проверка отсутствия ошибок валидации у поля {selector}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('форма валидна'))
 def check_form_valid(context):
     """Проверка валидности формы."""
     print(f"MOCK: Проверка валидности формы")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('форма невалидна'))
 def check_form_invalid(context):
     """Проверка невалидности формы."""
     print(f"MOCK: Проверка невалидности формы")
-    assert True
+    soft_assert(True)
 
 
 # ============================================================================
@@ -1091,7 +1092,7 @@ def check_user_authenticated(context):
     """Проверка что пользователь авторизован."""
     authenticated = context.get("auth", {}).get("authenticated", False)
     print(f"MOCK: Проверка что пользователь авторизован")
-    assert authenticated
+    soft_assert(authenticated)
 
 
 @then(parsers.parse('пользователь не авторизован'))
@@ -1099,21 +1100,21 @@ def check_user_not_authenticated(context):
     """Проверка что пользователь не авторизован."""
     authenticated = context.get("auth", {}).get("authenticated", True)
     print(f"MOCK: Проверка что пользователь не авторизован")
-    assert not authenticated
+    soft_assert(not authenticated)
 
 
 @then(parsers.parse('отображается страница входа'))
 def check_login_page_displayed(context):
     """Проверка что отображается страница входа."""
     print(f"MOCK: Проверка что отображается страница входа")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('отображается сообщение об ошибке авторизации'))
 def check_auth_error_displayed(context):
     """Проверка отображения ошибки авторизации."""
     print(f"MOCK: Проверка отображения ошибки авторизации")
-    assert True
+    soft_assert(True)
 
 
 # ============================================================================
@@ -1124,49 +1125,49 @@ def check_auth_error_displayed(context):
 def check_tabs_count(context, count):
     """Проверка количества открытых вкладок."""
     print(f"MOCK: Проверка количества вкладок: ожидается {count}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('cookie "{cookie_name}" существует'))
 def check_cookie_exists(context, cookie_name):
     """Проверка существования cookie."""
     print(f"MOCK: Проверка существования cookie {cookie_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('cookie "{cookie_name}" имеет значение "{value}"'))
 def check_cookie_value(context, cookie_name, value):
     """Проверка значения cookie."""
     print(f"MOCK: Проверка значения cookie {cookie_name}: ожидается {value}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('cookie "{cookie_name}" не существует'))
 def check_cookie_not_exists(context, cookie_name):
     """Проверка отсутствия cookie."""
     print(f"MOCK: Проверка отсутствия cookie {cookie_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('localStorage содержит ключ "{key}"'))
 def check_localstorage_key(context, key):
     """Проверка наличия ключа в localStorage."""
     print(f"MOCK: Проверка наличия ключа {key} в localStorage")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('localStorage содержит ключ "{key}" со значением "{value}"'))
 def check_localstorage_value(context, key, value):
     """Проверка значения в localStorage."""
     print(f"MOCK: Проверка значения {key}={value} в localStorage")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('sessionStorage содержит ключ "{key}"'))
 def check_sessionstorage_key(context, key):
     """Проверка наличия ключа в sessionStorage."""
     print(f"MOCK: Проверка наличия ключа {key} в sessionStorage")
-    assert True
+    soft_assert(True)
 
 
 # ============================================================================

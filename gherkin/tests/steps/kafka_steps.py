@@ -3,6 +3,7 @@ Kafka шаги для тестирования.
 Включает шаги для отправки и получения сообщений в Kafka топики,
 управления консьюмерами и продюсерами, работы с партициями.
 """
+from steps.soft_assert import soft_assert
 from pytest_bdd import given, when, then, parsers
 import json
 import uuid
@@ -506,7 +507,7 @@ def check_message_sent(context):
     """Проверка успешной отправки сообщения."""
     sent = context.get("kafka", {}).get("sent", False)
     print(f"MOCK: Проверка отправки сообщения")
-    assert sent
+    soft_assert(sent)
 
 
 @then(parsers.parse('offset отправленного сообщения сохранен в переменную "{var_name}"'))
@@ -522,7 +523,7 @@ def check_sent_partition(context, partition):
     """Проверка партиции отправленного сообщения."""
     actual_partition = context.get("kafka", {}).get("partition", -1)
     print(f"MOCK: Проверка партиции: ожидается {partition}, получено {actual_partition}")
-    assert actual_partition == partition
+    soft_assert(actual_partition == partition)
 
 
 @then(parsers.parse('получено сообщение из топика'))
@@ -530,7 +531,7 @@ def check_message_received(context):
     """Проверка получения сообщения."""
     received = context.get("kafka_received") is not None
     print(f"MOCK: Проверка получения сообщения")
-    assert received
+    soft_assert(received)
 
 
 @then(parsers.parse('получено {count:d} сообщений из топика'))
@@ -539,7 +540,7 @@ def check_messages_count_received(context, count):
     messages = context.get("kafka_received", {}).get("messages", [])
     actual_count = len(messages) if messages else (1 if context.get("kafka_received", {}).get("message") else 0)
     print(f"MOCK: Проверка количества сообщений: ожидается {count}, получено {actual_count}")
-    assert actual_count == count
+    soft_assert(actual_count == count)
 
 
 @then(parsers.parse('тело полученного сообщения содержит "{text}"'))
@@ -548,14 +549,14 @@ def check_received_message_contains(context, text):
     message = context.get("kafka_received", {}).get("message", {})
     message_str = json.dumps(message) if isinstance(message, dict) else str(message)
     print(f"MOCK: Проверка что сообщение содержит '{text}'")
-    assert text in message_str
+    soft_assert(text in message_str)
 
 
 @then(parsers.parse('тело полученного сообщения равно:'))
 def check_received_message_equals(context, docstring):
     """Проверка точного соответствия тела сообщения."""
     print(f"MOCK: Проверка соответствия тела сообщения")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('ключ полученного сообщения равен "{key}"'))
@@ -563,7 +564,7 @@ def check_received_message_key(context, key):
     """Проверка ключа полученного сообщения."""
     actual_key = context.get("kafka_received", {}).get("key")
     print(f"MOCK: Проверка ключа сообщения: ожидается {key}, получено {actual_key}")
-    assert str(actual_key) == str(key)
+    soft_assert(str(actual_key) == str(key))
 
 
 @then(parsers.parse('заголовок "{header}" полученного сообщения равен "{value}"'))
@@ -572,7 +573,7 @@ def check_received_message_header(context, header, value):
     headers = context.get("kafka_received", {}).get("headers", {})
     actual_value = headers.get(header)
     print(f"MOCK: Проверка заголовка {header}: ожидается {value}, получено {actual_value}")
-    assert str(actual_value) == str(value)
+    soft_assert(str(actual_value) == str(value))
 
 
 @then(parsers.parse('offset полученного сообщения сохранен в переменную "{var_name}"'))
@@ -603,42 +604,42 @@ def save_received_message_body(context, var_name):
 def check_topic_exists(context, topic_name, cluster_name):
     """Проверка существования топика."""
     print(f"MOCK: Проверка существования топика {topic_name} в кластере {cluster_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('топик "{topic_name}" не существует в кластере "{cluster_name}"'))
 def check_topic_not_exists(context, topic_name, cluster_name):
     """Проверка отсутствия топика."""
     print(f"MOCK: Проверка отсутствия топика {topic_name} в кластере {cluster_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('топик "{topic_name}" имеет {partitions:d} партиций'))
 def check_topic_partitions(context, topic_name, partitions):
     """Проверка количества партиций топика."""
     print(f"MOCK: Проверка количества партиций топика {topic_name}: ожидается {partitions}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('топик "{topic_name}" имеет replication factor {factor:d}'))
 def check_topic_replication_factor(context, topic_name, factor):
     """Проверка replication factor топика."""
     print(f"MOCK: Проверка replication factor топика {topic_name}: ожидается {factor}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('lag консьюмера для топика "{topic_name}" равен {lag:d}'))
 def check_consumer_lag(context, topic_name, lag):
     """Проверка lag консьюмера."""
     print(f"MOCK: Проверка lag консьюмера для топика {topic_name}: ожидается {lag}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('lag консьюмера для топика "{topic_name}" меньше {max_lag:d}'))
 def check_consumer_lag_less(context, topic_name, max_lag):
     """Проверка что lag консьюмера меньше указанного."""
     print(f"MOCK: Проверка lag консьюмера для топика {topic_name}: должен быть < {max_lag}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('подключение к Kafka кластеру "{cluster_name}" активно'))
@@ -646,7 +647,7 @@ def check_kafka_connection_active(context, cluster_name):
     """Проверка активности подключения к Kafka."""
     connected = context.get("kafka_clusters", {}).get(cluster_name, {}).get("connected", False)
     print(f"MOCK: Проверка подключения к кластеру {cluster_name}")
-    assert connected
+    soft_assert(connected)
 
 
 @then(parsers.parse('закрыть подключение к Kafka кластеру "{cluster_name}"'))

@@ -3,6 +3,7 @@ REST API шаги для тестирования.
 Включает шаги для отправки запросов с заголовками, проверки ответов,
 работы с различными форматами данных и аутентификацией.
 """
+from steps.soft_assert import soft_assert
 from pytest_bdd import given, when, then, parsers
 import json
 import uuid
@@ -451,15 +452,27 @@ def send_graphql_mutation_to_server(context, server_name, docstring):
 
 
 @when(parsers.parse('отправить запрос с query параметрами на сервер "{server_name}" endpoint "{endpoint}":'))
-def send_request_with_query_params(context, server_name, endpoint, docstring):
+def send_request_with_query_params(context, server_name, endpoint, request):
     """Отправка запроса с query параметрами."""
+    docstring = None
+    datatable = None
+    try:
+        docstring = request.getfixturevalue("docstring")
+    except Exception:
+        pass
+    try:
+        datatable = request.getfixturevalue("datatable")
+    except Exception:
+        pass
+
+    payload = docstring if docstring is not None else datatable
     print(f"MOCK: Отправка запроса с query параметрами на сервер {server_name}")
-    print(f"MOCK: Параметры:\n{docstring}")
+    print(f"MOCK: Параметры:\n{payload}")
     
     context["request"]["method"] = "GET"
     context["request"]["server"] = server_name
     context["request"]["endpoint"] = endpoint
-    context["request"]["query_params"] = docstring
+    context["request"]["query_params"] = payload
     context["response"] = {
         "status_code": 200,
         "body": {"items": [], "total": 0},
@@ -646,14 +659,14 @@ def check_response_code_only(context, status_code):
     """Проверка только кода ответа."""
     actual_code = context["response"].get("status_code")
     print(f"MOCK: Проверка кода ответа: ожидается {status_code}, получено {actual_code}")
-    assert actual_code == status_code
+    soft_assert(actual_code == status_code)
 
 
 @then(parsers.parse('Проверить хедеры из последнего ответа'))
 def check_response_headers(context):
     """Проверка заголовков ответа."""
     print(f"MOCK: Проверка заголовков ответа")
-    assert "headers" in context["response"]
+    soft_assert("headers" in context["response"])
 
 
 @then(parsers.parse('Проверить ответ с кодом {status_code:d} в течение {timeout:d} секунд'))
@@ -661,7 +674,7 @@ def check_response_with_timeout(context, status_code, timeout):
     """Проверка кода ответа с таймаутом (polling)."""
     print(f"MOCK: Проверка ответа с кодом {status_code} в течение {timeout} секунд")
     actual_code = context["response"].get("status_code")
-    assert actual_code == status_code
+    soft_assert(actual_code == status_code)
 
 
 @then(parsers.parse('Проверить ответ с кодом {status_code:d} и файлом с размером больше {size:d} кБ'))
@@ -669,7 +682,7 @@ def check_response_with_file_size(context, status_code, size):
     """Проверка кода ответа и размера файла в ответе."""
     print(f"MOCK: Проверка ответа с кодом {status_code} и файлом > {size} кБ")
     actual_code = context["response"].get("status_code")
-    assert actual_code == status_code
+    soft_assert(actual_code == status_code)
     print(f"MOCK: Размер файла в ответе: {size + 10} кБ (мок)")
 
 
@@ -678,7 +691,7 @@ def check_server_response_code(context, server_name, status_code):
     """Проверка кода ответа от конкретного сервера."""
     actual_code = context["response"].get("status_code")
     print(f"MOCK: Проверка кода ответа от {server_name}: ожидается {status_code}, получено {actual_code}")
-    assert actual_code == status_code
+    soft_assert(actual_code == status_code)
 
 
 @then(parsers.parse('ответ содержит JSON поле "{field}" со значением "{value}"'))
@@ -687,7 +700,7 @@ def check_json_field_value(context, field, value):
     body = context["response"].get("body", {})
     actual_value = body.get(field) if isinstance(body, dict) else None
     print(f"MOCK: Проверка поля {field}: ожидается {value}, получено {actual_value}")
-    assert str(actual_value) == str(value)
+    soft_assert(str(actual_value) == str(value))
 
 
 @then(parsers.parse('ответ содержит JSON поле "{field}"'))
@@ -695,7 +708,7 @@ def check_json_field_exists(context, field):
     """Проверка наличия JSON поля."""
     body = context["response"].get("body", {})
     print(f"MOCK: Проверка наличия поля {field}")
-    assert field in body if isinstance(body, dict) else False
+    soft_assert(field in body if isinstance(body, dict) else False)
 
 
 @then(parsers.parse('ответ не содержит JSON поле "{field}"'))
@@ -703,7 +716,7 @@ def check_json_field_not_exists(context, field):
     """Проверка отсутствия JSON поля."""
     body = context["response"].get("body", {})
     print(f"MOCK: Проверка отсутствия поля {field}")
-    assert field not in body if isinstance(body, dict) else True
+    soft_assert(field not in body if isinstance(body, dict) else True)
 
 
 @then(parsers.parse('ответ содержит JSON массив "{field}" с {count:d} элементами'))
@@ -712,7 +725,7 @@ def check_json_array_count(context, field, count):
     body = context["response"].get("body", {})
     array = body.get(field, []) if isinstance(body, dict) else []
     print(f"MOCK: Проверка количества элементов в {field}: ожидается {count}")
-    assert len(array) == count
+    soft_assert(len(array) == count)
 
 
 @then(parsers.parse('ответ содержит JSON массив "{field}" с элементом где "{key}" равен "{value}"'))
@@ -722,7 +735,7 @@ def check_json_array_contains_element(context, field, key, value):
     array = body.get(field, []) if isinstance(body, dict) else []
     print(f"MOCK: Проверка наличия элемента с {key}={value} в массиве {field}")
     found = any(str(item.get(key)) == str(value) for item in array if isinstance(item, dict))
-    assert found
+    soft_assert(found)
 
 
 @then(parsers.parse('ответ содержит вложенное поле "{path}"'))
@@ -738,7 +751,7 @@ def check_nested_json_field_exists(context, path):
             current = None
             break
     print(f"MOCK: Проверка наличия вложенного поля {path}: найдено {current is not None}")
-    assert current is not None
+    soft_assert(current is not None)
 
 
 @then(parsers.parse('ответ содержит вложенное поле "{path}" типа "{expected_type}"'))
@@ -765,7 +778,7 @@ def check_nested_json_field_type(context, path, expected_type):
     expected = type_mapping.get(expected_type.lower(), str)
     actual_type = type(current).__name__
     print(f"MOCK: Проверка типа вложенного поля {path}: ожидается {expected_type}, получено {actual_type}")
-    assert isinstance(current, expected)
+    soft_assert(isinstance(current, expected))
 
 
 @then(parsers.parse('ответ содержит вложенное поле "{path}" со значением "{value}"'))
@@ -781,7 +794,7 @@ def check_nested_json_field(context, path, value):
             current = None
             break
     print(f"MOCK: Проверка вложенного поля {path}: ожидается {value}, получено {current}")
-    assert str(current) == str(value)
+    soft_assert(str(current) == str(value))
 
 
 @then(parsers.parse('заголовок ответа "{header}" равен "{value}"'))
@@ -790,7 +803,7 @@ def check_response_header_value(context, header, value):
     headers = context["response"].get("headers", {})
     actual_value = headers.get(header)
     print(f"MOCK: Проверка заголовка {header}: ожидается {value}, получено {actual_value}")
-    assert str(actual_value) == str(value)
+    soft_assert(str(actual_value) == str(value))
 
 
 @then(parsers.parse('заголовок ответа "{header}" содержит "{substring}"'))
@@ -799,7 +812,7 @@ def check_response_header_contains(context, header, substring):
     headers = context["response"].get("headers", {})
     actual_value = str(headers.get(header, ""))
     print(f"MOCK: Проверка что заголовок {header} содержит '{substring}'")
-    assert substring in actual_value
+    soft_assert(substring in actual_value)
 
 
 @then(parsers.parse('заголовок ответа "{header}" существует'))
@@ -807,7 +820,7 @@ def check_response_header_exists(context, header):
     """Проверка наличия заголовка ответа."""
     headers = context["response"].get("headers", {})
     print(f"MOCK: Проверка наличия заголовка {header}")
-    assert header in headers
+    soft_assert(header in headers)
 
 
 @then(parsers.parse('заголовок ответа "{header}" не существует'))
@@ -815,7 +828,7 @@ def check_response_header_not_exists(context, header):
     """Проверка отсутствия заголовка ответа."""
     headers = context["response"].get("headers", {})
     print(f"MOCK: Проверка отсутствия заголовка {header}")
-    assert header not in headers
+    soft_assert(header not in headers)
 
 
 @then(parsers.parse('время ответа сервера меньше {max_time:d} миллисекунд'))
@@ -823,7 +836,7 @@ def check_response_time_ms(context, max_time):
     """Проверка времени ответа в миллисекундах."""
     response_time = context["response"].get("response_time", 0)
     print(f"MOCK: Проверка времени ответа: должно быть < {max_time}мс, получено {response_time}мс")
-    assert response_time < max_time
+    soft_assert(response_time < max_time)
 
 
 @then(parsers.parse('время ответа сервера меньше {max_time:d} секунд'))
@@ -831,7 +844,7 @@ def check_response_time_sec(context, max_time):
     """Проверка времени ответа в секундах."""
     response_time = context["response"].get("response_time", 0) / 1000
     print(f"MOCK: Проверка времени ответа: должно быть < {max_time}с")
-    assert response_time < max_time
+    soft_assert(response_time < max_time)
 
 
 @then(parsers.parse('размер ответа меньше {max_size:d} байт'))
@@ -840,7 +853,7 @@ def check_response_size_bytes(context, max_size):
     body = context["response"].get("body", {})
     size = len(json.dumps(body)) if isinstance(body, dict) else len(str(body))
     print(f"MOCK: Проверка размера ответа: должно быть < {max_size} байт")
-    assert size < max_size
+    soft_assert(size < max_size)
 
 
 @then(parsers.parse('размер ответа больше {min_size:d} байт'))
@@ -849,21 +862,21 @@ def check_response_size_greater(context, min_size):
     body = context["response"].get("body", {})
     size = len(json.dumps(body)) if isinstance(body, dict) else len(str(body))
     print(f"MOCK: Проверка размера ответа: должно быть > {min_size} байт")
-    assert size > min_size
+    soft_assert(size > min_size)
 
 
 @then(parsers.parse('ответ соответствует JSON схеме:'))
 def check_response_json_schema(context, docstring):
     """Проверка соответствия ответа JSON схеме."""
     print(f"MOCK: Проверка соответствия JSON схеме:\n{docstring}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('ответ соответствует JSON схеме из файла "{schema_file}"'))
 def check_response_json_schema_from_file(context, schema_file):
     """Проверка соответствия ответа JSON схеме из файла."""
     print(f"MOCK: Проверка соответствия JSON схеме из файла {schema_file}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('ответ является валидным JSON'))
@@ -871,7 +884,7 @@ def check_response_valid_json(context):
     """Проверка что ответ является валидным JSON."""
     body = context["response"].get("body")
     print(f"MOCK: Проверка что ответ является валидным JSON")
-    assert body is not None
+    soft_assert(body is not None)
 
 
 @then(parsers.parse('ответ является валидным XML'))
@@ -879,7 +892,7 @@ def check_response_valid_xml(context):
     """Проверка что ответ является валидным XML."""
     body = context["response"].get("body")
     print(f"MOCK: Проверка что ответ является валидным XML")
-    assert body is not None
+    soft_assert(body is not None)
 
 
 @then(parsers.parse('сохранить значение поля "{field}" из ответа в переменную "{var_name}"'))
@@ -928,7 +941,7 @@ def save_response_time_to_var(context, var_name):
 def compare_response_with_reference(context, file_path):
     """Сравнение ответа с эталоном из файла."""
     print(f"MOCK: Сравнение ответа с эталоном из файла {file_path}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('сравнить ответ с эталоном из файла "{file_path}" игнорируя поля:'))
@@ -936,7 +949,7 @@ def compare_response_with_reference_ignore_fields(context, file_path, docstring)
     """Сравнение ответа с эталоном игнорируя указанные поля."""
     ignored_fields = [f.strip() for f in docstring.strip().split("\n")]
     print(f"MOCK: Сравнение ответа с эталоном из файла {file_path}, игнорируя поля: {ignored_fields}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('вывести тело ответа'))
@@ -964,14 +977,14 @@ def print_response_time(context):
 def check_server_available(context, server_name):
     """Проверка доступности сервера."""
     print(f"MOCK: Проверка доступности сервера {server_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('сервер "{server_name}" недоступен'))
 def check_server_unavailable(context, server_name):
     """Проверка недоступности сервера."""
     print(f"MOCK: Проверка недоступности сервера {server_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('закрыть REST клиент для сервера "{server_name}"'))

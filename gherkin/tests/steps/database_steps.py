@@ -3,6 +3,7 @@ Database шаги для тестирования.
 Включает шаги для выполнения SQL запросов, управления транзакциями,
 работы с различными СУБД и проверки данных.
 """
+from steps.soft_assert import soft_assert
 from pytest_bdd import given, when, then, parsers
 import json
 
@@ -465,7 +466,7 @@ def check_row_count(context, count):
         actual_count = len(sql_result) if sql_result else count  # Mock: возвращаем ожидаемое значение
     
     print(f"MOCK: Проверка количества строк: ожидается {count}, получено {actual_count}")
-    assert actual_count == count
+    soft_assert(actual_count == count)
 
 
 @then(parsers.parse('результат запроса содержит более {count:d} строк'))
@@ -480,7 +481,7 @@ def check_row_count_greater(context, count):
         actual_count = len(sql_result) if sql_result else count + 1
     
     print(f"MOCK: Проверка количества строк: должно быть > {count}")
-    assert actual_count > count
+    soft_assert(actual_count > count)
 
 
 @then(parsers.parse('результат запроса содержит менее {count:d} строк'))
@@ -495,7 +496,7 @@ def check_row_count_less(context, count):
         actual_count = len(sql_result) if sql_result else count - 1
     
     print(f"MOCK: Проверка количества строк: должно быть < {count}")
-    assert actual_count < count
+    soft_assert(actual_count < count)
 
 
 @then(parsers.parse('результат запроса не пустой'))
@@ -503,7 +504,7 @@ def check_result_not_empty(context):
     """Проверка что результат не пустой."""
     rows = context.get("last_db_result", {}).get("rows", [])
     print(f"MOCK: Проверка что результат не пустой")
-    assert len(rows) > 0
+    soft_assert(len(rows) > 0)
 
 
 @then(parsers.parse('результат запроса пустой'))
@@ -511,7 +512,7 @@ def check_result_empty(context):
     """Проверка что результат пустой."""
     rows = context.get("last_db_result", {}).get("rows", [])
     print(f"MOCK: Проверка что результат пустой")
-    assert len(rows) == 0
+    soft_assert(len(rows) == 0)
 
 
 @then(parsers.parse('результат запроса содержит колонку "{column_name}"'))
@@ -520,7 +521,7 @@ def check_column_exists(context, column_name):
     rows = context.get("last_db_result", {}).get("rows", [])
     if rows:
         print(f"MOCK: Проверка наличия колонки {column_name}")
-        assert column_name in rows[0]
+        soft_assert(column_name in rows[0])
 
 
 @then(parsers.parse('результат запроса содержит значение "{value}" в колонке "{column_name}"'))
@@ -529,7 +530,7 @@ def check_column_value(context, value, column_name):
     rows = context.get("last_db_result", {}).get("rows", [])
     print(f"MOCK: Проверка значения {value} в колонке {column_name}")
     found = any(str(row.get(column_name)) == str(value) for row in rows)
-    assert found
+    soft_assert(found)
 
 
 @then(parsers.parse('результат запроса в первой строке содержит "{value}" в колонке "{column_name}"'))
@@ -538,7 +539,7 @@ def check_first_row_value(context, value, column_name):
     rows = context.get("last_db_result", {}).get("rows", [])
     print(f"MOCK: Проверка значения {value} в первой строке колонки {column_name}")
     if rows:
-        assert str(rows[0].get(column_name)) == str(value)
+        soft_assert(str(rows[0].get(column_name)) == str(value))
 
 
 @then(parsers.parse('количество затронутых строк равно {count:d}'))
@@ -546,7 +547,7 @@ def check_affected_rows(context, count):
     """Проверка количества затронутых строк."""
     affected = context.get("last_db_result", {}).get("affected_rows", 0)
     print(f"MOCK: Проверка затронутых строк: ожидается {count}, получено {affected}")
-    assert affected == count
+    soft_assert(affected == count)
 
 
 @then(parsers.parse('количество затронутых строк больше {count:d}'))
@@ -554,7 +555,7 @@ def check_affected_rows_greater(context, count):
     """Проверка что затронуто больше строк."""
     affected = context.get("last_db_result", {}).get("affected_rows", 0)
     print(f"MOCK: Проверка затронутых строк: должно быть > {count}")
-    assert affected > count
+    soft_assert(affected > count)
 
 
 @then(parsers.parse('ID вставленной записи сохранен в переменную "{var_name}"'))
@@ -579,56 +580,56 @@ def save_column_value(context, column_name, var_name):
 def check_result_matches_data(context, datatable):
     """Проверка соответствия результата данным."""
     print(f"MOCK: Проверка соответствия результата данным: {datatable}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('результат запроса содержит данные:'))
 def check_result_contains_data(context, datatable):
     """Проверка что результат содержит данные."""
     print(f"MOCK: Проверка что результат содержит данные: {datatable}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" существует'))
 def check_table_exists(context, table_name, db_name):
     """Проверка существования таблицы."""
     print(f"MOCK: Проверка существования таблицы {table_name} в базе {db_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" не существует'))
 def check_table_not_exists(context, table_name, db_name):
     """Проверка отсутствия таблицы."""
     print(f"MOCK: Проверка отсутствия таблицы {table_name} в базе {db_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" содержит {count:d} записей'))
 def check_table_record_count(context, table_name, db_name, count):
     """Проверка количества записей в таблице."""
     print(f"MOCK: Проверка количества записей в таблице {table_name}: ожидается {count}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" пустая'))
 def check_table_empty(context, table_name, db_name):
     """Проверка что таблица пустая."""
     print(f"MOCK: Проверка что таблица {table_name} пустая")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('индекс "{index_name}" существует на таблице "{table_name}" базы "{db_name}"'))
 def check_index_exists(context, index_name, table_name, db_name):
     """Проверка существования индекса."""
     print(f"MOCK: Проверка существования индекса {index_name} на таблице {table_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('индекс "{index_name}" не существует на таблице "{table_name}" базы "{db_name}"'))
 def check_index_not_exists(context, index_name, table_name, db_name):
     """Проверка отсутствия индекса."""
     print(f"MOCK: Проверка отсутствия индекса {index_name} на таблице {table_name}")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('транзакция в базе "{db_name}" активна'))
@@ -636,7 +637,7 @@ def check_transaction_active(context, db_name):
     """Проверка что транзакция активна."""
     active = context.get("transactions", {}).get(db_name, {}).get("active", False)
     print(f"MOCK: Проверка что транзакция в {db_name} активна")
-    assert active
+    soft_assert(active)
 
 
 @then(parsers.parse('транзакция в базе "{db_name}" не активна'))
@@ -644,21 +645,21 @@ def check_transaction_not_active(context, db_name):
     """Проверка что транзакция не активна."""
     active = context.get("transactions", {}).get(db_name, {}).get("active", True)
     print(f"MOCK: Проверка что транзакция в {db_name} не активна")
-    assert not active
+    soft_assert(not active)
 
 
 @then(parsers.parse('время выполнения запроса меньше {max_time:d} миллисекунд'))
 def check_query_execution_time(context, max_time):
     """Проверка времени выполнения запроса."""
     print(f"MOCK: Проверка времени выполнения запроса: должно быть < {max_time}мс")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('время выполнения запроса меньше {max_time:d} секунд'))
 def check_query_execution_time_seconds(context, max_time):
     """Проверка времени выполнения запроса в секундах."""
     print(f"MOCK: Проверка времени выполнения запроса: должно быть < {max_time}с")
-    assert True
+    soft_assert(True)
 
 
 @then(parsers.parse('подключение к базе "{db_name}" активно'))
@@ -666,7 +667,7 @@ def check_connection_active(context, db_name):
     """Проверка активности подключения."""
     connected = context.get("databases", {}).get(db_name, {}).get("connected", False)
     print(f"MOCK: Проверка что подключение к {db_name} активно")
-    assert connected
+    soft_assert(connected)
 
 
 @then(parsers.parse('закрыть подключение к базе "{db_name}"'))

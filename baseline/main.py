@@ -358,7 +358,7 @@ def run_pipeline(
     input_dir: str,
     output_dir: Optional[str] = None,
     steps_file: Optional[str] = None,
-    model: str = "gpt-4.1-nano",
+    model: str = "gpt-4.1",
     verbose: bool = False
 ) -> dict:
     """

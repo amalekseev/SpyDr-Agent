@@ -1,6 +1,6 @@
 Feature: Kncu Integration
 
-  @rest @typeA
+  @external-integration @typeA
   Scenario: Проверка корректности обработки запроса типа A внешним сервисом
     Given настроен REST клиент для сервера "external-integration"
     When присвоить переменной "correlationId" случайную строку длиной 36
@@ -8,7 +8,7 @@ Feature: Kncu Integration
     Then Проверить ответ с кодом 200
     And сравнить ответ с эталоном из файла "type_a_res.json"
 
-  @rest @typeB
+  @external-integration @typeB
   Scenario: Проверка корректности обработки запроса типа B внешним сервисом
     Given настроен REST клиент для сервера "external-integration"
     When присвоить переменной "correlationId" случайную строку длиной 36
@@ -16,7 +16,7 @@ Feature: Kncu Integration
     Then Проверить ответ с кодом 200
     And сравнить ответ с эталоном из файла "type_b_res.json"
 
-  @rest @typeC
+  @external-integration @typeC
   Scenario: Проверка корректности обработки запроса типа C внешним сервисом
     Given настроен REST клиент для сервера "external-integration"
     When присвоить переменной "correlationId" случайную строку длиной 36
