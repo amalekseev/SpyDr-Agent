@@ -243,6 +243,19 @@ def main():
     else:
         print("Тесты не были найдены или запущены.")
     print("="*30)
+    if skipped or skipped_scenarios or not_started > 0:
+        print("--- Причины незапуска ---")
+        if skipped:
+            print("Feature файлы (целиком):")
+            for source, reason in skipped:
+                print(f"- {source} ({reason})")
+        if skipped_scenarios:
+            print("Сценарии:")
+            for scenario_name, reason in skipped_scenarios:
+                print(f"- {scenario_name} ({reason})")
+        if not (skipped or skipped_scenarios):
+            print("Причины не определены: нет данных о пропусках.")
+        print("-" * 30)
     if collector.failures:
         print("--- Причины падений ---")
         for nodeid, details in collector.failures:
