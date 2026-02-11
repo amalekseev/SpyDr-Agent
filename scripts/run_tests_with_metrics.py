@@ -225,24 +225,7 @@ def main():
 
         shutil.rmtree(run_dir)
 
-    # Вывод метрик
-    print("\n" + "="*30)
-    print("ИТОГОВЫЕ МЕТРИКИ")
-    print("="*30)
     not_started = max(total_scenarios - collector.total, 0)
-    print(f"Всего тестов:           {total_scenarios}")
-    print(f"Запущено:               {collector.total}")
-    print(f"Не запущено:            {not_started}")
-    print(f"Пройдено:               {collector.passed}")
-    print(f"Провалено:              {collector.failed}")
-    print(f"Пропущено (внутри pytest): {collector.skipped}")
-    
-    if total_scenarios > 0:
-        pass_rate = (collector.passed / total_scenarios) * 100
-        print(f"Pass Rate:     {pass_rate:.2f}%")
-    else:
-        print("Тесты не были найдены или запущены.")
-    print("="*30)
     if skipped or skipped_scenarios or not_started > 0:
         print("--- Причины незапуска ---")
         if skipped:
@@ -262,6 +245,24 @@ def main():
             print(f"- {nodeid}")
             print(details)
             print("-" * 30)
+
+    # Вывод метрик в самом конце, чтобы не ломать downstream-парсинг.
+    print("\n" + "="*30)
+    print("ИТОГОВЫЕ МЕТРИКИ")
+    print("="*30)
+    print(f"Всего тестов:           {total_scenarios}")
+    print(f"Запущено:               {collector.total}")
+    print(f"Не запущено:            {not_started}")
+    print(f"Пройдено:               {collector.passed}")
+    print(f"Провалено:              {collector.failed}")
+    print(f"Пропущено (внутри pytest): {collector.skipped}")
+
+    if total_scenarios > 0:
+        pass_rate = (collector.passed / total_scenarios) * 100
+        print(f"Pass Rate:     {pass_rate:.2f}%")
+    else:
+        print("Тесты не были найдены или запущены.")
+    print("="*30)
 
 if __name__ == "__main__":
     main()

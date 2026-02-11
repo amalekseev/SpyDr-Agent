@@ -1,5 +1,9 @@
 openai==2.11.0
 python-dotenv==1.0.1
+psycopg[binary]==3.2.9
+opentelemetry-api==1.30.0
+opentelemetry-sdk==1.30.0
+opentelemetry-exporter-otlp==1.30.0
 pytest==8.4.2
 pytest-bdd==8.1.0
 pydantic-settings==2.12.0
