@@ -25,38 +25,200 @@ class StepRAGStore:
     db_url: str
     client: OpenAI
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
+    _embedding_dimension: int | None = None
+
+    def _get_embedding_dimension(self) -> int:
+        """Get embedding dimension dynamically from the model."""
+        if self._embedding_dimension is not None:
+            return self._embedding_dimension
+        # Make a test embedding call to get the actual dimension
+        test_embedding = self._embed_text("test")
+        self._embedding_dimension = len(test_embedding)
+        return self._embedding_dimension
 
     def ensure_schema(self) -> None:
         """Initialize extension, table and indexes required for vector search."""
-        with TRACER.start_as_current_span("baseline.rag.ensure_schema"):
+        with TRACER.start_as_current_span("baseline.rag.ensure_schema") as span:
+            embedding_dim = self._get_embedding_dimension()
+            span.set_attribute("rag.embedding_dimension", embedding_dim)
             with psycopg.connect(self.db_url) as conn:
                 with conn.cursor() as cur:
                     cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
-                    cur.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS bdd_steps (
-                            step_id TEXT PRIMARY KEY,
-                            step_type TEXT NOT NULL,
-                            pattern TEXT NOT NULL,
-                            placeholders_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-                            docstring TEXT NULL,
-                            source_file TEXT NULL,
-                            function_name TEXT NULL,
-                            line_number INTEGER NULL,
-                            embedding vector(1536) NOT NULL,
+                    
+                    # Create metadata table to store embedding dimension
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS rag_metadata (
+                            key TEXT PRIMARY KEY,
+                            value TEXT NOT NULL,
                             updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
                         )
-                        """
-                    )
+                    """)
+                    
+                    # Get current dimension from metadata or table
+                    cur.execute("""
+                        SELECT value FROM rag_metadata WHERE key = 'embedding_dimension'
+                    """)
+                    meta_result = cur.fetchone()
+                    stored_dim = int(meta_result[0]) if meta_result else None
+                    
+                    # Check if main table exists
+                    cur.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'bdd_steps'
+                        )
+                    """)
+                    table_exists = cur.fetchone()[0]
+                    
+                    if table_exists:
+                        # Get actual dimension from table schema
+                        cur.execute("""
+                            SELECT atttypmod FROM pg_attribute 
+                            WHERE attrelid = 'bdd_steps'::regclass 
+                            AND attname = 'embedding'
+                        """)
+                        result = cur.fetchone()
+                        current_dim = None
+                        if result and result[0] > 0:
+                            # atttypmod for vector is dimension + 4
+                            current_dim = result[0] - 4
+                        
+                        # Migrate if dimension changed
+                        if current_dim is not None and current_dim != embedding_dim:
+                            print(f"  [rag] Миграция: размерность {current_dim} -> {embedding_dim}")
+                            print(f"  [rag] Пересчет эмбеддингов для всех записей...")
+                            
+                            # Get all existing steps data (without embeddings)
+                            cur.execute("""
+                                SELECT step_id, step_type, pattern, placeholders_json, docstring,
+                                       source_file, function_name, line_number
+                                FROM bdd_steps
+                            """)
+                            existing_steps = cur.fetchall()
+                            
+                            # Drop old table
+                            cur.execute("DROP TABLE bdd_steps")
+                            
+                            # Create table with new dimension
+                            cur.execute(
+                                f"""
+                                CREATE TABLE bdd_steps (
+                                    step_id TEXT PRIMARY KEY,
+                                    step_type TEXT NOT NULL,
+                                    pattern TEXT NOT NULL,
+                                    placeholders_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+                                    docstring TEXT NULL,
+                                    source_file TEXT NULL,
+                                    function_name TEXT NULL,
+                                    line_number INTEGER NULL,
+                                    embedding vector({embedding_dim}) NOT NULL,
+                                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                                )
+                                """
+                            )
+                            
+                            # Recalculate embeddings and insert
+                            if existing_steps:
+                                total = len(existing_steps)
+                                print(f"  [rag] Пересчет {total} эмбеддингов...")
+                                migrated = 0
+                                last_log_time = time.perf_counter()
+                                for idx, row in enumerate(existing_steps, 1):
+                                    # Reconstruct step dict for embedding
+                                    # placeholders_json is already parsed by psycopg (JSONB -> Python object)
+                                    placeholders = row[3] if row[3] else []
+                                    if isinstance(placeholders, str):
+                                        placeholders = json.loads(placeholders)
+                                    
+                                    step_dict = {
+                                        "step_id": row[0],
+                                        "type": row[1],
+                                        "pattern": row[2],
+                                        "placeholders": placeholders,
+                                        "docstring": row[4],
+                                        "source_file": row[5],
+                                        "function_name": row[6],
+                                        "line_number": row[7],
+                                    }
+                                    # Recalculate embedding with new model
+                                    new_embedding = self._embed_step(step_dict)
+                                    cur.execute(
+                                        """
+                                        INSERT INTO bdd_steps (
+                                            step_id, step_type, pattern, placeholders_json, docstring,
+                                            source_file, function_name, line_number, embedding, updated_at
+                                        ) VALUES (
+                                            %(step_id)s, %(step_type)s, %(pattern)s, %(placeholders)s, %(docstring)s,
+                                            %(source_file)s, %(function_name)s, %(line_number)s,
+                                            %(embedding)s::vector, now()
+                                        )
+                                        """,
+                                        {
+                                            "step_id": step_dict["step_id"],
+                                            "step_type": step_dict["type"],
+                                            "pattern": step_dict["pattern"],
+                                            "placeholders": json.dumps(step_dict["placeholders"], ensure_ascii=False),
+                                            "docstring": step_dict["docstring"],
+                                            "source_file": step_dict["source_file"],
+                                            "function_name": step_dict["function_name"],
+                                            "line_number": step_dict["line_number"],
+                                            "embedding": _vector_literal(new_embedding),
+                                        },
+                                    )
+                                    migrated += 1
+                                    # Log progress every 10 steps or on last step
+                                    if migrated % 10 == 0 or migrated == total:
+                                        elapsed = time.perf_counter() - last_log_time
+                                        print(f"  [rag] Пересчитано {migrated}/{total} (за {elapsed:.2f}s)")
+                                        last_log_time = time.perf_counter()
+                                print(f"  [rag] Пересчет завершен: {migrated} эмбеддингов")
+                            
+                            # Update metadata
+                            cur.execute("""
+                                INSERT INTO rag_metadata (key, value)
+                                VALUES ('embedding_dimension', %s)
+                                ON CONFLICT (key) DO UPDATE SET
+                                    value = EXCLUDED.value,
+                                    updated_at = now()
+                            """, (str(embedding_dim),))
+                        elif stored_dim is None or stored_dim != embedding_dim:
+                            # Just update metadata if table dimension matches
+                            cur.execute("""
+                                INSERT INTO rag_metadata (key, value)
+                                VALUES ('embedding_dimension', %s)
+                                ON CONFLICT (key) DO UPDATE SET
+                                    value = EXCLUDED.value,
+                                    updated_at = now()
+                            """, (str(embedding_dim),))
+                    else:
+                        # Create table with current dimension
+                        cur.execute(
+                            f"""
+                            CREATE TABLE bdd_steps (
+                                step_id TEXT PRIMARY KEY,
+                                step_type TEXT NOT NULL,
+                                pattern TEXT NOT NULL,
+                                placeholders_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+                                docstring TEXT NULL,
+                                source_file TEXT NULL,
+                                function_name TEXT NULL,
+                                line_number INTEGER NULL,
+                                embedding vector({embedding_dim}) NOT NULL,
+                                updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                            )
+                            """
+                        )
+                        # Store dimension in metadata
+                        cur.execute("""
+                            INSERT INTO rag_metadata (key, value)
+                            VALUES ('embedding_dimension', %s)
+                            ON CONFLICT (key) DO UPDATE SET
+                                value = EXCLUDED.value,
+                                updated_at = now()
+                        """, (str(embedding_dim),))
+                    
                     cur.execute(
                         "CREATE INDEX IF NOT EXISTS idx_bdd_steps_type ON bdd_steps(step_type)"
-                    )
-                    cur.execute(
-                        """
-                        CREATE INDEX IF NOT EXISTS idx_bdd_steps_embedding
-                        ON bdd_steps
-                        USING ivfflat (embedding vector_cosine_ops)
-                        """
                     )
                 conn.commit()
 

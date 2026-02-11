@@ -20,7 +20,7 @@ from .step_renderer import render_feature_from_plan
 from .steps_catalog import build_steps_index, load_steps
 from .tracing import get_tracer, setup_phoenix_tracing
 
-MAX_RENDER_REPAIR_ATTEMPTS = 3
+MAX_RENDER_REPAIR_ATTEMPTS = 5
 TRACER = get_tracer(__name__)
 
 
@@ -96,6 +96,8 @@ def process_test_file(
                         raise
                     repair_feedback = (
                         f"Ошибка валидации/рендера: {render_exc}\n"
+                        "ВАЖНО: Убедись, что для каждого шага в params указаны ВСЕ плейсхолдеры из pattern.\n"
+                        "Проверь каждый step_id и его pattern - каждый плейсхолдер в фигурных скобках {name} требует параметра в params.\n"
                         "Текущий план:\n"
                         f"{feature_plan_to_json_text(feature_plan)}"
                     )
