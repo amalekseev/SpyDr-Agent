@@ -46,11 +46,18 @@ def render_feature_from_plan(
                 raise
             lines.append(f"    {chosen_step.keyword} {step_text}")
             requires_docstring = _requires_docstring(step_def=step_def)
-            if requires_docstring:
+            requires_datatable = _requires_datatable(step_def=step_def)
+            if requires_docstring or requires_datatable:
                 if not chosen_step.docstring or not chosen_step.docstring.strip():
                     metrics["rag_validation_errors"] += 1
+                    requirement_type = []
+                    if requires_docstring:
+                        requirement_type.append("docstring")
+                    if requires_datatable:
+                        requirement_type.append("datatable")
                     raise ValueError(
-                        f"Шаг '{chosen_step.step_id}' требует docstring (по сигнатуре step-функции/паттерну)."
+                        f"Шаг '{chosen_step.step_id}' требует {' или '.join(requirement_type)} "
+                        f"(по сигнатуре step-функции/паттерну). Обязательно передай docstring в JSON."
                     )
                 lines.extend(_render_docstring_block(chosen_step.docstring))
         lines.append("")
@@ -92,6 +99,14 @@ def _requires_docstring(*, step_def: dict[str, Any]) -> bool:
         return explicit
     step_pattern = str(step_def.get("pattern", ""))
     return step_pattern.rstrip().endswith(":")
+
+
+def _requires_datatable(*, step_def: dict[str, Any]) -> bool:
+    """Detect if step must provide datatable payload."""
+    explicit = step_def.get("requires_datatable")
+    if isinstance(explicit, bool):
+        return explicit
+    return False
 
 
 def _render_docstring_block(docstring: str) -> list[str]:

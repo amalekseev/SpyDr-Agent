@@ -98,6 +98,8 @@ def process_test_file(
                         f"Ошибка валидации/рендера: {render_exc}\n"
                         "ВАЖНО: Убедись, что для каждого шага в params указаны ВСЕ плейсхолдеры из pattern.\n"
                         "Проверь каждый step_id и его pattern - каждый плейсхолдер в фигурных скобках {name} требует параметра в params.\n"
+                        "КРИТИЧЕСКИ ВАЖНО: Если шаг требует docstring (pattern оканчивается на ':' или функция требует docstring/datatable), "
+                        "ты ОБЯЗАН передать docstring в JSON. Без docstring такой шаг не будет работать и вызовет ошибку 'fixture not found'.\n"
                         "Текущий план:\n"
                         f"{feature_plan_to_json_text(feature_plan)}"
                     )
@@ -190,11 +192,23 @@ def run_pipeline(
         database_url = resolve_database_url(db_url)
         client = get_openai_client()
         rag_store = StepRAGStore(db_url=database_url, client=client, embedding_model=embedding_model)
-        print("Инициализация RAG-хранилища...")
-        rag_store.ensure_schema()
+        
+        print(f"Инициализация RAG-хранилища (DB: {database_url.split('@')[-1] if '@' in database_url else '...'})")
+        try:
+            rag_store.ensure_schema()
+        except Exception as e:
+            print(f"Критическая ошибка при инициализации БД: {e}")
+            return results.to_dict()
+
         if reindex_steps:
-            upserted = rag_store.upsert_steps(steps_data["steps"], verbose=verbose)
-            print(f"Индекс шагов обновлен: {upserted} записей")
+            print("Очистка и переиндексация шагов...")
+            try:
+                rag_store.clear_all()
+                upserted = rag_store.upsert_steps(steps_data["steps"], verbose=verbose)
+                print(f"Индекс шагов обновлен: {upserted} записей")
+            except Exception as e:
+                print(f"Ошибка при переиндексации: {e}")
+                # Продолжаем работу, если это не критично, или выходим
         print()
 
         test_files = list_text_files(input_dir)
