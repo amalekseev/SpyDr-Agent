@@ -1,6 +1,7 @@
 """LLM tool-calling agent for manual-test to strict step-id plans."""
 
 import json
+import re
 import time
 from typing import Any
 
@@ -68,6 +69,7 @@ TOOL_SPEC = [
 MAX_TOOL_CALL_ROUNDS = 15
 LLM_REQUEST_TIMEOUT_SEC = 60
 MAX_LLM_REQUEST_RETRIES = 2
+MIN_NATURAL_QUERY_LEN = 8
 
 
 def get_openai_client(*, llm_provider: str | None = None):
@@ -118,10 +120,13 @@ def build_feature_plan(
         messages.append({"role": "user", "content": _build_repair_prompt(repair_feedback)})
 
     total_tool_calls = 0
+    last_validation_error: str | None = None
     with TRACER.start_as_current_span("baseline.agent.plan_generation") as span:
         span.set_attribute("llm.model", model)
         span.set_attribute("llm.rag_top_k", rag_top_k)
-        for round_idx in range(1, MAX_TOOL_CALL_ROUNDS + 1):
+        # +1 round is reserved for final answer synthesis after the last tool-call round.
+        max_agent_rounds = MAX_TOOL_CALL_ROUNDS + 1
+        for round_idx in range(1, max_agent_rounds + 1):
             with TRACER.start_as_current_span("baseline.agent.round") as round_span:
                 round_span.set_attribute("llm.round_index", round_idx)
                 round_span.set_attribute("llm.messages_count", len(messages))
@@ -180,6 +185,7 @@ def build_feature_plan(
                     try:
                         return parse_agent_response(content), total_tool_calls
                     except (json.JSONDecodeError, ValueError) as exc:
+                        last_validation_error = str(exc)
                         round_span.record_exception(exc)
                         if verbose:
                             print(f"    [agent] Невалидный JSON от модели: {exc}")
@@ -203,6 +209,11 @@ def build_feature_plan(
 
                 total_tool_calls += len(tool_calls)
                 round_span.set_attribute("llm.tool_calls_count", len(tool_calls))
+                if round_idx > MAX_TOOL_CALL_ROUNDS:
+                    raise ValueError(
+                        "Агент превысил лимит раундов tool-вызовов "
+                        f"({MAX_TOOL_CALL_ROUNDS}) и не смог завершить конвертацию."
+                    )
                 if verbose:
                     print(f"    [agent] Раунд {round_idx}: tool-вызовов {len(tool_calls)}")
                 messages.append(
@@ -238,7 +249,12 @@ def build_feature_plan(
                         }
                     )
 
-    raise ValueError("Агент не смог завершить конвертацию: превышено число tool-вызовов.")
+    if last_validation_error:
+        raise ValueError(
+            "Агент не смог завершить конвертацию: превышен лимит раундов, "
+            f"последняя ошибка валидации: {last_validation_error}"
+        )
+    raise ValueError("Агент не смог завершить конвертацию: превышен лимит раундов.")
 
 
 def _execute_tool_call(
@@ -261,6 +277,18 @@ def _execute_tool_call(
         query = str(args.get("query", "")).strip()
         if not query:
             return {"error": "Аргумент query обязателен."}
+        if _looks_like_step_id_or_noise(query):
+            span.set_attribute("tool.bad_query", True)
+            span.set_attribute("tool.bad_query_reason", "step_id_or_noise")
+            if verbose:
+                print(f"    [tool] Отклонен query как неестественный: {query!r}")
+            return {
+                "error": (
+                    "Некорректный query для semantic search. "
+                    "Передай краткую естественную фразу на русском о действии/проверке, "
+                    "а не step_id/технический токен."
+                )
+            }
         step_type_raw = args.get("step_type")
         step_type = str(step_type_raw).lower() if step_type_raw else None
         top_k = args.get("top_k")
@@ -276,6 +304,32 @@ def _execute_tool_call(
         if verbose:
             print(f"    [tool] search_steps -> найдено кандидатов: {len(results)}")
         return {"results": results}
+
+
+def _looks_like_step_id_or_noise(query: str) -> bool:
+    """Reject id-like, hash-like or too-technical strings for semantic retrieval."""
+    normalized = query.strip().lower()
+    if len(normalized) < MIN_NATURAL_QUERY_LEN:
+        return True
+    if normalized.startswith(("given_", "when_", "then_")):
+        return True
+    if re.fullmatch(r"[a-z0-9_\-:/.]+", normalized):
+        # Purely technical token without spaces or cyrillic text.
+        if " " not in normalized:
+            return True
+        if _ratio_of_letters_and_digits_only(normalized) > 0.9:
+            return True
+    if re.fullmatch(r"[a-f0-9]{12,}", normalized):
+        return True
+    if re.search(r"[а-яё]", normalized):
+        return False
+    # If no Cyrillic and almost no spaces, this is usually not a user-level phrase in this project.
+    return normalized.count(" ") == 0
+
+
+def _ratio_of_letters_and_digits_only(text: str) -> float:
+    allowed = sum(1 for char in text if char.isalnum() or char in {"_", "-", ":", "/", "."})
+    return (allowed / max(len(text), 1))
 
 
 def feature_plan_to_json_text(feature_plan: FeaturePlan) -> str:

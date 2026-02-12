@@ -8,6 +8,20 @@ from typing import Any
 
 
 VALID_KEYWORDS = {"Given", "When", "Then", "And", "But"}
+KEYWORD_ALIASES = {
+    "given": "Given",
+    "when": "When",
+    "then": "Then",
+    "and": "And",
+    "but": "But",
+    # Common Russian variants that some models output.
+    "допустим": "Given",
+    "если": "Given",
+    "когда": "When",
+    "то": "Then",
+    "и": "And",
+    "но": "But",
+}
 
 
 @dataclass
@@ -62,10 +76,12 @@ def parse_agent_response(content: str) -> FeaturePlan:
             raise ValueError(f"Сценарий '{scenario_name}': steps должен быть непустым списком.")
         steps: list[StepChoice] = []
         for step_idx, step in enumerate(steps_data, start=1):
-            keyword = str(step.get("keyword", "")).strip()
+            raw_keyword = str(step.get("keyword", "")).strip()
+            keyword = _normalize_keyword(raw_keyword)
             if keyword not in VALID_KEYWORDS:
                 raise ValueError(
-                    f"Сценарий '{scenario_name}', шаг #{step_idx}: keyword должен быть одним из {sorted(VALID_KEYWORDS)}."
+                    f"Сценарий '{scenario_name}', шаг #{step_idx}: keyword={raw_keyword!r} "
+                    f"невалиден; ожидается одно из {sorted(VALID_KEYWORDS)}."
                 )
             step_id = str(step.get("step_id", "")).strip()
             if not step_id:
@@ -108,4 +124,15 @@ def _normalize_tags(raw_tags: Any) -> list[str]:
             tag = f"@{tag}"
         tags.append(tag)
     return tags
+
+
+def _normalize_keyword(raw_keyword: str) -> str:
+    """Normalize model keyword output to strict Gherkin keyword set."""
+    cleaned = raw_keyword.strip().strip(":")
+    if not cleaned:
+        return ""
+    alias = KEYWORD_ALIASES.get(cleaned.lower())
+    if alias:
+        return alias
+    return cleaned
 

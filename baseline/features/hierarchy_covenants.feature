@@ -2,9 +2,14 @@ Feature: Hierarchy Covenants
 
   Scenario: Проверка расчета ставки калькулятором Calc
     Given установлен идентификатор запроса "traceId"
-    Given установлен идентификатор клиента "enableFeature=No"
-    When Отправить "POST /calc?calculatorName=Calc" на REST сервер "calc_hierarchy_service" с body из файла "calc_request.json"
-    Then Проверить ответ с кодом 200
-    Then ответ содержит JSON поле "traceId" со значением "traceId"
-    Then ключ полученного сообщения равен "rateAdjustment"
+    Given установлен идентификатор сессии "No"
+    When отправить POST запрос на сервер "calc_hierarchy_service" endpoint "/calc?calculatorName=Calc" с телом:
+      """
+      {
+        "file": "calc_request.json"
+      }
+      """
+    Then код ответа сервера "calc_hierarchy_service" равен 200
+    Then тело ответа содержит поле "traceId" со значением не равным "traceId"
+    Then тело ответа содержит поле "outAttributes.rateAdjustment"
     Then вывести полученное сообщение

@@ -10,10 +10,7 @@ Feature: Tfm Monitoring
       """
       DELETE FROM APP_SCHEMA.ACCOUNT_BALANCE WHERE POSITION_ID = '00001'
       """
-    When отправить сообщение в транзакции в топик "APP-TOPIC-ACCOUNTBALANCE" кластера "kafka_app":
-      """
-      <record timestamp='2023-01-01T10:00:00.000' exchange='EXCHANGE' market='MKT' system='SYS' entity='ENTITY' interface='API' table='ACCOUNT_BALANCE' POSITION_ID='00001' />
-      """
+    When Отправить сообщение в кафку "kafka_app" в топик "APP-TOPIC-ACCOUNTBALANCE" из файла "message.xml"
     When выполнить SELECT запрос в базу "postgres":
       """
       SELECT * FROM APP_SCHEMA.ACCOUNT_BALANCE WHERE POSITION_ID = '00001'
