@@ -103,8 +103,10 @@ class StepRAGStore:
         """Upsert all parsed steps and refresh their embeddings."""
         if not steps:
             return 0
-        if verbose:
-            print(f"  [rag] Индексация шагов: {len(steps)} шт.")
+        
+        # Always print start of indexing if not verbose, or more details if verbose
+        print(f"  [rag] Начало индексации {len(steps)} шагов...")
+        
         inserted = 0
         with TRACER.start_as_current_span("baseline.rag.upsert_steps") as span:
             span.set_attribute("rag.steps_count", len(steps))
@@ -113,8 +115,10 @@ class StepRAGStore:
                     with conn.cursor() as cur:
                         # Ensure search_path is set
                         cur.execute("SET search_path TO spydr_ai, ext, public")
+                        
+                        last_log_time = time.perf_counter()
                         for idx, step in enumerate(steps, 1):
-                            started_at = time.perf_counter()
+                            step_start = time.perf_counter()
                             try:
                                 embedding = self._embed_step(step)
                                 cur.execute(
@@ -151,11 +155,14 @@ class StepRAGStore:
                                     },
                                 )
                                 inserted += 1
-                                if verbose and inserted % 50 == 0:
-                                    elapsed = time.perf_counter() - started_at
-                                    print(
-                                        f"  [rag] Обработано {inserted}/{len(steps)} (последний шаг за {elapsed:.2f}s)"
-                                    )
+                                
+                                # Log progress every 5 steps or every 5 seconds to show it's alive
+                                current_time = time.perf_counter()
+                                if inserted % 5 == 0 or (current_time - last_log_time) > 5.0 or inserted == len(steps):
+                                    elapsed = current_time - last_log_time
+                                    print(f"  [rag] Прогресс: {inserted}/{len(steps)} (последний блок за {elapsed:.2f}s)")
+                                    last_log_time = current_time
+                                    
                             except Exception as step_err:
                                 print(f"  [rag] ОШИБКА при обработке шага {step.get('step_id')}: {step_err}")
                                 raise
@@ -164,8 +171,8 @@ class StepRAGStore:
                 print(f"  [rag] КРИТИЧЕСКАЯ ОШИБКА при индексации: {e}")
                 raise
             span.set_attribute("rag.steps_upserted", inserted)
-        if verbose:
-            print("  [rag] Индексация завершена")
+        
+        print(f"  [rag] Индексация завершена: {inserted} шагов обработано")
         return inserted
 
     def search_steps(
