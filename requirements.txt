@@ -1,4 +1,5 @@
 openai==2.11.0
+langchain-gigachat
 python-dotenv==1.0.1
 psycopg[binary]==3.2.9
 opentelemetry-api==1.30.0

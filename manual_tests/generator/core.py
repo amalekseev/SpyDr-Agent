@@ -1,7 +1,7 @@
 import os
 import glob
-from typing import List, Optional
-from openai import OpenAI
+from typing import Optional
+from baseline.core.llm_compat import build_openai_compatible_client
 from .config import config
 
 class FeatureParser:
@@ -17,15 +17,15 @@ class FeatureParser:
 
 class LLMClient:
     def __init__(self):
-        self.api_key = config.OPENAI_API_KEY
         self.client = None
-        if self.api_key:
-            try:
-                self.client = OpenAI(api_key=self.api_key)
-            except Exception as e:
-                print(f"Warning: Failed to initialize OpenAI client: {e}")
-        else:
-            print("Warning: OPENAI_API_KEY not set. LLM generation will be skipped.")
+        try:
+            explicit_key = config.OPENAI_API_KEY or None
+            self.client = build_openai_compatible_client(
+                llm_provider=config.LLM_PROVIDER,
+                openai_api_key=explicit_key,
+            )
+        except Exception as e:
+            print(f"Warning: Failed to initialize LLM client: {e}")
 
     def generate_human_test(self, gherkin_content: str) -> Optional[str]:
         """Generates a human-readable test description from Gherkin content."""

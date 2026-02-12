@@ -6,6 +6,7 @@ import sys
 try:
     from core.constants import (
         DEFAULT_EMBEDDING_MODEL,
+        DEFAULT_LLM_PROVIDER,
         DEFAULT_MODEL,
         DEFAULT_PHOENIX_ENDPOINT,
         DEFAULT_PHOENIX_SERVICE_NAME,
@@ -17,6 +18,7 @@ except ImportError:
     # Allows running as module from project root.
     from baseline.core.constants import (
         DEFAULT_EMBEDDING_MODEL,
+        DEFAULT_LLM_PROVIDER,
         DEFAULT_MODEL,
         DEFAULT_PHOENIX_ENDPOINT,
         DEFAULT_PHOENIX_SERVICE_NAME,
@@ -56,7 +58,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "-m",
         "--model",
         default=DEFAULT_MODEL,
-        help=f"Модель OpenAI для использования (по умолчанию: {DEFAULT_MODEL})",
+        help=f"LLM-модель для использования (по умолчанию: {DEFAULT_MODEL})",
+    )
+    parser.add_argument(
+        "--llm-provider",
+        choices=["openai", "gigachat"],
+        default=DEFAULT_LLM_PROVIDER,
+        help=f"Провайдер LLM/эмбеддингов (по умолчанию: {DEFAULT_LLM_PROVIDER})",
     )
     parser.add_argument(
         "--db-url",
@@ -73,7 +81,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--embedding-model",
         default=DEFAULT_EMBEDDING_MODEL,
         help=(
-            "Модель эмбеддингов OpenAI для индексации и поиска шагов "
+            "Модель эмбеддингов для индексации и поиска шагов "
             f"(по умолчанию: {DEFAULT_EMBEDDING_MODEL})"
         ),
     )
@@ -117,6 +125,7 @@ def main() -> int:
             output_dir=args.output,
             steps_file=args.steps,
             model=args.model,
+            llm_provider=args.llm_provider,
             db_url=args.db_url,
             rag_top_k=args.rag_top_k,
             embedding_model=args.embedding_model,

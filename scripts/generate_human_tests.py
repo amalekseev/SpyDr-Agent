@@ -24,11 +24,16 @@ def main():
     )
     parser.add_argument(
         "--model", 
-        help=f"OpenAI model to use (default: {config.MODEL_NAME})"
+        help=f"LLM model to use (default: {config.MODEL_NAME})"
+    )
+    parser.add_argument(
+        "--llm-provider",
+        choices=["openai", "gigachat"],
+        help=f"LLM provider to use (default: {config.LLM_PROVIDER})"
     )
     parser.add_argument(
         "--api-key", 
-        help="OpenAI API Key (overrides env var)"
+        help="OpenAI API Key (used only for provider=openai; overrides env var)"
     )
     
     args = parser.parse_args()
@@ -36,14 +41,17 @@ def main():
     # Override config with CLI args if provided
     if args.model:
         config.MODEL_NAME = args.model
+
+    if args.llm_provider:
+        config.LLM_PROVIDER = args.llm_provider
     
     if args.api_key:
         config.OPENAI_API_KEY = args.api_key
     
-    # Check if API key is present (either from env or CLI)
-    if not config.OPENAI_API_KEY:
+    # Check key only for OpenAI provider; GigaChat uses its own auth env vars.
+    if config.LLM_PROVIDER == "openai" and not config.OPENAI_API_KEY:
         print("Error: OPENAI_API_KEY is not set. Please set it as an environment variable or pass it via --api-key.")
-        # We don't exit here because the Generator class handles missing key gracefully (skips generation), 
+        # We don't exit here because the Generator class handles missing key gracefully (skips generation),
         # but it's good to warn loudly.
     
     # Resolve paths relative to current working directory
@@ -53,6 +61,7 @@ def main():
     print(f"Starting generation...")
     print(f"Features directory: {features_dir}")
     print(f"Output directory: {output_dir}")
+    print(f"Provider: {config.LLM_PROVIDER}")
     print(f"Model: {config.MODEL_NAME}")
     
     generator = Generator(features_dir, output_dir)

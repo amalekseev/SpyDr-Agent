@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Config(BaseSettings):
+    LLM_PROVIDER: str = "openai"
     OPENAI_API_KEY: str = ""
     MODEL_NAME: str = "gpt-4.1-mini"
     TEMPERATURE: float = 0.7

@@ -1,14 +1,13 @@
-"""OpenAI tool-calling agent for manual-test to strict step-id plans."""
+"""LLM tool-calling agent for manual-test to strict step-id plans."""
 
 import json
-import os
 import time
 from typing import Any
 
 from dotenv import load_dotenv
-from openai import OpenAI
 
 from .agent_protocol import FeaturePlan, parse_agent_response
+from .llm_compat import build_openai_compatible_client
 from .rag_store import StepRAGStore
 from .tracing import get_tracer
 
@@ -72,14 +71,9 @@ TOOL_SPEC = [
 MAX_TOOL_CALL_ROUNDS = 15
 
 
-def get_openai_client() -> OpenAI:
-    """Create OpenAI client from environment."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "OPENAI_API_KEY не найден. Установите переменную окружения или создайте .env файл."
-        )
-    return OpenAI(api_key=api_key)
+def get_openai_client(*, llm_provider: str | None = None):
+    """Create OpenAI-compatible client from environment."""
+    return build_openai_compatible_client(llm_provider=llm_provider)
 
 
 def build_user_prompt(test_content: str, feature_name: str) -> str:
@@ -107,7 +101,7 @@ def _build_repair_prompt(repair_feedback: str) -> str:
 
 
 def build_feature_plan(
-    client: OpenAI,
+    client,
     test_content: str,
     feature_name: str,
     model: str,

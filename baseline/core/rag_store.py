@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import psycopg
-from openai import OpenAI
 from psycopg.rows import dict_row
 
 from .constants import DEFAULT_EMBEDDING_MODEL
@@ -23,7 +22,7 @@ class StepRAGStore:
     """Storage and search helper over BDD steps."""
 
     db_url: str
-    client: OpenAI
+    client: Any
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
     _embedding_dimension: int | None = None
 
@@ -97,6 +96,19 @@ class StepRAGStore:
             print("  [rag] Таблица очищена")
         except Exception as e:
             print(f"  [rag] ОШИБКА при очистке таблицы: {e}")
+            raise
+
+    def count_steps(self) -> int:
+        """Return current number of indexed steps in storage."""
+        try:
+            with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SET search_path TO spydr_ai, ext, public")
+                    cur.execute("SELECT COUNT(*) AS total FROM bdd_steps")
+                    row = cur.fetchone() or {}
+                    return int(row.get("total") or 0)
+        except Exception as e:
+            print(f"  [rag] ОШИБКА при подсчете шагов: {e}")
             raise
 
     def upsert_steps(self, steps: list[dict[str, Any]], verbose: bool = False) -> int:
@@ -264,7 +276,7 @@ class StepRAGStore:
             )
             return response.data[0].embedding
         except Exception as e:
-            print(f"  [rag] ОШИБКА при вызове OpenAI API (embeddings): {e}")
+            print(f"  [rag] ОШИБКА при вызове API эмбеддингов: {e}")
             raise
 
 

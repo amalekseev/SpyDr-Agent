@@ -25,6 +25,7 @@ class PipelineResult:
     output_directory: str
     steps_file: str
     model: str
+    llm_provider: str = "openai"
     total_files: int = 0
     successful: int = 0
     failed: int = 0

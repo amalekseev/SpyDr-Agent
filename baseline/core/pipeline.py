@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 from .constants import (
     DEFAULT_EMBEDDING_MODEL,
+    DEFAULT_LLM_PROVIDER,
     DEFAULT_MODEL,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_PHOENIX_ENDPOINT,
@@ -139,6 +140,7 @@ def run_pipeline(
     phoenix_endpoint: str = DEFAULT_PHOENIX_ENDPOINT,
     phoenix_service_name: str = DEFAULT_PHOENIX_SERVICE_NAME,
     reindex_steps: bool = False,
+    llm_provider: str = DEFAULT_LLM_PROVIDER,
     verbose: bool = False,
 ) -> dict:
     """Run the full conversion pipeline and return serializable stats."""
@@ -155,12 +157,14 @@ def run_pipeline(
         output_directory=str(output_path),
         steps_file=str(steps_path),
         model=model,
+        llm_provider=llm_provider,
     )
 
     with TRACER.start_as_current_span("baseline.run_pipeline") as span:
         span.set_attribute("baseline.input_dir", input_dir)
         span.set_attribute("baseline.output_dir", str(output_path))
         span.set_attribute("baseline.model", model)
+        span.set_attribute("baseline.llm_provider", llm_provider)
         span.set_attribute("baseline.embedding_model", embedding_model)
         span.set_attribute("baseline.rag_top_k", rag_top_k)
         span.set_attribute("baseline.trace_phoenix", trace_phoenix)
@@ -172,6 +176,7 @@ def run_pipeline(
         print(f"Выходная директория: {output_path}")
         print(f"Файл шагов: {steps_path}")
         print(f"Модель: {model}")
+        print(f"LLM provider: {llm_provider}")
         print(f"Embedding model: {embedding_model}")
         print(f"RAG top_k: {rag_top_k}")
         print(f"Phoenix tracing: {'on' if trace_phoenix else 'off'}")
@@ -190,7 +195,7 @@ def run_pipeline(
         print()
 
         database_url = resolve_database_url(db_url)
-        client = get_openai_client()
+        client = get_openai_client(llm_provider=llm_provider)
         rag_store = StepRAGStore(db_url=database_url, client=client, embedding_model=embedding_model)
         
         print(f"Инициализация RAG-хранилища (DB: {database_url.split('@')[-1] if '@' in database_url else '...'})")
@@ -209,6 +214,18 @@ def run_pipeline(
             except Exception as e:
                 print(f"Ошибка при переиндексации: {e}")
                 # Продолжаем работу, если это не критично, или выходим
+        else:
+            try:
+                indexed_steps = rag_store.count_steps()
+                if indexed_steps == 0:
+                    print("RAG-индекс пустой, выполняю первичную индексацию шагов...")
+                    upserted = rag_store.upsert_steps(steps_data["steps"], verbose=verbose)
+                    print(f"Первичная индексация завершена: {upserted} записей")
+                else:
+                    print(f"RAG-индекс уже содержит шаги: {indexed_steps} записей")
+            except Exception as e:
+                print(f"Ошибка при проверке/первичной индексации RAG: {e}")
+                # Продолжаем работу: конвертация может быть возможна даже при частичных проблемах индекса
         print()
 
         test_files = list_text_files(input_dir)
