@@ -274,6 +274,7 @@ class StepRAGStore:
                 model=self.embedding_model,
                 input=text,
             )
+            print(f"  [debug] Ответ от модели: {getattr(response, 'model', 'unknown')}")           
             return response.data[0].embedding
         except Exception as e:
             print(f"  [rag] ОШИБКА при вызове API эмбеддингов: {e}")
