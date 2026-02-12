@@ -209,16 +209,11 @@ def _import_gigachat_classes() -> tuple[type[Any], type[Any]]:
 def _build_gigachat_common_kwargs(chat_model_cls: type[Any]) -> dict[str, Any]:
     kwargs: dict[str, Any] = {}
     env_to_arg = {
-        "GIGACHAT_CREDENTIALS": "credentials",
-        "GIGACHAT_ACCESS_TOKEN": "access_token",
         "GIGACHAT_AUTH_URL": "auth_url",
         "GIGACHAT_BASE_URL": "base_url",
-        "GIGACHAT_SCOPE": "scope",
         "GIGACHAT_VERIFY_SSL_CERTS": "verify_ssl_certs",
         "GIGACHAT_CA_BUNDLE_FILE": "ca_bundle_file",
         "GIGACHAT_TIMEOUT": "timeout",
-        "GIGACHAT_USER": "user",
-        "GIGACHAT_PASSWORD": "password",
     }
     for env_name, arg_name in env_to_arg.items():
         raw_value = os.getenv(env_name)
@@ -234,10 +229,46 @@ def _build_gigachat_common_kwargs(chat_model_cls: type[Any]) -> dict[str, Any]:
         else:
             kwargs[arg_name] = raw_value
 
-    auth_value = kwargs.get("credentials") or kwargs.get("access_token")
-    if not auth_value:
+    cert_file = (os.getenv("GIGACHAT_CERT_FILE") or os.getenv("GIGACHAT_CLIENT_CERT_FILE") or "").strip()
+    key_file = (os.getenv("GIGACHAT_KEY_FILE") or os.getenv("GIGACHAT_CLIENT_KEY_FILE") or "").strip()
+    key_password = (
+        os.getenv("GIGACHAT_KEY_PASSWORD") or os.getenv("GIGACHAT_KEY_FILE_PASSWORD") or ""
+    ).strip()
+    if not cert_file or not key_file:
         raise ValueError(
-            "Для GigaChat задайте GIGACHAT_CREDENTIALS или GIGACHAT_ACCESS_TOKEN в окружении."
+            "Для GigaChat (mTLS) задайте пути GIGACHAT_CERT_FILE/GIGACHAT_KEY_FILE "
+            "(или алиасы GIGACHAT_CLIENT_CERT_FILE/GIGACHAT_CLIENT_KEY_FILE)."
+        )
+
+    cert_arg_names = ("cert_file", "client_cert_file", "ssl_cert_file", "cert_path")
+    key_arg_names = ("key_file", "client_key_file", "ssl_key_file", "key_path")
+    key_password_arg_names = (
+        "key_file_password",
+        "client_key_password",
+        "ssl_key_password",
+        "key_password",
+    )
+    for arg_name in cert_arg_names:
+        kwargs[arg_name] = cert_file
+    for arg_name in key_arg_names:
+        kwargs[arg_name] = key_file
+    if key_password:
+        for arg_name in key_password_arg_names:
+            kwargs[arg_name] = key_password
+
+    # Fail fast with clear message if installed package does not expose cert-based args.
+    try:
+        signature = inspect.signature(chat_model_cls.__init__)
+        init_params = set(signature.parameters.keys())
+    except (TypeError, ValueError):
+        init_params = set()
+    if init_params and not any(name in init_params for name in cert_arg_names):
+        raise ValueError(
+            "Текущая версия langchain_gigachat не поддерживает передачу client cert через параметры модели."
+        )
+    if init_params and not any(name in init_params for name in key_arg_names):
+        raise ValueError(
+            "Текущая версия langchain_gigachat не поддерживает передачу client key через параметры модели."
         )
 
     return _filter_supported_kwargs(chat_model_cls, kwargs)

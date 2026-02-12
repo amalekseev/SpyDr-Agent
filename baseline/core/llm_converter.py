@@ -4,14 +4,11 @@ import json
 import time
 from typing import Any
 
-from dotenv import load_dotenv
-
 from .agent_protocol import FeaturePlan, parse_agent_response
 from .llm_compat import build_openai_compatible_client
 from .rag_store import StepRAGStore
 from .tracing import get_tracer
 
-load_dotenv()
 TRACER = get_tracer(__name__)
 
 SYSTEM_PROMPT = (
@@ -69,6 +66,8 @@ TOOL_SPEC = [
 ]
 
 MAX_TOOL_CALL_ROUNDS = 15
+LLM_REQUEST_TIMEOUT_SEC = 60
+MAX_LLM_REQUEST_RETRIES = 2
 
 
 def get_openai_client(*, llm_provider: str | None = None):
@@ -129,14 +128,38 @@ def build_feature_plan(
                 if verbose:
                     print(f"    [agent] Раунд {round_idx}: отправка запроса в chat.completions...")
                 started_at = time.perf_counter()
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    tools=TOOL_SPEC,
-                    tool_choice="auto",
-                    response_format={"type": "json_object"},
-                    temperature=0,
-                )
+                response = None
+                last_request_error: Exception | None = None
+                for request_attempt in range(1, MAX_LLM_REQUEST_RETRIES + 1):
+                    try:
+                        response = client.chat.completions.create(
+                            model=model,
+                            messages=messages,
+                            tools=TOOL_SPEC,
+                            tool_choice="auto",
+                            response_format={"type": "json_object"},
+                            temperature=0,
+                            timeout=LLM_REQUEST_TIMEOUT_SEC,
+                        )
+                        last_request_error = None
+                        break
+                    except Exception as request_exc:  # noqa: BLE001 - transport/provider exceptions vary
+                        last_request_error = request_exc
+                        round_span.record_exception(request_exc)
+                        if verbose:
+                            print(
+                                "    [agent] Ошибка запроса к LLM "
+                                f"(попытка {request_attempt}/{MAX_LLM_REQUEST_RETRIES}): {request_exc}"
+                            )
+                        if request_attempt < MAX_LLM_REQUEST_RETRIES:
+                            # Small delay helps with transient transport/provider issues.
+                            time.sleep(1)
+                if response is None:
+                    raise ValueError(
+                        "Не удалось получить ответ от LLM: превышено число попыток "
+                        f"({MAX_LLM_REQUEST_RETRIES}), timeout={LLM_REQUEST_TIMEOUT_SEC}s. "
+                        f"Последняя ошибка: {last_request_error}"
+                    )
                 elapsed = time.perf_counter() - started_at
                 round_span.set_attribute("llm.round_latency_sec", elapsed)
                 usage = getattr(response, "usage", None)

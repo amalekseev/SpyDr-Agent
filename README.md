@@ -12,9 +12,12 @@ export BASELINE_EMBEDDING_MODEL="text-embedding-3-large"
 # 3) Авторизация провайдера
 # OpenAI:
 export OPENAI_API_KEY="your_openai_api_key"
-# GigaChat (один из двух вариантов):
-# export GIGACHAT_CREDENTIALS="..."
-# export GIGACHAT_ACCESS_TOKEN="..."
+# GigaChat (только сертификатная аутентификация mTLS):
+export GIGACHAT_CERT_FILE="/path/to/client.crt"
+export GIGACHAT_KEY_FILE="/path/to/client.key"
+# опционально:
+# export GIGACHAT_KEY_PASSWORD="..."
+# export GIGACHAT_CA_BUNDLE_FILE="/path/to/ca.pem"
 
 # 4) URL PostgreSQL с pgvector (пример под ваше окружение)
 export BASELINE_RAG_DB_URL="postgresql://postgres:mypassword@localhost:5488/postgres"
