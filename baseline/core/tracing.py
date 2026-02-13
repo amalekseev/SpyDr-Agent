@@ -4,10 +4,38 @@ from __future__ import annotations
 
 import os
 import socket
+import logging
+from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse
 from typing import Optional
 
 _TRACING_CONFIGURED = False
+
+
+def setup_file_logging(log_dir: str = "logs") -> Path:
+    """Initialize detailed file logging."""
+    log_path = Path(log_dir)
+    log_path.mkdir(exist_ok=True)
+    log_file = log_path / f"baseline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+
+    # Configure root logger for the 'baseline' namespace
+    logger = logging.getLogger("baseline")
+    logger.setLevel(logging.DEBUG)
+
+    # File handler with detailed format
+    fh = logging.FileHandler(log_file, encoding="utf-8")
+    fh.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    # Prevent propagation to parent loggers to avoid double logging if configured elsewhere
+    logger.propagate = False
+
+    return log_file
 
 
 def setup_phoenix_tracing(

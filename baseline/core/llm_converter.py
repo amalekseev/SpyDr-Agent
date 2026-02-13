@@ -3,6 +3,7 @@
 import json
 import re
 import time
+import logging
 from typing import Any
 
 from .agent_protocol import FeaturePlan, parse_agent_response
@@ -112,6 +113,7 @@ def build_feature_plan(
     repair_feedback: str | None = None,
 ) -> tuple[FeaturePlan, int]:
     """Build strict feature plan where each step is selected by step_id."""
+    logger = logging.getLogger("baseline.agent")
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": build_user_prompt(test_content, feature_name)},
@@ -127,6 +129,8 @@ def build_feature_plan(
         # +1 round is reserved for final answer synthesis after the last tool-call round.
         max_agent_rounds = MAX_TOOL_CALL_ROUNDS + 1
         for round_idx in range(1, max_agent_rounds + 1):
+            logger.debug(f"--- Round {round_idx} ---")
+            logger.debug(f"Messages: {json.dumps(messages, ensure_ascii=False, indent=2)}")
             with TRACER.start_as_current_span("baseline.agent.round") as round_span:
                 round_span.set_attribute("llm.round_index", round_idx)
                 round_span.set_attribute("llm.messages_count", len(messages))
@@ -137,6 +141,7 @@ def build_feature_plan(
                 last_request_error: Exception | None = None
                 for request_attempt in range(1, MAX_LLM_REQUEST_RETRIES + 1):
                     try:
+                        logger.debug(f"Requesting completion from {model} (attempt {request_attempt})...")
                         response = client.chat.completions.create(
                             model=model,
                             messages=messages,
@@ -151,6 +156,7 @@ def build_feature_plan(
                     except Exception as request_exc:  # noqa: BLE001 - transport/provider exceptions vary
                         last_request_error = request_exc
                         round_span.record_exception(request_exc)
+                        logger.warning(f"LLM request error: {request_exc}")
                         if verbose:
                             print(
                                 "    [agent] Ошибка запроса к LLM "
@@ -160,6 +166,7 @@ def build_feature_plan(
                             # Small delay helps with transient transport/provider issues.
                             time.sleep(1)
                 if response is None:
+                    logger.error(f"Failed to get response after {MAX_LLM_REQUEST_RETRIES} attempts.")
                     raise ValueError(
                         "Не удалось получить ответ от LLM: превышено число попыток "
                         f"({MAX_LLM_REQUEST_RETRIES}), timeout={LLM_REQUEST_TIMEOUT_SEC}s. "
@@ -169,6 +176,12 @@ def build_feature_plan(
                 round_span.set_attribute("llm.round_latency_sec", elapsed)
                 usage = getattr(response, "usage", None)
                 if usage:
+                    usage_dict = {
+                        "prompt_tokens": getattr(usage, "prompt_tokens", 0),
+                        "completion_tokens": getattr(usage, "completion_tokens", 0),
+                        "total_tokens": getattr(usage, "total_tokens", 0),
+                    }
+                    logger.debug(f"Usage: {usage_dict}")
                     round_span.set_attribute("llm.prompt_tokens", int(getattr(usage, "prompt_tokens", 0) or 0))
                     round_span.set_attribute(
                         "llm.completion_tokens", int(getattr(usage, "completion_tokens", 0) or 0)
@@ -177,16 +190,20 @@ def build_feature_plan(
                 if verbose:
                     print(f"    [agent] Раунд {round_idx}: ответ получен за {elapsed:.2f}s")
                 message = response.choices[0].message
+                logger.debug(f"Assistant message: {message.content}")
                 tool_calls = message.tool_calls or []
                 if not tool_calls:
                     content = message.content or ""
                     if verbose:
                         print("    [agent] Tool-вызовов нет, парсинг финального JSON...")
                     try:
-                        return parse_agent_response(content), total_tool_calls
+                        plan = parse_agent_response(content)
+                        logger.info("Plan generation successful.")
+                        return plan, total_tool_calls
                     except (json.JSONDecodeError, ValueError) as exc:
                         last_validation_error = str(exc)
                         round_span.record_exception(exc)
+                        logger.warning(f"Invalid JSON from model: {exc}")
                         if verbose:
                             print(f"    [agent] Невалидный JSON от модели: {exc}")
                             print("    [agent] Запрашиваю у модели исправленную JSON-версию ответа...")
@@ -210,6 +227,7 @@ def build_feature_plan(
                 total_tool_calls += len(tool_calls)
                 round_span.set_attribute("llm.tool_calls_count", len(tool_calls))
                 if round_idx > MAX_TOOL_CALL_ROUNDS:
+                    logger.error(f"Max tool call rounds reached: {MAX_TOOL_CALL_ROUNDS}")
                     raise ValueError(
                         "Агент превысил лимит раундов tool-вызовов "
                         f"({MAX_TOOL_CALL_ROUNDS}) и не смог завершить конвертацию."
@@ -234,6 +252,7 @@ def build_feature_plan(
                     }
                 )
                 for tool_call in tool_calls:
+                    logger.debug(f"Executing tool call: {tool_call.function.name} with args: {tool_call.function.arguments}")
                     tool_result = _execute_tool_call(
                         tool_call_name=tool_call.function.name,
                         tool_call_arguments=tool_call.function.arguments,
@@ -241,6 +260,7 @@ def build_feature_plan(
                         rag_top_k=rag_top_k,
                         verbose=verbose,
                     )
+                    logger.debug(f"Tool result: {json.dumps(tool_result, ensure_ascii=False)}")
                     messages.append(
                         {
                             "role": "tool",
@@ -250,10 +270,12 @@ def build_feature_plan(
                     )
 
     if last_validation_error:
+        logger.error(f"Agent failed after max rounds. Last validation error: {last_validation_error}")
         raise ValueError(
             "Агент не смог завершить конвертацию: превышен лимит раундов, "
             f"последняя ошибка валидации: {last_validation_error}"
         )
+    logger.error("Agent failed after max rounds.")
     raise ValueError("Агент не смог завершить конвертацию: превышен лимит раундов.")
 
 
@@ -266,20 +288,25 @@ def _execute_tool_call(
     verbose: bool = False,
 ) -> dict[str, Any]:
     """Execute one tool call from the model and return serializable output."""
+    logger = logging.getLogger("baseline.tool")
     with TRACER.start_as_current_span("baseline.agent.tool_call") as span:
         span.set_attribute("tool.name", tool_call_name)
         if tool_call_name != "search_steps":
+            logger.error(f"Unknown tool: {tool_call_name}")
             return {"error": f"Неизвестный tool: {tool_call_name}"}
         try:
             args = json.loads(tool_call_arguments or "{}")
         except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in tool arguments: {tool_call_arguments}")
             return {"error": "Аргументы tool должны быть валидным JSON."}
         query = str(args.get("query", "")).strip()
         if not query:
+            logger.error("Missing query argument in search_steps")
             return {"error": "Аргумент query обязателен."}
         if _looks_like_step_id_or_noise(query):
             span.set_attribute("tool.bad_query", True)
             span.set_attribute("tool.bad_query_reason", "step_id_or_noise")
+            logger.warning(f"Rejected query as unnatural: {query!r}")
             if verbose:
                 print(f"    [tool] Отклонен query как неестественный: {query!r}")
             return {

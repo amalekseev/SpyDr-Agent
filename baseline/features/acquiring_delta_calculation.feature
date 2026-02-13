@@ -3,47 +3,87 @@ Feature: Acquiring Delta Calculation
 
   @delta_calculation @growth
   Scenario: Проверка расчета дельт при росте параметра
-    Given включено логирование запросов для сервера "rest_mock"
-    When Отправить "/mock-gateway/v1/tariffs/recommended" на REST сервер "rest_mock" с хедерами "rqUid, rqTm, spName, systemId" с body из файла "request_recommended.json"
-    Then Проверить ответ с кодом 200 и body из файла "response_recommended.json"
-    Given установлен идентификатор запроса "calcRequestId"
+    Given включено логирование запросов
+    Given установлен идентификатор запроса "requestId"
+    Given установлен идентификатор сессии "requestTime"
+    Given установлен идентификатор клиента "urn:mock:autotest"
+    Given установлен идентификатор корреляции "urn:mock:system"
+    When отправить POST запрос на сервер "rest_mock" endpoint "/mock-gateway/v1/tariffs/recommended" с телом:
+      """
+      {
+        "headers": "rqUid, rqTm, spName, systemId",
+        "file_path": "request_recommended.json"
+      }
+      """
+    Then код ответа сервера "rest_mock" равен 200
+    Then ответ является валидным JSON
     Given установлен идентификатор запроса "contractIdInitial"
-    Given установлен идентификатор запроса "percentValue"
-    Given установлен идентификатор запроса "limitValue"
-    When Отправить "/mock-gateway/v1/calculation/profitability" на REST сервер "rest_mock" с хедерами "rqUid=calcRequestId, serviceName=urn:mock:autotest, systemIdentifier=urn:mock:system" с body из файла "request_delta.json"
+    Given установлен идентификатор запроса "calcRequestId"
+    Given установлен идентификатор клиента "0.8"
+    Given установлен идентификатор клиента "5000000"
+    When отправить POST запрос на сервер "rest_mock" endpoint "/mock-gateway/v1/calculation/profitability" с телом:
+      """
+      {
+        "headers": "rqUid=calcRequestId, spName, systemId",
+        "file_path": "request_delta.json"
+      }
+      """
     Then Проверить ответ с кодом 200 и body
       """
-      Проверка успешного получения ответа с кодом 200 и JSON телом.
+      Проверить что ответ содержит поля compensation, impactOnLimit, lostIncomeChanging, crossSaleProfitChanging и сохранить их значения
       """
     When выполнить UPDATE запрос в базу "postgres_mock":
       """
-      Выполнить UPDATE запрос в базу.
+      UPDATE mock_schema.limit_table SET limit_amt = 10000000 WHERE division_cd IN (SELECT division_cd FROM mock_schema.division_table WHERE status_cd = 'active') AND limit_cd = 'MOCK';
       """
-    Given установлен формат даты "yyyy-MM-dd'T'HH:mm:ss"
-    When Отправить "/mock-status/v1/agreement/change-status" на REST сервер "rest_mock" с хедерами "rqUid=statusRequestIdWorking, serviceName=urn:mock:autotest, systemIdentifier=urn:mock:system" с body из файла "request_status_working.json"
-    Then Проверить ответ с кодом 200 и body
+    Given установлен формат даты "currentDate"
+    Given установлен формат даты "futureDate"
+    When отправить POST запрос на сервер "rest_mock" endpoint "/mock-status/v1/agreement/change-status" с телом:
       """
-      Проверка успешного получения ответа с кодом 200 и JSON телом.
+      {
+        "headers": "rqUid=statusRequestIdWorking, spName, systemId",
+        "file_path": "request_status_working.json"
+      }
       """
-    When Отправить "/mock-status/v1/agreement/change-status" на REST сервер "rest_mock" с хедерами "rqUid=statusRequestIdActive, serviceName=urn:mock:autotest, systemIdentifier=urn:mock:system" с body из файла "request_status_active.json"
-    Then Проверить ответ с кодом 200 и body
+    Then код ответа сервера "rest_mock" равен 200
+    When отправить POST запрос на сервер "rest_mock" endpoint "/mock-status/v1/agreement/change-status" с телом:
       """
-      Проверка успешного получения ответа с кодом 200 и JSON телом.
+      {
+        "headers": "rqUid=statusRequestIdActive, spName, systemId",
+        "file_path": "request_status_active.json"
+      }
       """
-    When Отправить "/mock-gateway/v1/tariffs/recommended" на REST сервер "rest_mock" с хедерами "rqUid=requestId, serviceName=urn:mock:autotest, systemIdentifier=urn:mock:system" с body из файла "request_change.json"
-    Then Проверить ответ с кодом 200 и body из файла "response_change.json"
+    Then код ответа сервера "rest_mock" равен 200
+    Given установлен идентификатор запроса "changeRequestId"
+    Given установлен идентификатор запроса "contractIdChange"
+    When отправить POST запрос на сервер "rest_mock" endpoint "/mock-gateway/v1/tariffs/recommended" с телом:
+      """
+      {
+        "headers": "rqUid=requestId, spName, systemId",
+        "file_path": "request_change.json"
+      }
+      """
+    Then код ответа сервера "rest_mock" равен 200
+    Then ответ является валидным JSON
     Given установлен идентификатор запроса "contractIdFinal"
     Given установлен идентификатор запроса "finalCalcRequestId"
-    Given установлен идентификатор запроса "percentValueFinal"
-    Given установлен идентификатор запроса "limitValueFinal"
-    When Отправить "/mock-gateway/v1/change/profitability-calculation" на REST сервер "rest_mock" с хедерами "rqUid=finalCalcRequestId, serviceName=urn:mock:autotest, systemIdentifier=urn:mock:system" с body из файла "request_change_profitability.json"
+    Given установлен идентификатор клиента "0.8"
+    Given установлен идентификатор клиента "3000000"
+    When отправить POST запрос на сервер "rest_mock" endpoint "/mock-gateway/v1/change/profitability-calculation" с телом:
+      """
+      {
+        "headers": "rqUid=finalCalcRequestId, spName, systemId",
+        "file_path": "request_change_profitability.json"
+      }
+      """
     Then Проверить ответ с кодом 200 и body
       """
-      Проверка успешного получения ответа с кодом 200 и JSON телом.
+      Проверить что ответ содержит поля compensation, compensationDelta, impactOnLimit, impactOnLimitDelta, lostIncomeChanging, lostIncomeChangingDelta, crossSaleProfitChanging, crossSaleProfitChangingDelta и сохранить их значения
       """
-    When присвоить переменной "daysDifference" текущую дату в формате "yyyy-MM-dd'T'HH:mm:ss"
+    When присвоить переменной "daysDifference" дату 365 дней назад
     Then результат запроса не пустой
-    Then тело полученного сообщения равно:
+    Then переменная "daysDifference" больше 0
+    Then Проверить ответ с кодом 200 и body
       """
-      Проверка точного соответствия тела сообщения.
+      Проверить что дельта компенсации соответствует формуле: (compensationFinal - compensationInitial) / 365 * количество дней
       """

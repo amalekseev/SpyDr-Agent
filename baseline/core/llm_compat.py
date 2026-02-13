@@ -256,22 +256,6 @@ def _build_gigachat_common_kwargs(chat_model_cls: type[Any]) -> dict[str, Any]:
         for arg_name in key_password_arg_names:
             kwargs[arg_name] = key_password
 
-    # Fail fast with clear message if installed package does not expose cert-based args.
-    try:
-        signature = inspect.signature(chat_model_cls.__init__)
-        init_params = set(signature.parameters.keys())
-    except (TypeError, ValueError):
-        init_params = set()
-    if init_params and not any(name in init_params for name in cert_arg_names):
-        raise ValueError(
-            "Текущая версия langchain_gigachat не поддерживает передачу client cert через параметры модели."
-        )
-    if init_params and not any(name in init_params for name in key_arg_names):
-        raise ValueError(
-            "Текущая версия langchain_gigachat не поддерживает передачу client key через параметры модели."
-        )
-
-    return _filter_supported_kwargs(chat_model_cls, kwargs)
 
 
 def _filter_supported_kwargs(target_cls: type[Any], kwargs: dict[str, Any]) -> dict[str, Any]:

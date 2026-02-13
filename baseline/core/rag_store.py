@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,6 +16,7 @@ from .constants import DEFAULT_EMBEDDING_MODEL
 from .tracing import get_tracer
 
 TRACER = get_tracer(__name__)
+LOGGER = logging.getLogger("baseline.rag")
 
 
 @dataclass
@@ -31,19 +33,23 @@ class StepRAGStore:
         if self._embedding_dimension is not None:
             return self._embedding_dimension
         # Make a test embedding call to get the actual dimension
+        LOGGER.debug(f"Determining embedding dimension for model: {self.embedding_model}")
         test_embedding = self._embed_text("test")
         self._embedding_dimension = len(test_embedding)
+        LOGGER.info(f"Detected embedding dimension: {self._embedding_dimension}")
         return self._embedding_dimension
 
     def ensure_schema(self) -> None:
         """Initialize extension, table and indexes required for vector search."""
         with TRACER.start_as_current_span("baseline.rag.ensure_schema") as span:
+            LOGGER.debug(f"Ensuring schema in DB: {self.db_url.split('@')[-1] if '@' in self.db_url else '...'}")
             print(f"  [rag] Проверка схемы БД (URL: {self.db_url.split('@')[-1] if '@' in self.db_url else '...'})")
             embedding_dim = self._get_embedding_dimension()
             span.set_attribute("rag.embedding_dimension", embedding_dim)
             try:
                 with psycopg.connect(self.db_url) as conn:
                     with conn.cursor() as cur:
+                        LOGGER.debug("Setting up schemas and vector extension...")
                         print("  [rag] Подключение установлено, настройка схем и расширения vector...")
                         # Ensure schemas exist (though they should be created already)
                         cur.execute("CREATE SCHEMA IF NOT EXISTS ext")
@@ -56,6 +62,7 @@ class StepRAGStore:
                         cur.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA ext")
                         
                         # Create main table in spydr_ai (default schema now) if not exists
+                        LOGGER.debug(f"Creating bdd_steps table with dimension {embedding_dim}...")
                         print(f"  [rag] Создание таблицы bdd_steps (dim={embedding_dim}) если не существует...")
                         cur.execute(
                             f"""
@@ -74,18 +81,22 @@ class StepRAGStore:
                             """
                         )
                         
+                        LOGGER.debug("Creating index idx_bdd_steps_type...")
                         print("  [rag] Создание индекса idx_bdd_steps_type...")
                         cur.execute(
                             "CREATE INDEX IF NOT EXISTS idx_bdd_steps_type ON bdd_steps(step_type)"
                         )
                     conn.commit()
+                LOGGER.info("DB schema is ready.")
                 print("  [rag] Схема БД готова")
             except Exception as e:
+                LOGGER.error(f"Error during schema initialization: {e}")
                 print(f"  [rag] ОШИБКА при инициализации схемы: {e}")
                 raise
 
     def clear_all(self) -> None:
         """Clear all stored steps."""
+        LOGGER.warning("Clearing all steps from bdd_steps table.")
         print("  [rag] Очистка таблицы bdd_steps...")
         try:
             with psycopg.connect(self.db_url) as conn:
@@ -95,6 +106,7 @@ class StepRAGStore:
                 conn.commit()
             print("  [rag] Таблица очищена")
         except Exception as e:
+            LOGGER.error(f"Error during table truncation: {e}")
             print(f"  [rag] ОШИБКА при очистке таблицы: {e}")
             raise
 
@@ -106,8 +118,11 @@ class StepRAGStore:
                     cur.execute("SET search_path TO spydr_ai, ext, public")
                     cur.execute("SELECT COUNT(*) AS total FROM bdd_steps")
                     row = cur.fetchone() or {}
-                    return int(row.get("total") or 0)
+                    count = int(row.get("total") or 0)
+                    LOGGER.debug(f"Current step count in DB: {count}")
+                    return count
         except Exception as e:
+            LOGGER.error(f"Error counting steps: {e}")
             print(f"  [rag] ОШИБКА при подсчете шагов: {e}")
             raise
 
@@ -116,6 +131,7 @@ class StepRAGStore:
         if not steps:
             return 0
         
+        LOGGER.info(f"Starting indexing of {len(steps)} steps.")
         # Always print start of indexing if not verbose, or more details if verbose
         print(f"  [rag] Начало индексации {len(steps)} шагов...")
         
@@ -132,6 +148,7 @@ class StepRAGStore:
                         for idx, step in enumerate(steps, 1):
                             step_start = time.perf_counter()
                             try:
+                                LOGGER.debug(f"Indexing step {idx}/{len(steps)}: {step.get('step_id')}")
                                 embedding = self._embed_step(step)
                                 cur.execute(
                                     """
@@ -172,18 +189,22 @@ class StepRAGStore:
                                 current_time = time.perf_counter()
                                 if inserted % 5 == 0 or (current_time - last_log_time) > 5.0 or inserted == len(steps):
                                     elapsed = current_time - last_log_time
+                                    LOGGER.info(f"Indexing progress: {inserted}/{len(steps)}")
                                     print(f"  [rag] Прогресс: {inserted}/{len(steps)} (последний блок за {elapsed:.2f}s)")
                                     last_log_time = current_time
                                     
                             except Exception as step_err:
+                                LOGGER.error(f"Error processing step {step.get('step_id')}: {step_err}")
                                 print(f"  [rag] ОШИБКА при обработке шага {step.get('step_id')}: {step_err}")
                                 raise
                     conn.commit()
             except Exception as e:
+                LOGGER.error(f"Critical error during indexing: {e}")
                 print(f"  [rag] КРИТИЧЕСКАЯ ОШИБКА при индексации: {e}")
                 raise
             span.set_attribute("rag.steps_upserted", inserted)
         
+        LOGGER.info(f"Indexing completed: {inserted} steps.")
         print(f"  [rag] Индексация завершена: {inserted} шагов обработано")
         return inserted
 
@@ -191,6 +212,7 @@ class StepRAGStore:
         self, *, query: str, step_type: str | None, top_k: int = 8, verbose: bool = False
     ) -> list[dict[str, Any]]:
         """Run semantic retrieval over stored step embeddings."""
+        LOGGER.debug(f"Searching steps: query='{query}', type={step_type}, top_k={top_k}")
         with TRACER.start_as_current_span("baseline.rag.search_steps") as span:
             span.set_attribute("rag.top_k", top_k)
             span.set_attribute("rag.step_type", step_type or "any")
@@ -203,6 +225,7 @@ class StepRAGStore:
             try:
                 embedding = self._embed_text(query)
             except Exception as e:
+                LOGGER.error(f"Error creating query embedding: {e}")
                 print(f"  [rag] ОШИБКА при создании эмбеддинга запроса: {e}")
                 raise
 
@@ -232,6 +255,7 @@ class StepRAGStore:
                         cur.execute(sql, params)
                         rows = cur.fetchall()
             except Exception as e:
+                LOGGER.error(f"Error searching DB: {e}")
                 print(f"  [rag] ОШИБКА при поиске в БД: {e}")
                 raise
 
@@ -254,6 +278,7 @@ class StepRAGStore:
                         "score": float(row["score"]),
                     }
                 )
+            LOGGER.debug(f"Found {len(results)} candidates.")
             span.set_attribute("rag.results_count", len(results))
             return results
 
@@ -270,13 +295,16 @@ class StepRAGStore:
 
     def _embed_text(self, text: str) -> list[float]:
         try:
+            LOGGER.debug(f"Calling embedding API for model: {self.embedding_model}")
             response = self.client.embeddings.create(
                 model=self.embedding_model,
                 input=text,
             )
-            print(f"  [debug] Ответ от модели: {getattr(response, 'model', 'unknown')}")           
-            return response.data[0].embedding
+            embedding = response.data[0].embedding
+            LOGGER.debug(f"Received embedding of length {len(embedding)}")
+            return embedding
         except Exception as e:
+            LOGGER.error(f"Error calling embedding API: {e}")
             print(f"  [rag] ОШИБКА при вызове API эмбеддингов: {e}")
             raise
 

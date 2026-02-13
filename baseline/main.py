@@ -14,6 +14,7 @@ try:
     )
     from core.io_utils import save_json
     from core.pipeline import run_pipeline
+    from core.tracing import setup_file_logging
 except ImportError:
     # Allows running as module from project root.
     from baseline.core.constants import (
@@ -26,6 +27,7 @@ except ImportError:
     )
     from baseline.core.io_utils import save_json
     from baseline.core.pipeline import run_pipeline
+    from baseline.core.tracing import setup_file_logging
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -117,6 +119,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     """Run CLI and return shell status code."""
+    log_file = setup_file_logging()
+    print(f"Подробные логи записываются в: {log_file}")
     parser = build_arg_parser()
     args = parser.parse_args()
     try:

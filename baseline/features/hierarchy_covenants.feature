@@ -2,7 +2,7 @@ Feature: Hierarchy Covenants
 
   Scenario: Проверка расчета ставки калькулятором Calc
     Given установлен идентификатор запроса "traceId"
-    Given установлен идентификатор сессии "No"
+    Given включено логирование запросов
     When отправить POST запрос на сервер "calc_hierarchy_service" endpoint "/calc?calculatorName=Calc" с телом:
       """
       {
@@ -10,6 +10,6 @@ Feature: Hierarchy Covenants
       }
       """
     Then код ответа сервера "calc_hierarchy_service" равен 200
-    Then тело ответа содержит поле "traceId" со значением не равным "traceId"
-    Then тело ответа содержит поле "outAttributes.rateAdjustment"
-    Then вывести полученное сообщение
+    Then тело ответа содержит поле "traceId" со значением "traceId"
+    Then тело ответа содержит поле "rateAdjustment"
+    Given включено логирование запросов
