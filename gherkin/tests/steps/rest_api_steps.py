@@ -4,7 +4,7 @@ REST API шаги для тестирования.
 работы с различными форматами данных и аутентификацией.
 """
 from steps.soft_assert import soft_assert
-from pytest_bdd import given, when, then, parsers
+from pytest_bdd import step, given, when, then, parsers
 import json
 import uuid
 from datetime import datetime
@@ -14,6 +14,7 @@ from datetime import datetime
 # --- Given steps (REST API Setup) ---
 # ============================================================================
 
+@step(parsers.parse('настроен REST клиент для сервера "{server_name}"'))
 @given(parsers.parse('настроен REST клиент для сервера "{server_name}"'))
 def setup_rest_client(context, server_name):
     """Настройка REST клиента для сервера."""
@@ -26,6 +27,7 @@ def setup_rest_client(context, server_name):
     print(f"MOCK: Настроен REST клиент для сервера {server_name}")
 
 
+@step(parsers.parse('настроен REST клиент для сервера "{server_name}" с базовым URL "{base_url}"'))
 @given(parsers.parse('настроен REST клиент для сервера "{server_name}" с базовым URL "{base_url}"'))
 def setup_rest_client_with_url(context, server_name, base_url):
     """Настройка REST клиента с базовым URL."""
@@ -38,6 +40,7 @@ def setup_rest_client_with_url(context, server_name, base_url):
     print(f"MOCK: Настроен REST клиент для сервера {server_name} с URL {base_url}")
 
 
+@step(parsers.parse('установлен заголовок "{header_name}" со значением "{header_value}" для сервера "{server_name}"'))
 @given(parsers.parse('установлен заголовок "{header_name}" со значением "{header_value}" для сервера "{server_name}"'))
 def set_server_header(context, header_name, header_value, server_name):
     """Установка заголовка для сервера."""
@@ -51,6 +54,7 @@ def set_server_header(context, header_name, header_value, server_name):
     print(f"MOCK: Установлен заголовок {header_name} для сервера {server_name}")
 
 
+@step(parsers.parse('установлена OAuth2 авторизация для сервера "{server_name}" с токеном "{token}"'))
 @given(parsers.parse('установлена OAuth2 авторизация для сервера "{server_name}" с токеном "{token}"'))
 def set_oauth2_auth(context, server_name, token):
     """Установка OAuth2 авторизации."""
@@ -65,6 +69,7 @@ def set_oauth2_auth(context, server_name, token):
     print(f"MOCK: Установлена OAuth2 авторизация для сервера {server_name}")
 
 
+@step(parsers.parse('установлена Basic авторизация для сервера "{server_name}" логин "{login}" пароль "{password}"'))
 @given(parsers.parse('установлена Basic авторизация для сервера "{server_name}" логин "{login}" пароль "{password}"'))
 def set_basic_auth_for_server(context, server_name, login, password):
     """Установка Basic авторизации для сервера."""
@@ -80,6 +85,7 @@ def set_basic_auth_for_server(context, server_name, login, password):
     print(f"MOCK: Установлена Basic авторизация для сервера {server_name}")
 
 
+@step(parsers.parse('установлен API ключ "{api_key}" для сервера "{server_name}"'))
 @given(parsers.parse('установлен API ключ "{api_key}" для сервера "{server_name}"'))
 def set_api_key_for_server(context, api_key, server_name):
     """Установка API ключа для сервера."""
@@ -91,6 +97,7 @@ def set_api_key_for_server(context, api_key, server_name):
     print(f"MOCK: Установлен API ключ для сервера {server_name}")
 
 
+@step(parsers.parse('установлен таймаут {timeout:d} секунд для сервера "{server_name}"'))
 @given(parsers.parse('установлен таймаут {timeout:d} секунд для сервера "{server_name}"'))
 def set_server_timeout(context, timeout, server_name):
     """Установка таймаута для сервера."""
@@ -102,6 +109,7 @@ def set_server_timeout(context, timeout, server_name):
     print(f"MOCK: Установлен таймаут {timeout} секунд для сервера {server_name}")
 
 
+@step(parsers.parse('установлен retry policy с {retries:d} попытками для сервера "{server_name}"'))
 @given(parsers.parse('установлен retry policy с {retries:d} попытками для сервера "{server_name}"'))
 def set_retry_policy(context, retries, server_name):
     """Установка политики повторных попыток."""
@@ -113,6 +121,7 @@ def set_retry_policy(context, retries, server_name):
     print(f"MOCK: Установлен retry policy с {retries} попытками для сервера {server_name}")
 
 
+@step(parsers.parse('включено логирование запросов для сервера "{server_name}"'))
 @given(parsers.parse('включено логирование запросов для сервера "{server_name}"'))
 def enable_request_logging_for_server(context, server_name):
     """Включение логирования запросов для сервера."""
@@ -124,6 +133,7 @@ def enable_request_logging_for_server(context, server_name):
     print(f"MOCK: Включено логирование запросов для сервера {server_name}")
 
 
+@step(parsers.parse('установлен прокси "{proxy_url}" для сервера "{server_name}"'))
 @given(parsers.parse('установлен прокси "{proxy_url}" для сервера "{server_name}"'))
 def set_proxy_for_server(context, proxy_url, server_name):
     """Установка прокси для сервера."""
@@ -135,6 +145,7 @@ def set_proxy_for_server(context, proxy_url, server_name):
     print(f"MOCK: Установлен прокси {proxy_url} для сервера {server_name}")
 
 
+@step(parsers.parse('отключена проверка SSL для сервера "{server_name}"'))
 @given(parsers.parse('отключена проверка SSL для сервера "{server_name}"'))
 def disable_ssl_for_server(context, server_name):
     """Отключение проверки SSL для сервера."""
@@ -146,6 +157,7 @@ def disable_ssl_for_server(context, server_name):
     print(f"MOCK: Отключена проверка SSL для сервера {server_name}")
 
 
+@step(parsers.parse('установлен сертификат клиента "{cert_path}" для сервера "{server_name}"'))
 @given(parsers.parse('установлен сертификат клиента "{cert_path}" для сервера "{server_name}"'))
 def set_client_cert(context, cert_path, server_name):
     """Установка клиентского сертификата."""
@@ -161,6 +173,7 @@ def set_client_cert(context, cert_path, server_name):
 # --- When steps (REST API Operations) ---
 # ============================================================================
 
+@step(parsers.parse('Отправить "{method_path}" на REST сервер "{server_name}" с хедерами "{headers}" с body из файла "{file_path}"'))
 @when(parsers.parse('Отправить "{method_path}" на REST сервер "{server_name}" с хедерами "{headers}" с body из файла "{file_path}"'))
 def send_rest_request_with_headers_from_file(context, method_path, server_name, headers, file_path):
     """Отправка REST запроса с заголовками и телом из файла."""
@@ -190,6 +203,7 @@ def send_rest_request_with_headers_from_file(context, method_path, server_name, 
     }
 
 
+@step(parsers.parse('Отправить "{method_path}" на REST сервер "{server_name}" с хедерами "{headers}"'))
 @when(parsers.parse('Отправить "{method_path}" на REST сервер "{server_name}" с хедерами "{headers}"'))
 def send_rest_request_with_headers(context, method_path, server_name, headers):
     """Отправка REST запроса с заголовками без тела."""
@@ -217,6 +231,7 @@ def send_rest_request_with_headers(context, method_path, server_name, headers):
     }
 
 
+@step(parsers.parse('отправить GET запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 @when(parsers.parse('отправить GET запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 def send_get_to_server(context, server_name, endpoint):
     """Отправка GET запроса на сервер."""
@@ -244,6 +259,7 @@ def send_get_to_server(context, server_name, endpoint):
     }
 
 
+@step(parsers.parse('отправить POST запрос на сервер "{server_name}" endpoint "{endpoint}" с телом:'))
 @when(parsers.parse('отправить POST запрос на сервер "{server_name}" endpoint "{endpoint}" с телом:'))
 def send_post_to_server(context, server_name, endpoint, docstring):
     """Отправка POST запроса на сервер с телом."""
@@ -262,6 +278,7 @@ def send_post_to_server(context, server_name, endpoint, docstring):
     }
 
 
+@step(parsers.parse('отправить PUT запрос на сервер "{server_name}" endpoint "{endpoint}" с телом:'))
 @when(parsers.parse('отправить PUT запрос на сервер "{server_name}" endpoint "{endpoint}" с телом:'))
 def send_put_to_server(context, server_name, endpoint, docstring):
     """Отправка PUT запроса на сервер с телом."""
@@ -280,6 +297,7 @@ def send_put_to_server(context, server_name, endpoint, docstring):
     }
 
 
+@step(parsers.parse('отправить PATCH запрос на сервер "{server_name}" endpoint "{endpoint}" с телом:'))
 @when(parsers.parse('отправить PATCH запрос на сервер "{server_name}" endpoint "{endpoint}" с телом:'))
 def send_patch_to_server(context, server_name, endpoint, docstring):
     """Отправка PATCH запроса на сервер с телом."""
@@ -298,6 +316,7 @@ def send_patch_to_server(context, server_name, endpoint, docstring):
     }
 
 
+@step(parsers.parse('отправить DELETE запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 @when(parsers.parse('отправить DELETE запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 def send_delete_to_server(context, server_name, endpoint):
     """Отправка DELETE запроса на сервер."""
@@ -314,6 +333,7 @@ def send_delete_to_server(context, server_name, endpoint):
     }
 
 
+@step(parsers.parse('отправить HEAD запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 @when(parsers.parse('отправить HEAD запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 def send_head_to_server(context, server_name, endpoint):
     """Отправка HEAD запроса на сервер."""
@@ -330,6 +350,7 @@ def send_head_to_server(context, server_name, endpoint):
     }
 
 
+@step(parsers.parse('отправить OPTIONS запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 @when(parsers.parse('отправить OPTIONS запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 def send_options_to_server(context, server_name, endpoint):
     """Отправка OPTIONS запроса на сервер."""
@@ -346,6 +367,7 @@ def send_options_to_server(context, server_name, endpoint):
     }
 
 
+@step(parsers.parse('отправить запрос с файлом "{file_path}" на сервер "{server_name}" endpoint "{endpoint}"'))
 @when(parsers.parse('отправить запрос с файлом "{file_path}" на сервер "{server_name}" endpoint "{endpoint}"'))
 def send_file_to_server(context, file_path, server_name, endpoint):
     """Отправка файла на сервер."""
@@ -363,6 +385,7 @@ def send_file_to_server(context, file_path, server_name, endpoint):
     }
 
 
+@step(parsers.parse('отправить multipart запрос на сервер "{server_name}" endpoint "{endpoint}" с файлами:'))
 @when(parsers.parse('отправить multipart запрос на сервер "{server_name}" endpoint "{endpoint}" с файлами:'))
 def send_multipart_to_server(context, server_name, endpoint, docstring):
     """Отправка multipart запроса с файлами."""
@@ -381,6 +404,7 @@ def send_multipart_to_server(context, server_name, endpoint, docstring):
     }
 
 
+@step(parsers.parse('отправить form-data запрос на сервер "{server_name}" endpoint "{endpoint}":'))
 @when(parsers.parse('отправить form-data запрос на сервер "{server_name}" endpoint "{endpoint}":'))
 def send_form_data_to_server(context, server_name, endpoint, docstring):
     """Отправка form-data запроса."""
@@ -399,6 +423,7 @@ def send_form_data_to_server(context, server_name, endpoint, docstring):
     }
 
 
+@step(parsers.parse('отправить XML запрос на сервер "{server_name}" endpoint "{endpoint}":'))
 @when(parsers.parse('отправить XML запрос на сервер "{server_name}" endpoint "{endpoint}":'))
 def send_xml_to_server(context, server_name, endpoint, docstring):
     """Отправка XML запроса."""
@@ -417,6 +442,7 @@ def send_xml_to_server(context, server_name, endpoint, docstring):
     }
 
 
+@step(parsers.parse('отправить GraphQL запрос на сервер "{server_name}":'))
 @when(parsers.parse('отправить GraphQL запрос на сервер "{server_name}":'))
 def send_graphql_to_server(context, server_name, docstring):
     """Отправка GraphQL запроса."""
@@ -434,6 +460,7 @@ def send_graphql_to_server(context, server_name, docstring):
     }
 
 
+@step(parsers.parse('отправить GraphQL mutation на сервер "{server_name}":'))
 @when(parsers.parse('отправить GraphQL mutation на сервер "{server_name}":'))
 def send_graphql_mutation_to_server(context, server_name, docstring):
     """Отправка GraphQL mutation."""
@@ -451,6 +478,7 @@ def send_graphql_mutation_to_server(context, server_name, docstring):
     }
 
 
+@step(parsers.parse('отправить запрос с query параметрами на сервер "{server_name}" endpoint "{endpoint}":'))
 @when(parsers.parse('отправить запрос с query параметрами на сервер "{server_name}" endpoint "{endpoint}":'))
 def send_request_with_query_params(context, server_name, endpoint, request):
     """Отправка запроса с query параметрами."""
@@ -481,6 +509,7 @@ def send_request_with_query_params(context, server_name, endpoint, request):
     }
 
 
+@step(parsers.parse('отправить запрос с path параметрами на сервер "{server_name}" endpoint "{endpoint}"'))
 @when(parsers.parse('отправить запрос с path параметрами на сервер "{server_name}" endpoint "{endpoint}"'))
 def send_request_with_path_params(context, server_name, endpoint):
     """Отправка запроса с path параметрами."""
@@ -501,6 +530,7 @@ def send_request_with_path_params(context, server_name, endpoint):
     }
 
 
+@step(parsers.parse('отправить асинхронный запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 @when(parsers.parse('отправить асинхронный запрос на сервер "{server_name}" endpoint "{endpoint}"'))
 def send_async_request(context, server_name, endpoint):
     """Отправка асинхронного запроса."""
@@ -518,6 +548,7 @@ def send_async_request(context, server_name, endpoint):
     }
 
 
+@step(parsers.parse('проверить статус асинхронной задачи "{task_id}" на сервере "{server_name}"'))
 @when(parsers.parse('проверить статус асинхронной задачи "{task_id}" на сервере "{server_name}"'))
 def check_async_task_status(context, task_id, server_name):
     """Проверка статуса асинхронной задачи."""
@@ -531,6 +562,7 @@ def check_async_task_status(context, task_id, server_name):
     }
 
 
+@step(parsers.parse('ожидать завершения асинхронной задачи "{task_id}" на сервере "{server_name}" в течение {timeout:d} секунд'))
 @when(parsers.parse('ожидать завершения асинхронной задачи "{task_id}" на сервере "{server_name}" в течение {timeout:d} секунд'))
 def wait_for_async_task(context, task_id, server_name, timeout):
     """Ожидание завершения асинхронной задачи."""
@@ -544,6 +576,7 @@ def wait_for_async_task(context, task_id, server_name, timeout):
     }
 
 
+@step(parsers.parse('отправить пакет запросов на сервер "{server_name}":'))
 @when(parsers.parse('отправить пакет запросов на сервер "{server_name}":'))
 def send_batch_requests_to_server(context, server_name, docstring):
     """Отправка пакета запросов."""
@@ -561,6 +594,7 @@ def send_batch_requests_to_server(context, server_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить health check на сервере "{server_name}"'))
 @when(parsers.parse('выполнить health check на сервере "{server_name}"'))
 def health_check(context, server_name):
     """Выполнение health check."""
@@ -574,6 +608,7 @@ def health_check(context, server_name):
     }
 
 
+@step(parsers.parse('получить OpenAPI спецификацию с сервера "{server_name}"'))
 @when(parsers.parse('получить OpenAPI спецификацию с сервера "{server_name}"'))
 def get_openapi_spec(context, server_name):
     """Получение OpenAPI спецификации."""
@@ -587,6 +622,7 @@ def get_openapi_spec(context, server_name):
     }
 
 
+@step(parsers.parse('повторить последний запрос на сервер "{server_name}"'))
 @when(parsers.parse('повторить последний запрос на сервер "{server_name}"'))
 def repeat_last_request_to_server(context, server_name):
     """Повторение последнего запроса."""
@@ -594,12 +630,14 @@ def repeat_last_request_to_server(context, server_name):
     # Используем сохраненные данные запроса
 
 
+@step(parsers.parse('повторить последний запрос на сервер "{server_name}" {times:d} раз'))
 @when(parsers.parse('повторить последний запрос на сервер "{server_name}" {times:d} раз'))
 def repeat_last_request_multiple(context, server_name, times):
     """Повторение последнего запроса несколько раз."""
     print(f"MOCK: Повторение последнего запроса на сервер {server_name} {times} раз")
 
 
+@step(parsers.parse('отправить запрос с retry на сервер "{server_name}" endpoint "{endpoint}" с {retries:d} попытками'))
 @when(parsers.parse('отправить запрос с retry на сервер "{server_name}" endpoint "{endpoint}" с {retries:d} попытками'))
 def send_request_with_retry(context, server_name, endpoint, retries):
     """Отправка запроса с retry."""
@@ -618,6 +656,7 @@ def send_request_with_retry(context, server_name, endpoint, retries):
     }
 
 
+@step(parsers.parse('загрузить файл с сервера "{server_name}" endpoint "{endpoint}" в "{file_path}"'))
 @when(parsers.parse('загрузить файл с сервера "{server_name}" endpoint "{endpoint}" в "{file_path}"'))
 def download_file_from_server(context, server_name, endpoint, file_path):
     """Загрузка файла с сервера."""
@@ -632,6 +671,7 @@ def download_file_from_server(context, server_name, endpoint, file_path):
     }
 
 
+@step(parsers.parse('отправить запрос с кастомным Content-Type "{content_type}" на сервер "{server_name}" endpoint "{endpoint}":'))
 @when(parsers.parse('отправить запрос с кастомным Content-Type "{content_type}" на сервер "{server_name}" endpoint "{endpoint}":'))
 def send_request_with_custom_content_type(context, content_type, server_name, endpoint, docstring):
     """Отправка запроса с кастомным Content-Type."""
@@ -654,6 +694,7 @@ def send_request_with_custom_content_type(context, content_type, server_name, en
 # --- Then steps (REST API Verification) ---
 # ============================================================================
 
+@step(parsers.parse('Проверить ответ с кодом {status_code:d}'))
 @then(parsers.parse('Проверить ответ с кодом {status_code:d}'))
 def check_response_code_only(context, status_code):
     """Проверка только кода ответа."""
@@ -662,6 +703,7 @@ def check_response_code_only(context, status_code):
     soft_assert(actual_code == status_code)
 
 
+@step(parsers.parse('Проверить хедеры из последнего ответа'))
 @then(parsers.parse('Проверить хедеры из последнего ответа'))
 def check_response_headers(context):
     """Проверка заголовков ответа."""
@@ -669,6 +711,7 @@ def check_response_headers(context):
     soft_assert("headers" in context["response"])
 
 
+@step(parsers.parse('Проверить ответ с кодом {status_code:d} в течение {timeout:d} секунд'))
 @then(parsers.parse('Проверить ответ с кодом {status_code:d} в течение {timeout:d} секунд'))
 def check_response_with_timeout(context, status_code, timeout):
     """Проверка кода ответа с таймаутом (polling)."""
@@ -677,6 +720,7 @@ def check_response_with_timeout(context, status_code, timeout):
     soft_assert(actual_code == status_code)
 
 
+@step(parsers.parse('Проверить ответ с кодом {status_code:d} и файлом с размером больше {size:d} кБ'))
 @then(parsers.parse('Проверить ответ с кодом {status_code:d} и файлом с размером больше {size:d} кБ'))
 def check_response_with_file_size(context, status_code, size):
     """Проверка кода ответа и размера файла в ответе."""
@@ -686,6 +730,7 @@ def check_response_with_file_size(context, status_code, size):
     print(f"MOCK: Размер файла в ответе: {size + 10} кБ (мок)")
 
 
+@step(parsers.parse('код ответа сервера "{server_name}" равен {status_code:d}'))
 @then(parsers.parse('код ответа сервера "{server_name}" равен {status_code:d}'))
 def check_server_response_code(context, server_name, status_code):
     """Проверка кода ответа от конкретного сервера."""
@@ -694,6 +739,7 @@ def check_server_response_code(context, server_name, status_code):
     soft_assert(actual_code == status_code)
 
 
+@step(parsers.parse('ответ содержит JSON поле "{field}" со значением "{value}"'))
 @then(parsers.parse('ответ содержит JSON поле "{field}" со значением "{value}"'))
 def check_json_field_value(context, field, value):
     """Проверка значения JSON поля."""
@@ -703,6 +749,7 @@ def check_json_field_value(context, field, value):
     soft_assert(str(actual_value) == str(value))
 
 
+@step(parsers.parse('ответ содержит JSON поле "{field}"'))
 @then(parsers.parse('ответ содержит JSON поле "{field}"'))
 def check_json_field_exists(context, field):
     """Проверка наличия JSON поля."""
@@ -711,6 +758,7 @@ def check_json_field_exists(context, field):
     soft_assert(field in body if isinstance(body, dict) else False)
 
 
+@step(parsers.parse('ответ не содержит JSON поле "{field}"'))
 @then(parsers.parse('ответ не содержит JSON поле "{field}"'))
 def check_json_field_not_exists(context, field):
     """Проверка отсутствия JSON поля."""
@@ -719,6 +767,7 @@ def check_json_field_not_exists(context, field):
     soft_assert(field not in body if isinstance(body, dict) else True)
 
 
+@step(parsers.parse('ответ содержит JSON массив "{field}" с {count:d} элементами'))
 @then(parsers.parse('ответ содержит JSON массив "{field}" с {count:d} элементами'))
 def check_json_array_count(context, field, count):
     """Проверка количества элементов в JSON массиве."""
@@ -728,6 +777,7 @@ def check_json_array_count(context, field, count):
     soft_assert(len(array) == count)
 
 
+@step(parsers.parse('ответ содержит JSON массив "{field}" с элементом где "{key}" равен "{value}"'))
 @then(parsers.parse('ответ содержит JSON массив "{field}" с элементом где "{key}" равен "{value}"'))
 def check_json_array_contains_element(context, field, key, value):
     """Проверка наличия элемента в JSON массиве."""
@@ -738,6 +788,7 @@ def check_json_array_contains_element(context, field, key, value):
     soft_assert(found)
 
 
+@step(parsers.parse('ответ содержит вложенное поле "{path}"'))
 @then(parsers.parse('ответ содержит вложенное поле "{path}"'))
 def check_nested_json_field_exists(context, path):
     """Проверка наличия вложенного JSON поля."""
@@ -754,6 +805,7 @@ def check_nested_json_field_exists(context, path):
     soft_assert(current is not None)
 
 
+@step(parsers.parse('ответ содержит вложенное поле "{path}" типа "{expected_type}"'))
 @then(parsers.parse('ответ содержит вложенное поле "{path}" типа "{expected_type}"'))
 def check_nested_json_field_type(context, path, expected_type):
     """Проверка типа вложенного JSON поля."""
@@ -781,6 +833,7 @@ def check_nested_json_field_type(context, path, expected_type):
     soft_assert(isinstance(current, expected))
 
 
+@step(parsers.parse('ответ содержит вложенное поле "{path}" со значением "{value}"'))
 @then(parsers.parse('ответ содержит вложенное поле "{path}" со значением "{value}"'))
 def check_nested_json_field(context, path, value):
     """Проверка значения вложенного JSON поля."""
@@ -797,6 +850,7 @@ def check_nested_json_field(context, path, value):
     soft_assert(str(current) == str(value))
 
 
+@step(parsers.parse('заголовок ответа "{header}" равен "{value}"'))
 @then(parsers.parse('заголовок ответа "{header}" равен "{value}"'))
 def check_response_header_value(context, header, value):
     """Проверка значения заголовка ответа."""
@@ -806,6 +860,7 @@ def check_response_header_value(context, header, value):
     soft_assert(str(actual_value) == str(value))
 
 
+@step(parsers.parse('заголовок ответа "{header}" содержит "{substring}"'))
 @then(parsers.parse('заголовок ответа "{header}" содержит "{substring}"'))
 def check_response_header_contains(context, header, substring):
     """Проверка что заголовок содержит подстроку."""
@@ -815,6 +870,7 @@ def check_response_header_contains(context, header, substring):
     soft_assert(substring in actual_value)
 
 
+@step(parsers.parse('заголовок ответа "{header}" существует'))
 @then(parsers.parse('заголовок ответа "{header}" существует'))
 def check_response_header_exists(context, header):
     """Проверка наличия заголовка ответа."""
@@ -823,6 +879,7 @@ def check_response_header_exists(context, header):
     soft_assert(header in headers)
 
 
+@step(parsers.parse('заголовок ответа "{header}" не существует'))
 @then(parsers.parse('заголовок ответа "{header}" не существует'))
 def check_response_header_not_exists(context, header):
     """Проверка отсутствия заголовка ответа."""
@@ -831,6 +888,7 @@ def check_response_header_not_exists(context, header):
     soft_assert(header not in headers)
 
 
+@step(parsers.parse('время ответа сервера меньше {max_time:d} миллисекунд'))
 @then(parsers.parse('время ответа сервера меньше {max_time:d} миллисекунд'))
 def check_response_time_ms(context, max_time):
     """Проверка времени ответа в миллисекундах."""
@@ -839,6 +897,7 @@ def check_response_time_ms(context, max_time):
     soft_assert(response_time < max_time)
 
 
+@step(parsers.parse('время ответа сервера меньше {max_time:d} секунд'))
 @then(parsers.parse('время ответа сервера меньше {max_time:d} секунд'))
 def check_response_time_sec(context, max_time):
     """Проверка времени ответа в секундах."""
@@ -847,6 +906,7 @@ def check_response_time_sec(context, max_time):
     soft_assert(response_time < max_time)
 
 
+@step(parsers.parse('размер ответа меньше {max_size:d} байт'))
 @then(parsers.parse('размер ответа меньше {max_size:d} байт'))
 def check_response_size_bytes(context, max_size):
     """Проверка размера ответа в байтах."""
@@ -856,6 +916,7 @@ def check_response_size_bytes(context, max_size):
     soft_assert(size < max_size)
 
 
+@step(parsers.parse('размер ответа больше {min_size:d} байт'))
 @then(parsers.parse('размер ответа больше {min_size:d} байт'))
 def check_response_size_greater(context, min_size):
     """Проверка что размер ответа больше указанного."""
@@ -865,6 +926,7 @@ def check_response_size_greater(context, min_size):
     soft_assert(size > min_size)
 
 
+@step(parsers.parse('ответ соответствует JSON схеме:'))
 @then(parsers.parse('ответ соответствует JSON схеме:'))
 def check_response_json_schema(context, docstring):
     """Проверка соответствия ответа JSON схеме."""
@@ -872,6 +934,7 @@ def check_response_json_schema(context, docstring):
     soft_assert(True)
 
 
+@step(parsers.parse('ответ соответствует JSON схеме из файла "{schema_file}"'))
 @then(parsers.parse('ответ соответствует JSON схеме из файла "{schema_file}"'))
 def check_response_json_schema_from_file(context, schema_file):
     """Проверка соответствия ответа JSON схеме из файла."""
@@ -879,6 +942,7 @@ def check_response_json_schema_from_file(context, schema_file):
     soft_assert(True)
 
 
+@step(parsers.parse('ответ является валидным JSON'))
 @then(parsers.parse('ответ является валидным JSON'))
 def check_response_valid_json(context):
     """Проверка что ответ является валидным JSON."""
@@ -887,6 +951,7 @@ def check_response_valid_json(context):
     soft_assert(body is not None)
 
 
+@step(parsers.parse('ответ является валидным XML'))
 @then(parsers.parse('ответ является валидным XML'))
 def check_response_valid_xml(context):
     """Проверка что ответ является валидным XML."""
@@ -895,6 +960,7 @@ def check_response_valid_xml(context):
     soft_assert(body is not None)
 
 
+@step(parsers.parse('сохранить значение поля "{field}" из ответа в переменную "{var_name}"'))
 @then(parsers.parse('сохранить значение поля "{field}" из ответа в переменную "{var_name}"'))
 def save_response_field_to_variable(context, field, var_name):
     """Сохранение значения поля из ответа в переменную."""
@@ -904,6 +970,7 @@ def save_response_field_to_variable(context, field, var_name):
     print(f"MOCK: Значение {value} из поля {field} сохранено в переменную {var_name}")
 
 
+@step(parsers.parse('сохранить значение вложенного поля "{path}" из ответа в переменную "{var_name}"'))
 @then(parsers.parse('сохранить значение вложенного поля "{path}" из ответа в переменную "{var_name}"'))
 def save_nested_field_to_variable(context, path, var_name):
     """Сохранение значения вложенного поля из ответа в переменную."""
@@ -920,6 +987,7 @@ def save_nested_field_to_variable(context, path, var_name):
     print(f"MOCK: Значение {current} из поля {path} сохранено в переменную {var_name}")
 
 
+@step(parsers.parse('сохранить заголовок "{header}" из ответа в переменную "{var_name}"'))
 @then(parsers.parse('сохранить заголовок "{header}" из ответа в переменную "{var_name}"'))
 def save_response_header_to_variable(context, header, var_name):
     """Сохранение заголовка из ответа в переменную."""
@@ -929,6 +997,7 @@ def save_response_header_to_variable(context, header, var_name):
     print(f"MOCK: Заголовок {header}={value} сохранен в переменную {var_name}")
 
 
+@step(parsers.parse('сохранить время ответа в переменную "{var_name}"'))
 @then(parsers.parse('сохранить время ответа в переменную "{var_name}"'))
 def save_response_time_to_var(context, var_name):
     """Сохранение времени ответа в переменную."""
@@ -937,6 +1006,7 @@ def save_response_time_to_var(context, var_name):
     print(f"MOCK: Время ответа {response_time}мс сохранено в переменную {var_name}")
 
 
+@step(parsers.parse('сравнить ответ с эталоном из файла "{file_path}"'))
 @then(parsers.parse('сравнить ответ с эталоном из файла "{file_path}"'))
 def compare_response_with_reference(context, file_path):
     """Сравнение ответа с эталоном из файла."""
@@ -944,6 +1014,7 @@ def compare_response_with_reference(context, file_path):
     soft_assert(True)
 
 
+@step(parsers.parse('сравнить ответ с эталоном из файла "{file_path}" игнорируя поля:'))
 @then(parsers.parse('сравнить ответ с эталоном из файла "{file_path}" игнорируя поля:'))
 def compare_response_with_reference_ignore_fields(context, file_path, docstring):
     """Сравнение ответа с эталоном игнорируя указанные поля."""
@@ -952,6 +1023,7 @@ def compare_response_with_reference_ignore_fields(context, file_path, docstring)
     soft_assert(True)
 
 
+@step(parsers.parse('вывести тело ответа'))
 @then(parsers.parse('вывести тело ответа'))
 def print_response_body(context):
     """Вывод тела ответа."""
@@ -959,6 +1031,7 @@ def print_response_body(context):
     print(f"DEBUG: Тело ответа = {json.dumps(body, indent=2, ensure_ascii=False, default=str)}")
 
 
+@step(parsers.parse('вывести заголовки ответа'))
 @then(parsers.parse('вывести заголовки ответа'))
 def print_response_headers_debug(context):
     """Вывод заголовков ответа."""
@@ -966,6 +1039,7 @@ def print_response_headers_debug(context):
     print(f"DEBUG: Заголовки ответа = {json.dumps(headers, indent=2, ensure_ascii=False)}")
 
 
+@step(parsers.parse('вывести время ответа'))
 @then(parsers.parse('вывести время ответа'))
 def print_response_time(context):
     """Вывод времени ответа."""
@@ -973,6 +1047,7 @@ def print_response_time(context):
     print(f"DEBUG: Время ответа = {response_time}мс")
 
 
+@step(parsers.parse('сервер "{server_name}" доступен'))
 @then(parsers.parse('сервер "{server_name}" доступен'))
 def check_server_available(context, server_name):
     """Проверка доступности сервера."""
@@ -980,6 +1055,7 @@ def check_server_available(context, server_name):
     soft_assert(True)
 
 
+@step(parsers.parse('сервер "{server_name}" недоступен'))
 @then(parsers.parse('сервер "{server_name}" недоступен'))
 def check_server_unavailable(context, server_name):
     """Проверка недоступности сервера."""
@@ -987,6 +1063,7 @@ def check_server_unavailable(context, server_name):
     soft_assert(True)
 
 
+@step(parsers.parse('закрыть REST клиент для сервера "{server_name}"'))
 @then(parsers.parse('закрыть REST клиент для сервера "{server_name}"'))
 def close_rest_client(context, server_name):
     """Закрытие REST клиента."""

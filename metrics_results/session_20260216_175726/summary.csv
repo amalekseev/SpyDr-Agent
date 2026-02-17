@@ -1,0 +1,2 @@
+test_id,saved_at,expert,candidate_source,candidate_feature_path,semantic_weighted_score,semantic_is_correct,step_matching_precision,coverage_completeness,overall_comment
+acquiring_delta_calculation,2026-02-16T15:02:27.920041+00:00,zaychenkodd,preset,/home/zaychenkodd/auto-spydr/baseline/features/acquiring_delta_calculation.feature,1.0,True,1.0,1.0,

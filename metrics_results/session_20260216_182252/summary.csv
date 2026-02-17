@@ -1,0 +1,10 @@
+test_id,saved_at,expert,candidate_source,candidate_feature_path,is_golden_candidate,semantic_weighted_score,semantic_is_correct,step_matching_precision,coverage_completeness,overall_comment
+acquiring_delta_calculation,2026-02-16T15:27:48.138999+00:00,zaychenkodd,golden,/home/zaychenkodd/auto-spydr/golden_features/acquiring_delta_calculation.feature,True,0.95,True,0.5,0.5,
+acquiring_tariffs,2026-02-16T15:28:50.476087+00:00,zaychenkodd,golden,/home/zaychenkodd/auto-spydr/golden_features/acquiring_tariffs.feature,True,0.85,True,0.6667,0.6667,
+api_mock,2026-02-16T15:29:20.200128+00:00,zaychenkodd,generated_preset,/home/zaychenkodd/auto-spydr/baseline/features/api_mock.feature,False,0.85,True,0.75,0.75,
+dcp_broker_account,2026-02-16T15:31:02.803655+00:00,zaychenkodd,generated_preset,/home/zaychenkodd/auto-spydr/baseline/features/dcp_broker_account.feature,False,1.0,True,0.0,0.0,
+guarantee_margin,2026-02-16T15:31:04.082468+00:00,zaychenkodd,generated_preset,/home/zaychenkodd/auto-spydr/baseline/features/guarantee_margin.feature,False,1.0,True,0.0,0.0,
+hierarchy_covenants,2026-02-16T15:31:04.938824+00:00,zaychenkodd,generated_preset,/home/zaychenkodd/auto-spydr/baseline/features/hierarchy_covenants.feature,False,1.0,True,0.0,0.0,
+kncu_integration,2026-02-16T15:31:05.845399+00:00,zaychenkodd,golden,/home/zaychenkodd/auto-spydr/golden_features/kncu_integration.feature,True,1.0,True,0.0,0.0,
+liquidity_report_ui,2026-02-16T15:27:30.895472+00:00,zaychenkodd,golden,/home/zaychenkodd/auto-spydr/golden_features/liquidity_report_ui.feature,True,1.0,True,1.0,1.0,
+tfm_monitoring,2026-02-16T15:31:06.598915+00:00,zaychenkodd,golden,/home/zaychenkodd/auto-spydr/golden_features/tfm_monitoring.feature,True,1.0,True,0.0,0.0,

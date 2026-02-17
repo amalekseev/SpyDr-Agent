@@ -4,7 +4,7 @@ Kafka шаги для тестирования.
 управления консьюмерами и продюсерами, работы с партициями.
 """
 from steps.soft_assert import soft_assert
-from pytest_bdd import given, when, then, parsers
+from pytest_bdd import step, given, when, then, parsers
 import json
 import uuid
 from datetime import datetime
@@ -14,6 +14,7 @@ from datetime import datetime
 # --- Given steps (Kafka Setup) ---
 # ============================================================================
 
+@step(parsers.parse('установлено подключение к Kafka кластеру "{cluster_name}"'))
 @given(parsers.parse('установлено подключение к Kafka кластеру "{cluster_name}"'))
 def setup_kafka_connection(context, cluster_name):
     """Установка подключения к Kafka кластеру."""
@@ -26,6 +27,7 @@ def setup_kafka_connection(context, cluster_name):
     print(f"MOCK: Установлено подключение к Kafka кластеру {cluster_name}")
 
 
+@step(parsers.parse('установлено подключение к Kafka кластеру "{cluster_name}" с параметрами:'))
 @given(parsers.parse('установлено подключение к Kafka кластеру "{cluster_name}" с параметрами:'))
 def setup_kafka_connection_with_params(context, cluster_name, docstring):
     """Установка подключения к Kafka кластеру с параметрами."""
@@ -38,6 +40,7 @@ def setup_kafka_connection_with_params(context, cluster_name, docstring):
     print(f"MOCK: Установлено подключение к Kafka кластеру {cluster_name} с параметрами")
 
 
+@step(parsers.parse('создан продюсер для кластера "{cluster_name}"'))
 @given(parsers.parse('создан продюсер для кластера "{cluster_name}"'))
 def create_kafka_producer(context, cluster_name):
     """Создание Kafka продюсера."""
@@ -50,6 +53,7 @@ def create_kafka_producer(context, cluster_name):
     print(f"MOCK: Создан продюсер для кластера {cluster_name}")
 
 
+@step(parsers.parse('создан продюсер для кластера "{cluster_name}" с конфигурацией:'))
 @given(parsers.parse('создан продюсер для кластера "{cluster_name}" с конфигурацией:'))
 def create_kafka_producer_with_config(context, cluster_name, docstring):
     """Создание Kafka продюсера с конфигурацией."""
@@ -63,6 +67,7 @@ def create_kafka_producer_with_config(context, cluster_name, docstring):
     print(f"MOCK: Создан продюсер для кластера {cluster_name} с конфигурацией")
 
 
+@step(parsers.parse('создан консьюмер для кластера "{cluster_name}" в группе "{group_id}"'))
 @given(parsers.parse('создан консьюмер для кластера "{cluster_name}" в группе "{group_id}"'))
 def create_kafka_consumer(context, cluster_name, group_id):
     """Создание Kafka консьюмера."""
@@ -76,6 +81,7 @@ def create_kafka_consumer(context, cluster_name, group_id):
     print(f"MOCK: Создан консьюмер для кластера {cluster_name} в группе {group_id}")
 
 
+@step(parsers.parse('создан консьюмер для кластера "{cluster_name}" в группе "{group_id}" с конфигурацией:'))
 @given(parsers.parse('создан консьюмер для кластера "{cluster_name}" в группе "{group_id}" с конфигурацией:'))
 def create_kafka_consumer_with_config(context, cluster_name, group_id, docstring):
     """Создание Kafka консьюмера с конфигурацией."""
@@ -90,6 +96,7 @@ def create_kafka_consumer_with_config(context, cluster_name, group_id, docstring
     print(f"MOCK: Создан консьюмер для кластера {cluster_name} в группе {group_id} с конфигурацией")
 
 
+@step(parsers.parse('консьюмер подписан на топик "{topic_name}" кластера "{cluster_name}"'))
 @given(parsers.parse('консьюмер подписан на топик "{topic_name}" кластера "{cluster_name}"'))
 def subscribe_to_topic(context, topic_name, cluster_name):
     """Подписка консьюмера на топик."""
@@ -101,6 +108,7 @@ def subscribe_to_topic(context, topic_name, cluster_name):
     print(f"MOCK: Консьюмер подписан на топик {topic_name} кластера {cluster_name}")
 
 
+@step(parsers.parse('консьюмер подписан на топики кластера "{cluster_name}":'))
 @given(parsers.parse('консьюмер подписан на топики кластера "{cluster_name}":'))
 def subscribe_to_topics(context, cluster_name, docstring):
     """Подписка консьюмера на несколько топиков."""
@@ -111,6 +119,7 @@ def subscribe_to_topics(context, cluster_name, docstring):
     print(f"MOCK: Консьюмер подписан на топики {topics} кластера {cluster_name}")
 
 
+@step(parsers.parse('установлен offset консьюмера на "{offset}" для топика "{topic_name}"'))
 @given(parsers.parse('установлен offset консьюмера на "{offset}" для топика "{topic_name}"'))
 def set_consumer_offset(context, offset, topic_name):
     """Установка offset консьюмера."""
@@ -120,6 +129,7 @@ def set_consumer_offset(context, offset, topic_name):
     print(f"MOCK: Offset консьюмера установлен на {offset} для топика {topic_name}")
 
 
+@step(parsers.parse('установлен таймаут чтения сообщений {timeout:d} секунд'))
 @given(parsers.parse('установлен таймаут чтения сообщений {timeout:d} секунд'))
 def set_kafka_read_timeout(context, timeout):
     """Установка таймаута чтения сообщений."""
@@ -127,6 +137,7 @@ def set_kafka_read_timeout(context, timeout):
     print(f"MOCK: Таймаут чтения сообщений установлен на {timeout} секунд")
 
 
+@step(parsers.parse('установлен таймаут отправки сообщений {timeout:d} секунд'))
 @given(parsers.parse('установлен таймаут отправки сообщений {timeout:d} секунд'))
 def set_kafka_send_timeout(context, timeout):
     """Установка таймаута отправки сообщений."""
@@ -134,6 +145,7 @@ def set_kafka_send_timeout(context, timeout):
     print(f"MOCK: Таймаут отправки сообщений установлен на {timeout} секунд")
 
 
+@step(parsers.parse('включен режим exactly-once для продюсера'))
 @given(parsers.parse('включен режим exactly-once для продюсера'))
 def enable_exactly_once(context):
     """Включение режима exactly-once."""
@@ -141,6 +153,7 @@ def enable_exactly_once(context):
     print(f"MOCK: Режим exactly-once включен")
 
 
+@step(parsers.parse('установлен acks "{acks}" для продюсера'))
 @given(parsers.parse('установлен acks "{acks}" для продюсера'))
 def set_producer_acks(context, acks):
     """Установка уровня подтверждений для продюсера."""
@@ -148,6 +161,7 @@ def set_producer_acks(context, acks):
     print(f"MOCK: Acks установлен на {acks}")
 
 
+@step(parsers.parse('установлен compression type "{compression}" для продюсера'))
 @given(parsers.parse('установлен compression type "{compression}" для продюсера'))
 def set_producer_compression(context, compression):
     """Установка типа сжатия для продюсера."""
@@ -155,6 +169,7 @@ def set_producer_compression(context, compression):
     print(f"MOCK: Compression type установлен на {compression}")
 
 
+@step(parsers.parse('очищен топик "{topic_name}" в кластере "{cluster_name}"'))
 @given(parsers.parse('очищен топик "{topic_name}" в кластере "{cluster_name}"'))
 def clear_kafka_topic(context, topic_name, cluster_name):
     """Очистка топика."""
@@ -165,6 +180,7 @@ def clear_kafka_topic(context, topic_name, cluster_name):
 # --- When steps (Kafka Operations) ---
 # ============================================================================
 
+@step(parsers.parse('Отправить сообщение в кафку "{kafka_name}" в топик "{topic_name}" из файла "{file_path}"'))
 @when(parsers.parse('Отправить сообщение в кафку "{kafka_name}" в топик "{topic_name}" из файла "{file_path}"'))
 def send_kafka_message_from_file(context, kafka_name, topic_name, file_path):
     """Отправка сообщения в Kafka топик из файла."""
@@ -181,6 +197,7 @@ def send_kafka_message_from_file(context, kafka_name, topic_name, file_path):
     }
 
 
+@step(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}":'))
 @when(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}":'))
 def send_kafka_message_inline(context, topic_name, cluster_name, docstring):
     """Отправка сообщения в Kafka топик."""
@@ -198,6 +215,7 @@ def send_kafka_message_inline(context, topic_name, cluster_name, docstring):
     }
 
 
+@step(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}" с ключом "{key}":'))
 @when(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}" с ключом "{key}":'))
 def send_kafka_message_with_key(context, topic_name, cluster_name, key, docstring):
     """Отправка сообщения в Kafka топик с ключом."""
@@ -215,6 +233,7 @@ def send_kafka_message_with_key(context, topic_name, cluster_name, key, docstrin
     }
 
 
+@step(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}" в партицию {partition:d}:'))
 @when(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}" в партицию {partition:d}:'))
 def send_kafka_message_to_partition(context, topic_name, cluster_name, partition, docstring):
     """Отправка сообщения в конкретную партицию."""
@@ -231,6 +250,7 @@ def send_kafka_message_to_partition(context, topic_name, cluster_name, partition
     }
 
 
+@step(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}" с заголовками:'))
 @when(parsers.parse('отправить сообщение в топик "{topic_name}" кластера "{cluster_name}" с заголовками:'))
 def send_kafka_message_with_headers(context, topic_name, cluster_name, docstring):
     """Отправка сообщения с заголовками."""
@@ -263,6 +283,7 @@ def send_kafka_message_with_headers(context, topic_name, cluster_name, docstring
     }
 
 
+@step(parsers.parse('отправить пакет сообщений в топик "{topic_name}" кластера "{cluster_name}":'))
 @when(parsers.parse('отправить пакет сообщений в топик "{topic_name}" кластера "{cluster_name}":'))
 def send_kafka_batch(context, topic_name, cluster_name, docstring):
     """Отправка пакета сообщений."""
@@ -277,6 +298,7 @@ def send_kafka_batch(context, topic_name, cluster_name, docstring):
     }
 
 
+@step(parsers.parse('отправить {count:d} сообщений в топик "{topic_name}" кластера "{cluster_name}"'))
 @when(parsers.parse('отправить {count:d} сообщений в топик "{topic_name}" кластера "{cluster_name}"'))
 def send_kafka_multiple_messages(context, count, topic_name, cluster_name):
     """Отправка нескольких сообщений."""
@@ -290,6 +312,7 @@ def send_kafka_multiple_messages(context, count, topic_name, cluster_name):
     }
 
 
+@step(parsers.parse('прочитать сообщение из топика "{topic_name}" кластера "{cluster_name}"'))
 @when(parsers.parse('прочитать сообщение из топика "{topic_name}" кластера "{cluster_name}"'))
 def read_kafka_message(context, topic_name, cluster_name):
     """Чтение одного сообщения из топика."""
@@ -306,6 +329,7 @@ def read_kafka_message(context, topic_name, cluster_name):
     }
 
 
+@step(parsers.parse('прочитать {count:d} сообщений из топика "{topic_name}" кластера "{cluster_name}"'))
 @when(parsers.parse('прочитать {count:d} сообщений из топика "{topic_name}" кластера "{cluster_name}"'))
 def read_kafka_messages(context, count, topic_name, cluster_name):
     """Чтение нескольких сообщений из топика."""
@@ -319,6 +343,7 @@ def read_kafka_messages(context, count, topic_name, cluster_name):
     }
 
 
+@step(parsers.parse('прочитать сообщения из топика "{topic_name}" кластера "{cluster_name}" за последние {seconds:d} секунд'))
 @when(parsers.parse('прочитать сообщения из топика "{topic_name}" кластера "{cluster_name}" за последние {seconds:d} секунд'))
 def read_kafka_messages_by_time(context, topic_name, cluster_name, seconds):
     """Чтение сообщений за указанный период."""
@@ -332,6 +357,7 @@ def read_kafka_messages_by_time(context, topic_name, cluster_name, seconds):
     }
 
 
+@step(parsers.parse('прочитать сообщения из топика "{topic_name}" кластера "{cluster_name}" с offset {offset:d}'))
 @when(parsers.parse('прочитать сообщения из топика "{topic_name}" кластера "{cluster_name}" с offset {offset:d}'))
 def read_kafka_messages_from_offset(context, topic_name, cluster_name, offset):
     """Чтение сообщений начиная с указанного offset."""
@@ -345,6 +371,7 @@ def read_kafka_messages_from_offset(context, topic_name, cluster_name, offset):
     }
 
 
+@step(parsers.parse('прочитать сообщения из топика "{topic_name}" кластера "{cluster_name}" с ключом "{key}"'))
 @when(parsers.parse('прочитать сообщения из топика "{topic_name}" кластера "{cluster_name}" с ключом "{key}"'))
 def read_kafka_messages_by_key(context, topic_name, cluster_name, key):
     """Чтение сообщений по ключу."""
@@ -358,6 +385,7 @@ def read_kafka_messages_by_key(context, topic_name, cluster_name, key):
     }
 
 
+@step(parsers.parse('ожидать сообщение в топике "{topic_name}" кластера "{cluster_name}" в течение {timeout:d} секунд'))
 @when(parsers.parse('ожидать сообщение в топике "{topic_name}" кластера "{cluster_name}" в течение {timeout:d} секунд'))
 def wait_for_kafka_message(context, topic_name, cluster_name, timeout):
     """Ожидание сообщения в топике."""
@@ -371,6 +399,7 @@ def wait_for_kafka_message(context, topic_name, cluster_name, timeout):
     }
 
 
+@step(parsers.parse('ожидать сообщение с ключом "{key}" в топике "{topic_name}" кластера "{cluster_name}" в течение {timeout:d} секунд'))
 @when(parsers.parse('ожидать сообщение с ключом "{key}" в топике "{topic_name}" кластера "{cluster_name}" в течение {timeout:d} секунд'))
 def wait_for_kafka_message_with_key(context, key, topic_name, cluster_name, timeout):
     """Ожидание сообщения с определенным ключом."""
@@ -384,6 +413,7 @@ def wait_for_kafka_message_with_key(context, key, topic_name, cluster_name, time
     }
 
 
+@step(parsers.parse('подтвердить получение сообщения'))
 @when(parsers.parse('подтвердить получение сообщения'))
 def commit_kafka_offset(context):
     """Подтверждение получения сообщения (commit offset)."""
@@ -391,6 +421,7 @@ def commit_kafka_offset(context):
     context["kafka_committed"] = True
 
 
+@step(parsers.parse('подтвердить получение сообщений для топика "{topic_name}"'))
 @when(parsers.parse('подтвердить получение сообщений для топика "{topic_name}"'))
 def commit_kafka_offset_for_topic(context, topic_name):
     """Подтверждение получения сообщений для топика."""
@@ -398,66 +429,77 @@ def commit_kafka_offset_for_topic(context, topic_name):
     context["kafka_committed"] = True
 
 
+@step(parsers.parse('сбросить offset консьюмера на начало для топика "{topic_name}"'))
 @when(parsers.parse('сбросить offset консьюмера на начало для топика "{topic_name}"'))
 def reset_kafka_offset_to_beginning(context, topic_name):
     """Сброс offset на начало топика."""
     print(f"MOCK: Offset сброшен на начало для топика {topic_name}")
 
 
+@step(parsers.parse('сбросить offset консьюмера на конец для топика "{topic_name}"'))
 @when(parsers.parse('сбросить offset консьюмера на конец для топика "{topic_name}"'))
 def reset_kafka_offset_to_end(context, topic_name):
     """Сброс offset на конец топика."""
     print(f"MOCK: Offset сброшен на конец для топика {topic_name}")
 
 
+@step(parsers.parse('сбросить offset консьюмера на {offset:d} для топика "{topic_name}"'))
 @when(parsers.parse('сбросить offset консьюмера на {offset:d} для топика "{topic_name}"'))
 def reset_kafka_offset_to_value(context, offset, topic_name):
     """Сброс offset на указанное значение."""
     print(f"MOCK: Offset сброшен на {offset} для топика {topic_name}")
 
 
+@step(parsers.parse('приостановить консьюмер для топика "{topic_name}"'))
 @when(parsers.parse('приостановить консьюмер для топика "{topic_name}"'))
 def pause_kafka_consumer(context, topic_name):
     """Приостановка консьюмера."""
     print(f"MOCK: Консьюмер приостановлен для топика {topic_name}")
 
 
+@step(parsers.parse('возобновить консьюмер для топика "{topic_name}"'))
 @when(parsers.parse('возобновить консьюмер для топика "{topic_name}"'))
 def resume_kafka_consumer(context, topic_name):
     """Возобновление консьюмера."""
     print(f"MOCK: Консьюмер возобновлен для топика {topic_name}")
 
 
+@step(parsers.parse('создать топик "{topic_name}" в кластере "{cluster_name}"'))
 @when(parsers.parse('создать топик "{topic_name}" в кластере "{cluster_name}"'))
 def create_kafka_topic(context, topic_name, cluster_name):
     """Создание топика."""
     print(f"MOCK: Создан топик {topic_name} в кластере {cluster_name}")
 
 
+@step(parsers.parse('создать топик "{topic_name}" в кластере "{cluster_name}" с {partitions:d} партициями'))
 @when(parsers.parse('создать топик "{topic_name}" в кластере "{cluster_name}" с {partitions:d} партициями'))
 def create_kafka_topic_with_partitions(context, topic_name, cluster_name, partitions):
     """Создание топика с указанным количеством партиций."""
     print(f"MOCK: Создан топик {topic_name} с {partitions} партициями в кластере {cluster_name}")
 
 
+@step(parsers.parse('создать топик "{topic_name}" в кластере "{cluster_name}" с конфигурацией:'))
 @when(parsers.parse('создать топик "{topic_name}" в кластере "{cluster_name}" с конфигурацией:'))
 def create_kafka_topic_with_config(context, topic_name, cluster_name, docstring):
     """Создание топика с конфигурацией."""
     print(f"MOCK: Создан топик {topic_name} с конфигурацией:\n{docstring}")
 
 
+@step(parsers.parse('удалить топик "{topic_name}" в кластере "{cluster_name}"'))
 @when(parsers.parse('удалить топик "{topic_name}" в кластере "{cluster_name}"'))
 def delete_kafka_topic(context, topic_name, cluster_name):
     """Удаление топика."""
     print(f"MOCK: Удален топик {topic_name} в кластере {cluster_name}")
 
 
+@step(parsers.parse('изменить количество партиций топика "{topic_name}" на {partitions:d}'))
 @when(parsers.parse('изменить количество партиций топика "{topic_name}" на {partitions:d}'))
 def alter_kafka_topic_partitions(context, topic_name, partitions):
     """Изменение количества партиций топика."""
     print(f"MOCK: Количество партиций топика {topic_name} изменено на {partitions}")
 
 
+@step(parsers.parse('отправить сообщение в транзакции в топик "{topic_name}" кластера "{cluster_name}":'))
 @when(parsers.parse('отправить сообщение в транзакции в топик "{topic_name}" кластера "{cluster_name}":'))
 def send_kafka_transactional_message(context, topic_name, cluster_name, docstring):
     """Отправка сообщения в транзакции."""
@@ -473,6 +515,7 @@ def send_kafka_transactional_message(context, topic_name, cluster_name, docstrin
     }
 
 
+@step(parsers.parse('начать Kafka транзакцию'))
 @when(parsers.parse('начать Kafka транзакцию'))
 def begin_kafka_transaction(context):
     """Начало Kafka транзакции."""
@@ -480,6 +523,7 @@ def begin_kafka_transaction(context):
     print(f"MOCK: Kafka транзакция начата")
 
 
+@step(parsers.parse('зафиксировать Kafka транзакцию'))
 @when(parsers.parse('зафиксировать Kafka транзакцию'))
 def commit_kafka_transaction(context):
     """Фиксация Kafka транзакции."""
@@ -489,6 +533,7 @@ def commit_kafka_transaction(context):
     print(f"MOCK: Kafka транзакция зафиксирована")
 
 
+@step(parsers.parse('откатить Kafka транзакцию'))
 @when(parsers.parse('откатить Kafka транзакцию'))
 def abort_kafka_transaction(context):
     """Откат Kafka транзакции."""
@@ -502,6 +547,7 @@ def abort_kafka_transaction(context):
 # --- Then steps (Kafka Verification) ---
 # ============================================================================
 
+@step(parsers.parse('сообщение успешно отправлено'))
 @then(parsers.parse('сообщение успешно отправлено'))
 def check_message_sent(context):
     """Проверка успешной отправки сообщения."""
@@ -510,6 +556,7 @@ def check_message_sent(context):
     soft_assert(sent)
 
 
+@step(parsers.parse('offset отправленного сообщения сохранен в переменную "{var_name}"'))
 @then(parsers.parse('offset отправленного сообщения сохранен в переменную "{var_name}"'))
 def save_sent_offset(context, var_name):
     """Сохранение offset отправленного сообщения."""
@@ -518,6 +565,7 @@ def save_sent_offset(context, var_name):
     print(f"MOCK: Offset {offset} сохранен в переменную {var_name}")
 
 
+@step(parsers.parse('партиция отправленного сообщения равна {partition:d}'))
 @then(parsers.parse('партиция отправленного сообщения равна {partition:d}'))
 def check_sent_partition(context, partition):
     """Проверка партиции отправленного сообщения."""
@@ -526,6 +574,7 @@ def check_sent_partition(context, partition):
     soft_assert(actual_partition == partition)
 
 
+@step(parsers.parse('получено сообщение из топика'))
 @then(parsers.parse('получено сообщение из топика'))
 def check_message_received(context):
     """Проверка получения сообщения."""
@@ -534,6 +583,7 @@ def check_message_received(context):
     soft_assert(received)
 
 
+@step(parsers.parse('получено {count:d} сообщений из топика'))
 @then(parsers.parse('получено {count:d} сообщений из топика'))
 def check_messages_count_received(context, count):
     """Проверка количества полученных сообщений."""
@@ -543,6 +593,7 @@ def check_messages_count_received(context, count):
     soft_assert(actual_count == count)
 
 
+@step(parsers.parse('тело полученного сообщения содержит "{text}"'))
 @then(parsers.parse('тело полученного сообщения содержит "{text}"'))
 def check_received_message_contains(context, text):
     """Проверка содержимого полученного сообщения."""
@@ -552,6 +603,7 @@ def check_received_message_contains(context, text):
     soft_assert(text in message_str)
 
 
+@step(parsers.parse('тело полученного сообщения равно:'))
 @then(parsers.parse('тело полученного сообщения равно:'))
 def check_received_message_equals(context, docstring):
     """Проверка точного соответствия тела сообщения."""
@@ -559,6 +611,7 @@ def check_received_message_equals(context, docstring):
     soft_assert(True)
 
 
+@step(parsers.parse('ключ полученного сообщения равен "{key}"'))
 @then(parsers.parse('ключ полученного сообщения равен "{key}"'))
 def check_received_message_key(context, key):
     """Проверка ключа полученного сообщения."""
@@ -567,6 +620,7 @@ def check_received_message_key(context, key):
     soft_assert(str(actual_key) == str(key))
 
 
+@step(parsers.parse('заголовок "{header}" полученного сообщения равен "{value}"'))
 @then(parsers.parse('заголовок "{header}" полученного сообщения равен "{value}"'))
 def check_received_message_header(context, header, value):
     """Проверка заголовка полученного сообщения."""
@@ -576,6 +630,7 @@ def check_received_message_header(context, header, value):
     soft_assert(str(actual_value) == str(value))
 
 
+@step(parsers.parse('offset полученного сообщения сохранен в переменную "{var_name}"'))
 @then(parsers.parse('offset полученного сообщения сохранен в переменную "{var_name}"'))
 def save_received_offset(context, var_name):
     """Сохранение offset полученного сообщения."""
@@ -584,6 +639,7 @@ def save_received_offset(context, var_name):
     print(f"MOCK: Offset {offset} сохранен в переменную {var_name}")
 
 
+@step(parsers.parse('партиция полученного сообщения сохранена в переменную "{var_name}"'))
 @then(parsers.parse('партиция полученного сообщения сохранена в переменную "{var_name}"'))
 def save_received_partition(context, var_name):
     """Сохранение партиции полученного сообщения."""
@@ -592,6 +648,7 @@ def save_received_partition(context, var_name):
     print(f"MOCK: Партиция {partition} сохранена в переменную {var_name}")
 
 
+@step(parsers.parse('тело полученного сообщения сохранено в переменную "{var_name}"'))
 @then(parsers.parse('тело полученного сообщения сохранено в переменную "{var_name}"'))
 def save_received_message_body(context, var_name):
     """Сохранение тела полученного сообщения."""
@@ -600,6 +657,7 @@ def save_received_message_body(context, var_name):
     print(f"MOCK: Тело сообщения сохранено в переменную {var_name}")
 
 
+@step(parsers.parse('топик "{topic_name}" существует в кластере "{cluster_name}"'))
 @then(parsers.parse('топик "{topic_name}" существует в кластере "{cluster_name}"'))
 def check_topic_exists(context, topic_name, cluster_name):
     """Проверка существования топика."""
@@ -607,6 +665,7 @@ def check_topic_exists(context, topic_name, cluster_name):
     soft_assert(True)
 
 
+@step(parsers.parse('топик "{topic_name}" не существует в кластере "{cluster_name}"'))
 @then(parsers.parse('топик "{topic_name}" не существует в кластере "{cluster_name}"'))
 def check_topic_not_exists(context, topic_name, cluster_name):
     """Проверка отсутствия топика."""
@@ -614,6 +673,7 @@ def check_topic_not_exists(context, topic_name, cluster_name):
     soft_assert(True)
 
 
+@step(parsers.parse('топик "{topic_name}" имеет {partitions:d} партиций'))
 @then(parsers.parse('топик "{topic_name}" имеет {partitions:d} партиций'))
 def check_topic_partitions(context, topic_name, partitions):
     """Проверка количества партиций топика."""
@@ -621,6 +681,7 @@ def check_topic_partitions(context, topic_name, partitions):
     soft_assert(True)
 
 
+@step(parsers.parse('топик "{topic_name}" имеет replication factor {factor:d}'))
 @then(parsers.parse('топик "{topic_name}" имеет replication factor {factor:d}'))
 def check_topic_replication_factor(context, topic_name, factor):
     """Проверка replication factor топика."""
@@ -628,6 +689,7 @@ def check_topic_replication_factor(context, topic_name, factor):
     soft_assert(True)
 
 
+@step(parsers.parse('lag консьюмера для топика "{topic_name}" равен {lag:d}'))
 @then(parsers.parse('lag консьюмера для топика "{topic_name}" равен {lag:d}'))
 def check_consumer_lag(context, topic_name, lag):
     """Проверка lag консьюмера."""
@@ -635,6 +697,7 @@ def check_consumer_lag(context, topic_name, lag):
     soft_assert(True)
 
 
+@step(parsers.parse('lag консьюмера для топика "{topic_name}" меньше {max_lag:d}'))
 @then(parsers.parse('lag консьюмера для топика "{topic_name}" меньше {max_lag:d}'))
 def check_consumer_lag_less(context, topic_name, max_lag):
     """Проверка что lag консьюмера меньше указанного."""
@@ -642,6 +705,7 @@ def check_consumer_lag_less(context, topic_name, max_lag):
     soft_assert(True)
 
 
+@step(parsers.parse('подключение к Kafka кластеру "{cluster_name}" активно'))
 @then(parsers.parse('подключение к Kafka кластеру "{cluster_name}" активно'))
 def check_kafka_connection_active(context, cluster_name):
     """Проверка активности подключения к Kafka."""
@@ -650,6 +714,7 @@ def check_kafka_connection_active(context, cluster_name):
     soft_assert(connected)
 
 
+@step(parsers.parse('закрыть подключение к Kafka кластеру "{cluster_name}"'))
 @then(parsers.parse('закрыть подключение к Kafka кластеру "{cluster_name}"'))
 def close_kafka_connection(context, cluster_name):
     """Закрытие подключения к Kafka кластеру."""
@@ -658,6 +723,7 @@ def close_kafka_connection(context, cluster_name):
     print(f"MOCK: Подключение к кластеру {cluster_name} закрыто")
 
 
+@step(parsers.parse('закрыть продюсер для кластера "{cluster_name}"'))
 @then(parsers.parse('закрыть продюсер для кластера "{cluster_name}"'))
 def close_kafka_producer(context, cluster_name):
     """Закрытие Kafka продюсера."""
@@ -666,6 +732,7 @@ def close_kafka_producer(context, cluster_name):
     print(f"MOCK: Продюсер для кластера {cluster_name} закрыт")
 
 
+@step(parsers.parse('закрыть консьюмер для кластера "{cluster_name}"'))
 @then(parsers.parse('закрыть консьюмер для кластера "{cluster_name}"'))
 def close_kafka_consumer(context, cluster_name):
     """Закрытие Kafka консьюмера."""
@@ -674,6 +741,7 @@ def close_kafka_consumer(context, cluster_name):
     print(f"MOCK: Консьюмер для кластера {cluster_name} закрыт")
 
 
+@step(parsers.parse('вывести полученное сообщение'))
 @then(parsers.parse('вывести полученное сообщение'))
 def print_received_message(context):
     """Вывод полученного сообщения."""
