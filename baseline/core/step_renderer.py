@@ -45,21 +45,37 @@ def render_feature_from_plan(
                 metrics["rag_validation_errors"] += 1
                 raise
             lines.append(f"    {chosen_step.keyword} {step_text}")
-            requires_docstring = _requires_docstring(step_def=step_def)
-            requires_datatable = _requires_datatable(step_def=step_def)
-            if requires_docstring or requires_datatable:
-                if not chosen_step.docstring or not chosen_step.docstring.strip():
+
+            needs_docstring = _requires_docstring(step_def=step_def)
+            needs_datatable = _requires_datatable(step_def=step_def)
+
+            if needs_datatable:
+                if chosen_step.datatable:
+                    lines.extend(_render_datatable_block(chosen_step.datatable))
+                elif chosen_step.docstring and chosen_step.docstring.strip():
+                    # Fallback: agent passed datatable content as docstring string.
+                    # Try to parse pipe-delimited rows from the string.
+                    parsed = _parse_datatable_from_string(chosen_step.docstring)
+                    if parsed:
+                        lines.extend(_render_datatable_block(parsed))
+                    else:
+                        # Render as-is in docstring block — better than nothing.
+                        lines.extend(_render_docstring_block(chosen_step.docstring))
+                else:
                     metrics["rag_validation_errors"] += 1
-                    requirement_type = []
-                    if requires_docstring:
-                        requirement_type.append("docstring")
-                    if requires_datatable:
-                        requirement_type.append("datatable")
                     raise ValueError(
-                        f"Шаг '{chosen_step.step_id}' требует {' или '.join(requirement_type)} "
+                        f"Шаг '{chosen_step.step_id}' требует datatable "
+                        f"(по сигнатуре step-функции). Обязательно передай datatable в JSON."
+                    )
+            elif needs_docstring:
+                if chosen_step.docstring and chosen_step.docstring.strip():
+                    lines.extend(_render_docstring_block(chosen_step.docstring))
+                else:
+                    metrics["rag_validation_errors"] += 1
+                    raise ValueError(
+                        f"Шаг '{chosen_step.step_id}' требует docstring "
                         f"(по сигнатуре step-функции/паттерну). Обязательно передай docstring в JSON."
                     )
-                lines.extend(_render_docstring_block(chosen_step.docstring))
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n", metrics
@@ -117,3 +133,43 @@ def _render_docstring_block(docstring: str) -> list[str]:
     lines.append('      """')
     return lines
 
+
+def _render_datatable_block(datatable: list[list[str]]) -> list[str]:
+    """Render a Gherkin datatable (pipe-delimited) with step indentation.
+
+    Input: list of rows, each row is a list of cell values.
+    Output: list of lines like ``      | val1 | val2 |``
+    """
+    if not datatable:
+        return []
+
+    # Calculate max width per column for alignment.
+    num_cols = max(len(row) for row in datatable)
+    col_widths = [0] * num_cols
+    for row in datatable:
+        for col_idx, cell in enumerate(row):
+            col_widths[col_idx] = max(col_widths[col_idx], len(cell))
+
+    lines: list[str] = []
+    for row in datatable:
+        cells = []
+        for col_idx in range(num_cols):
+            cell = row[col_idx] if col_idx < len(row) else ""
+            cells.append(f" {cell:<{col_widths[col_idx]}} ")
+        lines.append("      |" + "|".join(cells) + "|")
+    return lines
+
+
+def _parse_datatable_from_string(text: str) -> list[list[str]] | None:
+    """Try to parse pipe-delimited datatable from a plain string.
+
+    Returns parsed rows or None if the string doesn't look like a datatable.
+    """
+    rows: list[list[str]] = []
+    for line in text.strip().splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or not stripped.endswith("|"):
+            return None
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        rows.append(cells)
+    return rows if rows else None

@@ -75,11 +75,32 @@ class StepRAGStore:
                                 source_file TEXT NULL,
                                 function_name TEXT NULL,
                                 line_number INTEGER NULL,
+                                requires_docstring BOOLEAN NOT NULL DEFAULT false,
+                                requires_datatable BOOLEAN NOT NULL DEFAULT false,
                                 embedding ext.vector({embedding_dim}) NOT NULL,
                                 updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
                             )
                             """
                         )
+
+                        # Add requires_docstring/requires_datatable columns if missing
+                        # (for existing databases that don't have them yet).
+                        for col, col_type in [
+                            ("requires_docstring", "BOOLEAN NOT NULL DEFAULT false"),
+                            ("requires_datatable", "BOOLEAN NOT NULL DEFAULT false"),
+                        ]:
+                            cur.execute(
+                                """
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_schema = 'spydr_ai'
+                                  AND table_name = 'bdd_steps'
+                                  AND column_name = %(col)s
+                                """,
+                                {"col": col},
+                            )
+                            if not cur.fetchone():
+                                LOGGER.info(f"Adding missing column {col} to bdd_steps...")
+                                cur.execute(f"ALTER TABLE bdd_steps ADD COLUMN {col} {col_type}")
                         
                         LOGGER.debug("Creating index idx_bdd_steps_type...")
                         print("  [rag] Создание индекса idx_bdd_steps_type...")
@@ -150,14 +171,25 @@ class StepRAGStore:
                             try:
                                 LOGGER.debug(f"Indexing step {idx}/{len(steps)}: {step.get('step_id')}")
                                 embedding = self._embed_step(step)
+
+                                # Serialize type: list -> comma-separated, string -> as-is.
+                                step_type_raw = step.get("type", "")
+                                if isinstance(step_type_raw, list):
+                                    step_type_str = ",".join(sorted(step_type_raw))
+                                else:
+                                    step_type_str = str(step_type_raw)
+
                                 cur.execute(
                                     """
                                     INSERT INTO bdd_steps (
                                         step_id, step_type, pattern, placeholders_json, docstring,
-                                        source_file, function_name, line_number, embedding, updated_at
+                                        source_file, function_name, line_number,
+                                        requires_docstring, requires_datatable,
+                                        embedding, updated_at
                                     ) VALUES (
                                         %(step_id)s, %(step_type)s, %(pattern)s, %(placeholders)s, %(docstring)s,
                                         %(source_file)s, %(function_name)s, %(line_number)s,
+                                        %(requires_docstring)s, %(requires_datatable)s,
                                         %(embedding)s::ext.vector, now()
                                     )
                                     ON CONFLICT (step_id) DO UPDATE SET
@@ -168,18 +200,22 @@ class StepRAGStore:
                                         source_file = EXCLUDED.source_file,
                                         function_name = EXCLUDED.function_name,
                                         line_number = EXCLUDED.line_number,
+                                        requires_docstring = EXCLUDED.requires_docstring,
+                                        requires_datatable = EXCLUDED.requires_datatable,
                                         embedding = EXCLUDED.embedding,
                                         updated_at = now()
                                     """,
                                     {
                                         "step_id": step["step_id"],
-                                        "step_type": step["type"],
+                                        "step_type": step_type_str,
                                         "pattern": step["pattern"],
                                         "placeholders": json.dumps(step.get("placeholders", []), ensure_ascii=False),
                                         "docstring": step.get("docstring"),
                                         "source_file": step.get("source_file"),
                                         "function_name": step.get("function_name"),
                                         "line_number": step.get("line_number"),
+                                        "requires_docstring": bool(step.get("requires_docstring")),
+                                        "requires_datatable": bool(step.get("requires_datatable")),
                                         "embedding": _vector_literal(embedding),
                                     },
                                 )
@@ -229,11 +265,18 @@ class StepRAGStore:
                 print(f"  [rag] ОШИБКА при создании эмбеддинга запроса: {e}")
                 raise
 
-            where_clause = "WHERE step_type = %(step_type)s" if step_type else ""
+            # step_type is stored as comma-separated list (e.g. "given,when,then").
+            # Use ANY(string_to_array(...)) to match multi-type steps.
+            if step_type:
+                where_clause = "WHERE %(step_type)s = ANY(string_to_array(step_type, ','))"
+            else:
+                where_clause = ""
+
             sql = f"""
                 SELECT
                     step_id, step_type, pattern, placeholders_json, docstring,
                     source_file, function_name, line_number,
+                    requires_docstring, requires_datatable,
                     (1 - (embedding <=> %(embedding)s::ext.vector)) AS score
                 FROM bdd_steps
                 {where_clause}
@@ -265,16 +308,25 @@ class StepRAGStore:
             
             results: list[dict[str, Any]] = []
             for row in rows:
+                # Parse step_type back to list or string for the agent.
+                raw_type = row["step_type"]
+                if "," in raw_type:
+                    type_value: Any = raw_type.split(",")
+                else:
+                    type_value = raw_type
+
                 results.append(
                     {
                         "step_id": row["step_id"],
-                        "type": row["step_type"],
+                        "type": type_value,
                         "pattern": row["pattern"],
                         "placeholders": row["placeholders_json"] or [],
                         "docstring": row["docstring"],
                         "source_file": row["source_file"],
                         "function_name": row["function_name"],
                         "line_number": row["line_number"],
+                        "requires_docstring": row.get("requires_docstring", False),
+                        "requires_datatable": row.get("requires_datatable", False),
                         "score": float(row["score"]),
                     }
                 )
@@ -284,8 +336,13 @@ class StepRAGStore:
 
     def _embed_step(self, step: dict[str, Any]) -> list[float]:
         placeholders = ", ".join(p["name"] for p in step.get("placeholders", []))
+        step_type = step.get("type", "")
+        if isinstance(step_type, list):
+            type_str = ",".join(sorted(step_type))
+        else:
+            type_str = str(step_type)
         text = (
-            f"type: {step.get('type', '')}\n"
+            f"type: {type_str}\n"
             f"pattern: {step.get('pattern', '')}\n"
             f"placeholders: {placeholders}\n"
             f"doc: {step.get('docstring') or ''}\n"
@@ -324,4 +381,3 @@ def resolve_database_url(explicit_db_url: str | None = None) -> str:
 def _vector_literal(values: list[float]) -> str:
     """Format python list as pgvector textual literal."""
     return "[" + ",".join(f"{value:.12f}" for value in values) + "]"
-
