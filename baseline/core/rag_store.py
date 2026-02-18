@@ -334,6 +334,13 @@ class StepRAGStore:
             span.set_attribute("rag.results_count", len(results))
             return results
 
+    # Hard ceiling (in characters) for text sent to the embedding API.
+    # text-embedding-3-large supports 8 191 tokens ≈ 25-30K chars for English,
+    # but Cyrillic is tokenised less efficiently, so we stay conservative.
+    _MAX_EMBED_CHARS: int = 8_000
+    # Max characters kept from a step docstring before embedding.
+    _MAX_DOCSTRING_CHARS: int = 500
+
     def _embed_step(self, step: dict[str, Any]) -> list[float]:
         placeholders = ", ".join(p["name"] for p in step.get("placeholders", []))
         step_type = step.get("type", "")
@@ -341,16 +348,30 @@ class StepRAGStore:
             type_str = ",".join(sorted(step_type))
         else:
             type_str = str(step_type)
+
+        raw_doc = step.get("docstring") or ""
+        if len(raw_doc) > self._MAX_DOCSTRING_CHARS:
+            LOGGER.debug(
+                f"Truncating docstring for step {step.get('step_id')}: "
+                f"{len(raw_doc)} → {self._MAX_DOCSTRING_CHARS} chars"
+            )
+            raw_doc = raw_doc[: self._MAX_DOCSTRING_CHARS] + "…"
+
         text = (
             f"type: {type_str}\n"
             f"pattern: {step.get('pattern', '')}\n"
             f"placeholders: {placeholders}\n"
-            f"doc: {step.get('docstring') or ''}\n"
+            f"doc: {raw_doc}\n"
             f"source: {step.get('source_file') or ''}"
         )
         return self._embed_text(text)
 
     def _embed_text(self, text: str) -> list[float]:
+        if len(text) > self._MAX_EMBED_CHARS:
+            LOGGER.warning(
+                f"Embedding text truncated: {len(text)} → {self._MAX_EMBED_CHARS} chars"
+            )
+            text = text[: self._MAX_EMBED_CHARS]
         try:
             LOGGER.debug(f"Calling embedding API for model: {self.embedding_model}")
             response = self.client.embeddings.create(
