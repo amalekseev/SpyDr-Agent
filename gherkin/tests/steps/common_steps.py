@@ -1201,7 +1201,8 @@ def check_variable_less(context, var_name, value):
     actual_value = int(context["variables"].get(var_name, 0))
     print(f"MOCK: Проверка переменной {var_name}: должно быть < {value}")
     soft_assert(actual_value < value)
-
+    
+@step(parsers.parse('Выполнить питон код'))
 @step(parsers.parse('Выполнить python код'))
 @then(parsers.parse('Выполнить python код'))
 def execute_python_code(context):

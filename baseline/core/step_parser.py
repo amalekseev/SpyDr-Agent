@@ -127,8 +127,11 @@ def _function_param_names(node: ast.FunctionDef) -> list[str]:
 def parse_steps_file(file_path: str) -> list[dict]:
     """Parse one Python file and extract BDD steps using AST.
 
-    Groups all step decorators of the same function into a single entry with
-    a merged ``type`` list.
+    Each unique *pattern* on a function becomes its own step entry.  If the
+    same pattern appears in several decorators (e.g. ``@step(P)`` +
+    ``@given(P)``), their types are merged.  If one function has decorators
+    with *different* patterns, each pattern produces a separate step entry
+    sharing the same function metadata.
     """
     steps: list[dict] = []
     source_path = Path(file_path)
@@ -150,8 +153,8 @@ def parse_steps_file(file_path: str) -> list[dict]:
         if not isinstance(node, ast.FunctionDef):
             continue
 
-        collected_types: set[str] = set()
-        pattern: Optional[str] = None
+        # Collect (pattern → set of types) from ALL decorators on this function
+        pattern_types: dict[str, set[str]] = {}
 
         for decorator in node.decorator_list:
             if not isinstance(decorator, ast.Call):
@@ -161,54 +164,62 @@ def parse_steps_file(file_path: str) -> list[dict]:
             if dec_name is None:
                 continue
 
+            # Extract pattern from the first positional arg
+            pat: Optional[str] = None
+            if decorator.args:
+                pat = _extract_pattern_from_arg(decorator.args[0])
+            if pat is None:
+                continue
+
+            if pat not in pattern_types:
+                pattern_types[pat] = set()
+
             # Expand @step into all three types
             if dec_name == "step":
-                collected_types.update(["given", "when", "then"])
+                pattern_types[pat].update(["given", "when", "then"])
             else:
-                collected_types.add(dec_name)
+                pattern_types[pat].add(dec_name)
 
-            # Extract pattern from the first positional arg (take first found)
-            if pattern is None and decorator.args:
-                pattern = _extract_pattern_from_arg(decorator.args[0])
-
-        if not collected_types or pattern is None:
+        if not pattern_types:
             continue
 
-        # Build merged type field
-        sorted_types = sorted(collected_types)
-        step_type: Union[str, list[str]]
-        if len(sorted_types) == 1:
-            step_type = sorted_types[0]
-        else:
-            step_type = sorted_types
-
-        # Detect datatable / docstring params
+        # Shared function-level metadata
         param_names = _function_param_names(node)
         requires_datatable = "datatable" in param_names
         requires_docstring = "docstring" in param_names
+        func_docstring = _get_docstring(node)
 
-        step_info: dict = {
-            "type": step_type,
-            "pattern": pattern,
-            "function_name": node.name,
-            "docstring": _get_docstring(node),
-            "placeholders": extract_placeholders(pattern),
-            "source_file": source_file,
-            "line_number": node.lineno,
-            "step_id": build_step_id(
-                step_type=step_type,
-                pattern=pattern,
-                source_file=source_file,
-                function_name=node.name,
-            ),
-        }
+        # Emit one step entry per unique pattern
+        for pattern, types in pattern_types.items():
+            sorted_types = sorted(types)
+            step_type: Union[str, list[str]]
+            if len(sorted_types) == 1:
+                step_type = sorted_types[0]
+            else:
+                step_type = sorted_types
 
-        if requires_datatable:
-            step_info["requires_datatable"] = True
-        if requires_docstring:
-            step_info["requires_docstring"] = True
+            step_info: dict = {
+                "type": step_type,
+                "pattern": pattern,
+                "function_name": node.name,
+                "docstring": func_docstring,
+                "placeholders": extract_placeholders(pattern),
+                "source_file": source_file,
+                "line_number": node.lineno,
+                "step_id": build_step_id(
+                    step_type=step_type,
+                    pattern=pattern,
+                    source_file=source_file,
+                    function_name=node.name,
+                ),
+            }
 
-        steps.append(step_info)
+            if requires_datatable:
+                step_info["requires_datatable"] = True
+            if requires_docstring:
+                step_info["requires_docstring"] = True
+
+            steps.append(step_info)
 
     return steps
 
