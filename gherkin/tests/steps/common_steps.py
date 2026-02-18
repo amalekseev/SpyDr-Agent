@@ -30,8 +30,10 @@ def set_base_url(context, url):
     context["base_url"] = url
     print(f"MOCK: Базовый URL установлен на {url}")
 
-@step(parsers.parse('заголовок "{name}" имеет значение "{value}"'))
-@given(parsers.parse('заголовок "{name}" имеет значение "{value}"'))
+@step(parsers.parse(
+    'заголовок "{name}" имеет значение "{value}"'))
+@given(parsers.parse(
+    'заголовок "{name}" имеет значение "{value}"'))
 def set_header(context, name, value):
     if "headers" not in context["request"]:
         context["request"]["headers"] = {}

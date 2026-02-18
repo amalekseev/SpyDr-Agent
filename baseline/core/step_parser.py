@@ -1,5 +1,11 @@
-"""Parser for pytest-bdd step decorators from Python files."""
+"""Parser for pytest-bdd step decorators from Python files.
 
+Uses Python ``ast`` module for robust parsing – handles multi-line
+decorators, ``parsers.parse()``, ``parsers.re()``, ``parsers.cfparse()``,
+``target_fixture`` kwargs, etc. without fragile regexes.
+"""
+
+import ast
 import hashlib
 import os
 import re
@@ -7,8 +13,15 @@ from pathlib import Path
 from typing import Optional, Union
 
 
-PLACEHOLDER_RE = re.compile(r"\{(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)(?::(?P<type>[^}]+))?\}")
-DECORATOR_RE = re.compile(r"@(given|when|then|step)\s*\(", re.IGNORECASE)
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+PLACEHOLDER_RE = re.compile(
+    r"\{(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)(?::(?P<type>[^}]+))?\}"
+)
+
+_STEP_DECORATOR_NAMES = frozenset({"given", "when", "then", "step"})
 
 
 def extract_placeholders(pattern: str) -> list[dict]:
@@ -24,7 +37,13 @@ def extract_placeholders(pattern: str) -> list[dict]:
     return placeholders
 
 
-def build_step_id(*, step_type: Union[str, list[str]], pattern: str, source_file: str, function_name: str | None) -> str:
+def build_step_id(
+    *,
+    step_type: Union[str, list[str]],
+    pattern: str,
+    source_file: str,
+    function_name: str | None,
+) -> str:
     """Build deterministic step id used for retrieval and rendering."""
     if isinstance(step_type, list):
         type_str = ",".join(sorted(step_type))
@@ -37,88 +56,125 @@ def build_step_id(*, step_type: Union[str, list[str]], pattern: str, source_file
     return f"{prefix}_{digest}"
 
 
-def _extract_pattern(decorator_line: str) -> Optional[str]:
-    """Extract the step pattern string from a decorator line."""
-    parse_match = re.search(r'parsers\.parse\s*\(\s*[\'"](.+?)[\'"]\s*\)', decorator_line)
-    if parse_match:
-        return parse_match.group(1)
+# ---------------------------------------------------------------------------
+# AST-based extraction
+# ---------------------------------------------------------------------------
 
-    simple_match = re.search(
-        r'@(?:given|when|then|step)\s*\(\s*[\'"](.+?)[\'"]\s*\)',
-        decorator_line,
-        re.IGNORECASE,
-    )
-    if simple_match:
-        return simple_match.group(1)
+
+def _resolve_decorator_name(node: ast.expr) -> Optional[str]:
+    """Return lowercase decorator name if it is a BDD step decorator call.
+
+    Handles:
+    * ``@given(...)``  – ``ast.Name``
+    * ``@parsers.given(...)`` (unlikely but safe) – ``ast.Attribute``
+    """
+    if isinstance(node, ast.Call):
+        node = node.func
+    if isinstance(node, ast.Name):
+        name = node.id.lower()
+    elif isinstance(node, ast.Attribute):
+        name = node.attr.lower()
+    else:
+        return None
+    return name if name in _STEP_DECORATOR_NAMES else None
+
+
+def _extract_pattern_from_arg(arg: ast.expr) -> Optional[str]:
+    """Extract the string pattern from a decorator's first positional arg.
+
+    Handles:
+    * Direct string literal: ``@given('pattern')``
+    * ``parsers.parse('pattern')``, ``parsers.re('...')``,
+      ``parsers.cfparse('...')`` and similar calls.
+    * ``parse('pattern')`` when ``parse`` was imported directly.
+    """
+    # Direct string constant
+    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+        return arg.value
+
+    # Call to parsers.parse(...) / parsers.re(...) / parse(...)
+    if isinstance(arg, ast.Call) and arg.args:
+        first_inner = arg.args[0]
+        if isinstance(first_inner, ast.Constant) and isinstance(first_inner.value, str):
+            return first_inner.value
+
+    # JoinedStr (f-string) – we cannot statically resolve, skip
     return None
 
 
-def _extract_decorator_type(decorator_line: str) -> Optional[str]:
-    """Extract decorator type (given/when/then/step) from a line."""
-    m = DECORATOR_RE.match(decorator_line.strip())
-    return m.group(1).lower() if m else None
+def _get_docstring(node: ast.FunctionDef) -> Optional[str]:
+    """Return single-line docstring of a function or ``None``."""
+    if (
+        node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+        and isinstance(node.body[0].value.value, str)
+    ):
+        return node.body[0].value.value.strip()
+    return None
+
+
+def _function_param_names(node: ast.FunctionDef) -> list[str]:
+    """Return the list of positional parameter names for a function."""
+    return [a.arg for a in node.args.args]
+
+
+# ---------------------------------------------------------------------------
+# File / directory level parsers
+# ---------------------------------------------------------------------------
 
 
 def parse_steps_file(file_path: str) -> list[dict]:
-    """Parse one Python file and extract BDD steps.
+    """Parse one Python file and extract BDD steps using AST.
 
-    Groups consecutive decorators that belong to the same function into a
-    single step entry with a merged ``type`` field.
+    Groups all step decorators of the same function into a single entry with
+    a merged ``type`` list.
     """
     steps: list[dict] = []
+    source_path = Path(file_path)
     try:
-        lines = Path(file_path).read_text(encoding="utf-8").splitlines()
+        source = source_path.read_text(encoding="utf-8")
     except (IOError, UnicodeDecodeError) as exc:
         print(f"Ошибка чтения файла {file_path}: {exc}")
         return steps
 
+    try:
+        tree = ast.parse(source, filename=file_path)
+    except SyntaxError as exc:
+        print(f"Синтаксическая ошибка в файле {file_path}: {exc}")
+        return steps
+
     source_file = os.path.basename(file_path)
-    i = 0
-    while i < len(lines):
-        stripped = lines[i].strip()
-        dec_type = _extract_decorator_type(stripped)
-        if dec_type is None:
-            i += 1
+
+    for node in ast.iter_child_nodes(tree):
+        if not isinstance(node, ast.FunctionDef):
             continue
 
-        # Collect all consecutive decorator lines for the same function
         collected_types: set[str] = set()
         pattern: Optional[str] = None
-        first_line = i + 1  # 1-based
 
-        while i < len(lines):
-            stripped = lines[i].strip()
-            dt = _extract_decorator_type(stripped)
-            if dt is None:
-                break
-            if dt == "step":
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call):
+                continue
+
+            dec_name = _resolve_decorator_name(decorator)
+            if dec_name is None:
+                continue
+
+            # Expand @step into all three types
+            if dec_name == "step":
                 collected_types.update(["given", "when", "then"])
             else:
-                collected_types.add(dt)
-            p = _extract_pattern(stripped)
-            if p and pattern is None:
-                pattern = p
-            i += 1
+                collected_types.add(dec_name)
 
-        if not pattern:
+            # Extract pattern from the first positional arg (take first found)
+            if pattern is None and decorator.args:
+                pattern = _extract_pattern_from_arg(decorator.args[0])
+
+        if not collected_types or pattern is None:
             continue
 
-        # Now find the function definition in the next few lines
-        function_name = None
-        docstring = None
-        for j in range(i, min(i + 5, len(lines))):
-            func_match = re.match(r"\s*def\s+(\w+)\s*\(", lines[j])
-            if func_match:
-                function_name = func_match.group(1)
-                for k in range(j + 1, min(j + 5, len(lines))):
-                    doc_line = lines[k].strip()
-                    if doc_line.startswith('"""') or doc_line.startswith("'''"):
-                        doc_match = re.match(r'[\'\"]{3}(.+?)[\'\"]{3}', doc_line)
-                        docstring = doc_match.group(1) if doc_match else doc_line.strip('"\' ')
-                        break
-                break
-
-        # Build the merged type field
+        # Build merged type field
         sorted_types = sorted(collected_types)
         step_type: Union[str, list[str]]
         if len(sorted_types) == 1:
@@ -126,21 +182,32 @@ def parse_steps_file(file_path: str) -> list[dict]:
         else:
             step_type = sorted_types
 
-        step_info = {
+        # Detect datatable / docstring params
+        param_names = _function_param_names(node)
+        requires_datatable = "datatable" in param_names
+        requires_docstring = "docstring" in param_names
+
+        step_info: dict = {
             "type": step_type,
             "pattern": pattern,
-            "function_name": function_name,
-            "docstring": docstring,
+            "function_name": node.name,
+            "docstring": _get_docstring(node),
             "placeholders": extract_placeholders(pattern),
             "source_file": source_file,
-            "line_number": first_line,
+            "line_number": node.lineno,
             "step_id": build_step_id(
                 step_type=step_type,
                 pattern=pattern,
                 source_file=source_file,
-                function_name=function_name,
+                function_name=node.name,
             ),
         }
+
+        if requires_datatable:
+            step_info["requires_datatable"] = True
+        if requires_docstring:
+            step_info["requires_docstring"] = True
+
         steps.append(step_info)
 
     return steps
@@ -154,19 +221,21 @@ def parse_steps_directory(directory_path: str) -> dict:
     if not directory.is_dir():
         raise NotADirectoryError(f"Путь не является директорией: {directory_path}")
 
-    result = {
+    result: dict = {
         "total_steps": 0,
         "steps_by_type": {"given": 0, "when": 0, "then": 0},
         "files_parsed": [],
         "steps": [],
     }
 
-    for py_file in directory.glob("*.py"):
+    for py_file in sorted(directory.glob("*.py")):
         file_steps = parse_steps_file(str(py_file))
         if not file_steps:
             continue
 
-        result["files_parsed"].append({"file": py_file.name, "steps_count": len(file_steps)})
+        result["files_parsed"].append(
+            {"file": py_file.name, "steps_count": len(file_steps)}
+        )
         for step in file_steps:
             result["steps"].append(step)
 
