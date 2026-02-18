@@ -4,7 +4,7 @@ Database шаги для тестирования.
 работы с различными СУБД и проверки данных.
 """
 from steps.soft_assert import soft_assert
-from pytest_bdd import given, when, then, parsers
+from pytest_bdd import step, given, when, then, parsers
 import json
 
 
@@ -12,6 +12,7 @@ import json
 # --- Given steps (Database Setup) ---
 # ============================================================================
 
+@step(parsers.parse('установлено подключение к базе данных "{db_name}"'))
 @given(parsers.parse('установлено подключение к базе данных "{db_name}"'))
 def setup_db_connection(context, db_name):
     """Установка подключения к базе данных."""
@@ -24,6 +25,7 @@ def setup_db_connection(context, db_name):
     print(f"MOCK: Установлено подключение к базе {db_name}")
 
 
+@step(parsers.parse('установлено подключение к базе данных "{db_name}" с параметрами:'))
 @given(parsers.parse('установлено подключение к базе данных "{db_name}" с параметрами:'))
 def setup_db_connection_with_params(context, db_name, docstring):
     """Установка подключения к базе данных с параметрами."""
@@ -36,6 +38,7 @@ def setup_db_connection_with_params(context, db_name, docstring):
     print(f"MOCK: Установлено подключение к базе {db_name} с параметрами")
 
 
+@step(parsers.parse('установлен таймаут запроса к базе "{db_name}" {timeout:d} секунд'))
 @given(parsers.parse('установлен таймаут запроса к базе "{db_name}" {timeout:d} секунд'))
 def set_db_query_timeout(context, db_name, timeout):
     """Установка таймаута запроса к базе данных."""
@@ -47,6 +50,7 @@ def set_db_query_timeout(context, db_name, timeout):
     print(f"MOCK: Таймаут запроса к {db_name} установлен на {timeout} секунд")
 
 
+@step(parsers.parse('установлен уровень изоляции транзакций "{isolation_level}" для базы "{db_name}"'))
 @given(parsers.parse('установлен уровень изоляции транзакций "{isolation_level}" для базы "{db_name}"'))
 def set_isolation_level(context, isolation_level, db_name):
     """Установка уровня изоляции транзакций."""
@@ -58,6 +62,7 @@ def set_isolation_level(context, isolation_level, db_name):
     print(f"MOCK: Уровень изоляции для {db_name} установлен на {isolation_level}")
 
 
+@step(parsers.parse('включен режим автокоммита для базы "{db_name}"'))
 @given(parsers.parse('включен режим автокоммита для базы "{db_name}"'))
 def enable_autocommit(context, db_name):
     """Включение режима автокоммита."""
@@ -69,6 +74,7 @@ def enable_autocommit(context, db_name):
     print(f"MOCK: Автокоммит включен для {db_name}")
 
 
+@step(parsers.parse('отключен режим автокоммита для базы "{db_name}"'))
 @given(parsers.parse('отключен режим автокоммита для базы "{db_name}"'))
 def disable_autocommit(context, db_name):
     """Отключение режима автокоммита."""
@@ -80,6 +86,7 @@ def disable_autocommit(context, db_name):
     print(f"MOCK: Автокоммит отключен для {db_name}")
 
 
+@step(parsers.parse('установлена схема "{schema_name}" для базы "{db_name}"'))
 @given(parsers.parse('установлена схема "{schema_name}" для базы "{db_name}"'))
 def set_db_schema(context, schema_name, db_name):
     """Установка схемы базы данных."""
@@ -91,24 +98,28 @@ def set_db_schema(context, schema_name, db_name):
     print(f"MOCK: Схема {schema_name} установлена для {db_name}")
 
 
+@step(parsers.parse('загружены тестовые данные в базу "{db_name}" из файла "{file_path}"'))
 @given(parsers.parse('загружены тестовые данные в базу "{db_name}" из файла "{file_path}"'))
 def load_test_data_from_file(context, db_name, file_path):
     """Загрузка тестовых данных из файла."""
     print(f"MOCK: Загружены тестовые данные в {db_name} из {file_path}")
 
 
+@step(parsers.parse('очищена таблица "{table_name}" в базе "{db_name}"'))
 @given(parsers.parse('очищена таблица "{table_name}" в базе "{db_name}"'))
 def clear_table(context, table_name, db_name):
     """Очистка таблицы в базе данных."""
     print(f"MOCK: Таблица {table_name} очищена в базе {db_name}")
 
 
+@step(parsers.parse('создана временная таблица "{table_name}" в базе "{db_name}"'))
 @given(parsers.parse('создана временная таблица "{table_name}" в базе "{db_name}"'))
 def create_temp_table(context, table_name, db_name):
     """Создание временной таблицы."""
     print(f"MOCK: Создана временная таблица {table_name} в базе {db_name}")
 
 
+@step(parsers.parse('создана временная таблица "{table_name}" в базе "{db_name}" со структурой:'))
 @given(parsers.parse('создана временная таблица "{table_name}" в базе "{db_name}" со структурой:'))
 def create_temp_table_with_structure(context, table_name, db_name, docstring):
     """Создание временной таблицы со структурой."""
@@ -119,6 +130,7 @@ def create_temp_table_with_structure(context, table_name, db_name, docstring):
 # --- When steps (Database Operations) ---
 # ============================================================================
 
+@step(parsers.parse('Выполнить запрос в базу "{db_name}"'))
 @when(parsers.parse('Выполнить запрос в базу "{db_name}"'))
 def execute_db_query(db_name, docstring, context):
     """Выполнение SQL запроса в указанную базу данных."""
@@ -135,6 +147,7 @@ def execute_db_query(db_name, docstring, context):
     }
 
 
+@step(parsers.parse('выполнить SELECT запрос в базу "{db_name}":'))
 @when(parsers.parse('выполнить SELECT запрос в базу "{db_name}":'))
 def execute_select_query(context, db_name, docstring):
     """Выполнение SELECT запроса."""
@@ -152,6 +165,7 @@ def execute_select_query(context, db_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить INSERT запрос в базу "{db_name}":'))
 @when(parsers.parse('выполнить INSERT запрос в базу "{db_name}":'))
 def execute_insert_query(context, db_name, docstring):
     """Выполнение INSERT запроса."""
@@ -166,6 +180,7 @@ def execute_insert_query(context, db_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить UPDATE запрос в базу "{db_name}":'))
 @when(parsers.parse('выполнить UPDATE запрос в базу "{db_name}":'))
 def execute_update_query(context, db_name, docstring):
     """Выполнение UPDATE запроса."""
@@ -179,6 +194,7 @@ def execute_update_query(context, db_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить DELETE запрос в базу "{db_name}":'))
 @when(parsers.parse('выполнить DELETE запрос в базу "{db_name}":'))
 def execute_delete_query(context, db_name, docstring):
     """Выполнение DELETE запроса."""
@@ -192,6 +208,7 @@ def execute_delete_query(context, db_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить TRUNCATE таблицы "{table_name}" в базе "{db_name}"'))
 @when(parsers.parse('выполнить TRUNCATE таблицы "{table_name}" в базе "{db_name}"'))
 def execute_truncate(context, table_name, db_name):
     """Выполнение TRUNCATE таблицы."""
@@ -205,6 +222,7 @@ def execute_truncate(context, table_name, db_name):
     }
 
 
+@step(parsers.parse('выполнить запрос из файла "{file_path}" в базу "{db_name}"'))
 @when(parsers.parse('выполнить запрос из файла "{file_path}" в базу "{db_name}"'))
 def execute_query_from_file(context, file_path, db_name):
     """Выполнение SQL запроса из файла."""
@@ -218,6 +236,7 @@ def execute_query_from_file(context, file_path, db_name):
     }
 
 
+@step(parsers.parse('выполнить пакет запросов в базу "{db_name}":'))
 @when(parsers.parse('выполнить пакет запросов в базу "{db_name}":'))
 def execute_batch_queries(context, db_name, docstring):
     """Выполнение пакета SQL запросов."""
@@ -231,6 +250,7 @@ def execute_batch_queries(context, db_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить хранимую процедуру "{proc_name}" в базе "{db_name}"'))
 @when(parsers.parse('выполнить хранимую процедуру "{proc_name}" в базе "{db_name}"'))
 def execute_stored_proc(context, proc_name, db_name):
     """Выполнение хранимой процедуры."""
@@ -243,6 +263,7 @@ def execute_stored_proc(context, proc_name, db_name):
     }
 
 
+@step(parsers.parse('выполнить хранимую процедуру "{proc_name}" в базе "{db_name}" с параметрами:'))
 @when(parsers.parse('выполнить хранимую процедуру "{proc_name}" в базе "{db_name}" с параметрами:'))
 def execute_stored_proc_with_params(context, proc_name, db_name, docstring):
     """Выполнение хранимой процедуры с параметрами."""
@@ -257,6 +278,7 @@ def execute_stored_proc_with_params(context, proc_name, db_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить функцию "{func_name}" в базе "{db_name}"'))
 @when(parsers.parse('выполнить функцию "{func_name}" в базе "{db_name}"'))
 def execute_db_function(context, func_name, db_name):
     """Выполнение функции базы данных."""
@@ -269,6 +291,7 @@ def execute_db_function(context, func_name, db_name):
     }
 
 
+@step(parsers.parse('выполнить функцию "{func_name}" в базе "{db_name}" с параметрами:'))
 @when(parsers.parse('выполнить функцию "{func_name}" в базе "{db_name}" с параметрами:'))
 def execute_db_function_with_params(context, func_name, db_name, docstring):
     """Выполнение функции базы данных с параметрами."""
@@ -283,6 +306,7 @@ def execute_db_function_with_params(context, func_name, db_name, docstring):
     }
 
 
+@step(parsers.parse('начать транзакцию в базе "{db_name}"'))
 @when(parsers.parse('начать транзакцию в базе "{db_name}"'))
 def begin_db_transaction(context, db_name):
     """Начало транзакции."""
@@ -292,6 +316,7 @@ def begin_db_transaction(context, db_name):
     print(f"MOCK: Начата транзакция в базе {db_name}")
 
 
+@step(parsers.parse('зафиксировать транзакцию в базе "{db_name}"'))
 @when(parsers.parse('зафиксировать транзакцию в базе "{db_name}"'))
 def commit_db_transaction(context, db_name):
     """Фиксация транзакции."""
@@ -301,6 +326,7 @@ def commit_db_transaction(context, db_name):
     print(f"MOCK: Транзакция зафиксирована в базе {db_name}")
 
 
+@step(parsers.parse('откатить транзакцию в базе "{db_name}"'))
 @when(parsers.parse('откатить транзакцию в базе "{db_name}"'))
 def rollback_db_transaction(context, db_name):
     """Откат транзакции."""
@@ -310,6 +336,7 @@ def rollback_db_transaction(context, db_name):
     print(f"MOCK: Транзакция откачена в базе {db_name}")
 
 
+@step(parsers.parse('создать точку сохранения "{savepoint_name}" в базе "{db_name}"'))
 @when(parsers.parse('создать точку сохранения "{savepoint_name}" в базе "{db_name}"'))
 def create_savepoint(context, savepoint_name, db_name):
     """Создание точки сохранения."""
@@ -321,12 +348,14 @@ def create_savepoint(context, savepoint_name, db_name):
     print(f"MOCK: Создана точка сохранения {savepoint_name} в базе {db_name}")
 
 
+@step(parsers.parse('откатить к точке сохранения "{savepoint_name}" в базе "{db_name}"'))
 @when(parsers.parse('откатить к точке сохранения "{savepoint_name}" в базе "{db_name}"'))
 def rollback_to_savepoint(context, savepoint_name, db_name):
     """Откат к точке сохранения."""
     print(f"MOCK: Откат к точке сохранения {savepoint_name} в базе {db_name}")
 
 
+@step(parsers.parse('вставить данные в таблицу "{table_name}" базы "{db_name}":'))
 @when(parsers.parse('вставить данные в таблицу "{table_name}" базы "{db_name}":'))
 def insert_data_to_table(context, table_name, db_name, datatable):
     """Вставка данных в таблицу из datatable."""
@@ -340,6 +369,7 @@ def insert_data_to_table(context, table_name, db_name, datatable):
     }
 
 
+@step(parsers.parse('обновить данные в таблице "{table_name}" базы "{db_name}" где "{condition}":'))
 @when(parsers.parse('обновить данные в таблице "{table_name}" базы "{db_name}" где "{condition}":'))
 def update_data_in_table(context, table_name, db_name, condition, datatable):
     """Обновление данных в таблице."""
@@ -353,6 +383,7 @@ def update_data_in_table(context, table_name, db_name, condition, datatable):
     }
 
 
+@step(parsers.parse('удалить данные из таблицы "{table_name}" базы "{db_name}" где "{condition}"'))
 @when(parsers.parse('удалить данные из таблицы "{table_name}" базы "{db_name}" где "{condition}"'))
 def delete_data_from_table(context, table_name, db_name, condition):
     """Удаление данных из таблицы."""
@@ -365,12 +396,14 @@ def delete_data_from_table(context, table_name, db_name, condition):
     }
 
 
+@step(parsers.parse('экспортировать результат запроса в файл "{file_path}"'))
 @when(parsers.parse('экспортировать результат запроса в файл "{file_path}"'))
 def export_query_result(context, file_path):
     """Экспорт результата запроса в файл."""
     print(f"MOCK: Результат запроса экспортирован в {file_path}")
 
 
+@step(parsers.parse('импортировать данные из файла "{file_path}" в таблицу "{table_name}" базы "{db_name}"'))
 @when(parsers.parse('импортировать данные из файла "{file_path}" в таблицу "{table_name}" базы "{db_name}"'))
 def import_data_from_file(context, file_path, table_name, db_name):
     """Импорт данных из файла в таблицу."""
@@ -383,42 +416,49 @@ def import_data_from_file(context, file_path, table_name, db_name):
     }
 
 
+@step(parsers.parse('создать индекс "{index_name}" на таблице "{table_name}" базы "{db_name}" для колонок "{columns}"'))
 @when(parsers.parse('создать индекс "{index_name}" на таблице "{table_name}" базы "{db_name}" для колонок "{columns}"'))
 def create_index(context, index_name, table_name, db_name, columns):
     """Создание индекса."""
     print(f"MOCK: Создан индекс {index_name} на таблице {table_name} для колонок {columns}")
 
 
+@step(parsers.parse('удалить индекс "{index_name}" с таблицы "{table_name}" базы "{db_name}"'))
 @when(parsers.parse('удалить индекс "{index_name}" с таблицы "{table_name}" базы "{db_name}"'))
 def drop_index(context, index_name, table_name, db_name):
     """Удаление индекса."""
     print(f"MOCK: Удален индекс {index_name} с таблицы {table_name}")
 
 
+@step(parsers.parse('выполнить VACUUM на таблице "{table_name}" базы "{db_name}"'))
 @when(parsers.parse('выполнить VACUUM на таблице "{table_name}" базы "{db_name}"'))
 def vacuum_table(context, table_name, db_name):
     """Выполнение VACUUM на таблице."""
     print(f"MOCK: Выполнен VACUUM на таблице {table_name} базы {db_name}")
 
 
+@step(parsers.parse('выполнить ANALYZE на таблице "{table_name}" базы "{db_name}"'))
 @when(parsers.parse('выполнить ANALYZE на таблице "{table_name}" базы "{db_name}"'))
 def analyze_table(context, table_name, db_name):
     """Выполнение ANALYZE на таблице."""
     print(f"MOCK: Выполнен ANALYZE на таблице {table_name} базы {db_name}")
 
 
+@step(parsers.parse('заблокировать таблицу "{table_name}" в базе "{db_name}" в режиме "{lock_mode}"'))
 @when(parsers.parse('заблокировать таблицу "{table_name}" в базе "{db_name}" в режиме "{lock_mode}"'))
 def lock_table(context, table_name, db_name, lock_mode):
     """Блокировка таблицы."""
     print(f"MOCK: Таблица {table_name} заблокирована в режиме {lock_mode}")
 
 
+@step(parsers.parse('разблокировать таблицу "{table_name}" в базе "{db_name}"'))
 @when(parsers.parse('разблокировать таблицу "{table_name}" в базе "{db_name}"'))
 def unlock_table(context, table_name, db_name):
     """Разблокировка таблицы."""
     print(f"MOCK: Таблица {table_name} разблокирована")
 
 
+@step(parsers.parse('выполнить запрос с параметрами в базу "{db_name}":'))
 @when(parsers.parse('выполнить запрос с параметрами в базу "{db_name}":'))
 def execute_parameterized_query(context, db_name, docstring):
     """Выполнение параметризованного запроса."""
@@ -432,6 +472,7 @@ def execute_parameterized_query(context, db_name, docstring):
     }
 
 
+@step(parsers.parse('выполнить запрос с подстановкой переменных в базу "{db_name}":'))
 @when(parsers.parse('выполнить запрос с подстановкой переменных в базу "{db_name}":'))
 def execute_query_with_variables(context, db_name, docstring):
     """Выполнение запроса с подстановкой переменных."""
@@ -453,6 +494,7 @@ def execute_query_with_variables(context, db_name, docstring):
 # --- Then steps (Database Verification) ---
 # ============================================================================
 
+@step(parsers.parse('результат запроса содержит {count:d} строк'))
 @then(parsers.parse('результат запроса содержит {count:d} строк'))
 def check_row_count(context, count):
     """Проверка количества строк в результате."""
@@ -469,6 +511,7 @@ def check_row_count(context, count):
     soft_assert(actual_count == count)
 
 
+@step(parsers.parse('результат запроса содержит более {count:d} строк'))
 @then(parsers.parse('результат запроса содержит более {count:d} строк'))
 def check_row_count_greater(context, count):
     """Проверка что строк больше указанного количества."""
@@ -484,6 +527,7 @@ def check_row_count_greater(context, count):
     soft_assert(actual_count > count)
 
 
+@step(parsers.parse('результат запроса содержит менее {count:d} строк'))
 @then(parsers.parse('результат запроса содержит менее {count:d} строк'))
 def check_row_count_less(context, count):
     """Проверка что строк меньше указанного количества."""
@@ -499,6 +543,7 @@ def check_row_count_less(context, count):
     soft_assert(actual_count < count)
 
 
+@step(parsers.parse('результат запроса не пустой'))
 @then(parsers.parse('результат запроса не пустой'))
 def check_result_not_empty(context):
     """Проверка что результат не пустой."""
@@ -507,6 +552,7 @@ def check_result_not_empty(context):
     soft_assert(len(rows) > 0)
 
 
+@step(parsers.parse('результат запроса пустой'))
 @then(parsers.parse('результат запроса пустой'))
 def check_result_empty(context):
     """Проверка что результат пустой."""
@@ -515,6 +561,7 @@ def check_result_empty(context):
     soft_assert(len(rows) == 0)
 
 
+@step(parsers.parse('результат запроса содержит колонку "{column_name}"'))
 @then(parsers.parse('результат запроса содержит колонку "{column_name}"'))
 def check_column_exists(context, column_name):
     """Проверка наличия колонки в результате."""
@@ -524,6 +571,7 @@ def check_column_exists(context, column_name):
         soft_assert(column_name in rows[0])
 
 
+@step(parsers.parse('результат запроса содержит значение "{value}" в колонке "{column_name}"'))
 @then(parsers.parse('результат запроса содержит значение "{value}" в колонке "{column_name}"'))
 def check_column_value(context, value, column_name):
     """Проверка значения в колонке."""
@@ -533,6 +581,7 @@ def check_column_value(context, value, column_name):
     soft_assert(found)
 
 
+@step(parsers.parse('результат запроса в первой строке содержит "{value}" в колонке "{column_name}"'))
 @then(parsers.parse('результат запроса в первой строке содержит "{value}" в колонке "{column_name}"'))
 def check_first_row_value(context, value, column_name):
     """Проверка значения в первой строке."""
@@ -542,6 +591,7 @@ def check_first_row_value(context, value, column_name):
         soft_assert(str(rows[0].get(column_name)) == str(value))
 
 
+@step(parsers.parse('количество затронутых строк равно {count:d}'))
 @then(parsers.parse('количество затронутых строк равно {count:d}'))
 def check_affected_rows(context, count):
     """Проверка количества затронутых строк."""
@@ -550,6 +600,7 @@ def check_affected_rows(context, count):
     soft_assert(affected == count)
 
 
+@step(parsers.parse('количество затронутых строк больше {count:d}'))
 @then(parsers.parse('количество затронутых строк больше {count:d}'))
 def check_affected_rows_greater(context, count):
     """Проверка что затронуто больше строк."""
@@ -558,6 +609,7 @@ def check_affected_rows_greater(context, count):
     soft_assert(affected > count)
 
 
+@step(parsers.parse('ID вставленной записи сохранен в переменную "{var_name}"'))
 @then(parsers.parse('ID вставленной записи сохранен в переменную "{var_name}"'))
 def save_inserted_id(context, var_name):
     """Сохранение ID вставленной записи."""
@@ -566,6 +618,7 @@ def save_inserted_id(context, var_name):
     print(f"MOCK: ID вставленной записи {inserted_id} сохранен в {var_name}")
 
 
+@step(parsers.parse('значение колонки "{column_name}" из первой строки сохранено в переменную "{var_name}"'))
 @then(parsers.parse('значение колонки "{column_name}" из первой строки сохранено в переменную "{var_name}"'))
 def save_column_value(context, column_name, var_name):
     """Сохранение значения колонки в переменную."""
@@ -576,6 +629,7 @@ def save_column_value(context, column_name, var_name):
         print(f"MOCK: Значение {value} из колонки {column_name} сохранено в {var_name}")
 
 
+@step(parsers.parse('результат запроса соответствует данным:'))
 @then(parsers.parse('результат запроса соответствует данным:'))
 def check_result_matches_data(context, datatable):
     """Проверка соответствия результата данным."""
@@ -583,6 +637,7 @@ def check_result_matches_data(context, datatable):
     soft_assert(True)
 
 
+@step(parsers.parse('результат запроса содержит данные:'))
 @then(parsers.parse('результат запроса содержит данные:'))
 def check_result_contains_data(context, datatable):
     """Проверка что результат содержит данные."""
@@ -590,6 +645,7 @@ def check_result_contains_data(context, datatable):
     soft_assert(True)
 
 
+@step(parsers.parse('таблица "{table_name}" в базе "{db_name}" существует'))
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" существует'))
 def check_table_exists(context, table_name, db_name):
     """Проверка существования таблицы."""
@@ -597,6 +653,7 @@ def check_table_exists(context, table_name, db_name):
     soft_assert(True)
 
 
+@step(parsers.parse('таблица "{table_name}" в базе "{db_name}" не существует'))
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" не существует'))
 def check_table_not_exists(context, table_name, db_name):
     """Проверка отсутствия таблицы."""
@@ -604,6 +661,7 @@ def check_table_not_exists(context, table_name, db_name):
     soft_assert(True)
 
 
+@step(parsers.parse('таблица "{table_name}" в базе "{db_name}" содержит {count:d} записей'))
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" содержит {count:d} записей'))
 def check_table_record_count(context, table_name, db_name, count):
     """Проверка количества записей в таблице."""
@@ -611,6 +669,7 @@ def check_table_record_count(context, table_name, db_name, count):
     soft_assert(True)
 
 
+@step(parsers.parse('таблица "{table_name}" в базе "{db_name}" пустая'))
 @then(parsers.parse('таблица "{table_name}" в базе "{db_name}" пустая'))
 def check_table_empty(context, table_name, db_name):
     """Проверка что таблица пустая."""
@@ -618,6 +677,7 @@ def check_table_empty(context, table_name, db_name):
     soft_assert(True)
 
 
+@step(parsers.parse('индекс "{index_name}" существует на таблице "{table_name}" базы "{db_name}"'))
 @then(parsers.parse('индекс "{index_name}" существует на таблице "{table_name}" базы "{db_name}"'))
 def check_index_exists(context, index_name, table_name, db_name):
     """Проверка существования индекса."""
@@ -625,6 +685,7 @@ def check_index_exists(context, index_name, table_name, db_name):
     soft_assert(True)
 
 
+@step(parsers.parse('индекс "{index_name}" не существует на таблице "{table_name}" базы "{db_name}"'))
 @then(parsers.parse('индекс "{index_name}" не существует на таблице "{table_name}" базы "{db_name}"'))
 def check_index_not_exists(context, index_name, table_name, db_name):
     """Проверка отсутствия индекса."""
@@ -632,6 +693,7 @@ def check_index_not_exists(context, index_name, table_name, db_name):
     soft_assert(True)
 
 
+@step(parsers.parse('транзакция в базе "{db_name}" активна'))
 @then(parsers.parse('транзакция в базе "{db_name}" активна'))
 def check_transaction_active(context, db_name):
     """Проверка что транзакция активна."""
@@ -640,6 +702,7 @@ def check_transaction_active(context, db_name):
     soft_assert(active)
 
 
+@step(parsers.parse('транзакция в базе "{db_name}" не активна'))
 @then(parsers.parse('транзакция в базе "{db_name}" не активна'))
 def check_transaction_not_active(context, db_name):
     """Проверка что транзакция не активна."""
@@ -648,6 +711,7 @@ def check_transaction_not_active(context, db_name):
     soft_assert(not active)
 
 
+@step(parsers.parse('время выполнения запроса меньше {max_time:d} миллисекунд'))
 @then(parsers.parse('время выполнения запроса меньше {max_time:d} миллисекунд'))
 def check_query_execution_time(context, max_time):
     """Проверка времени выполнения запроса."""
@@ -655,6 +719,7 @@ def check_query_execution_time(context, max_time):
     soft_assert(True)
 
 
+@step(parsers.parse('время выполнения запроса меньше {max_time:d} секунд'))
 @then(parsers.parse('время выполнения запроса меньше {max_time:d} секунд'))
 def check_query_execution_time_seconds(context, max_time):
     """Проверка времени выполнения запроса в секундах."""
@@ -662,6 +727,7 @@ def check_query_execution_time_seconds(context, max_time):
     soft_assert(True)
 
 
+@step(parsers.parse('подключение к базе "{db_name}" активно'))
 @then(parsers.parse('подключение к базе "{db_name}" активно'))
 def check_connection_active(context, db_name):
     """Проверка активности подключения."""
@@ -670,6 +736,7 @@ def check_connection_active(context, db_name):
     soft_assert(connected)
 
 
+@step(parsers.parse('закрыть подключение к базе "{db_name}"'))
 @then(parsers.parse('закрыть подключение к базе "{db_name}"'))
 def close_db_connection(context, db_name):
     """Закрытие подключения к базе данных."""
@@ -678,6 +745,7 @@ def close_db_connection(context, db_name):
     print(f"MOCK: Подключение к базе {db_name} закрыто")
 
 
+@step(parsers.parse('вывести результат запроса'))
 @then(parsers.parse('вывести результат запроса'))
 def print_query_result(context):
     """Вывод результата запроса."""

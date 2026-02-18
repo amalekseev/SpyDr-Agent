@@ -54,3 +54,53 @@ python baseline/main.py manual_tests/tests \
   -v
 ```
 
+## Expert Metrics App
+
+Simple Streamlit app for expert evaluation in a blind single-answer mode:
+for each manual test the app shows only one `.feature` file (golden or generated).
+
+### Data layout
+
+- Manual tests: `manual_tests/tests/*.txt`
+- Golden reference features: `golden_features/*.feature`
+- Optional preset candidates: any folder with `*.feature` files
+- Results sessions: `metrics_results/<session_id>/`
+
+### Install
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run
+
+```bash
+python scripts/run_metrics_app.py \
+  --manual-tests-dir manual_tests/tests \
+  --golden-features-dir golden_features \
+  --preset-features-dir baseline/features \
+  --results-dir metrics_results
+```
+
+Then open the URL shown by Streamlit (default `http://localhost:8501`).
+
+Notes:
+
+- The expert does not choose source type in UI.
+- For each test, app automatically shows one file:
+  - golden reference, or
+  - generated candidate (preset if available, otherwise live generation).
+- Golden-vs-generated sampling probability is controlled by hidden config
+  `METRICS_GOLDEN_SAMPLE_PROB` (default `0.5`).
+
+### Session output format
+
+Each session writes:
+
+- `metrics_results/<session_id>/evaluations.jsonl` - full per-test detailed records
+- `metrics_results/<session_id>/summary.csv` - flattened table for quick analysis
+- `metrics_results/<session_id>/metadata.json` - session metadata (expert, dirs, timestamps, schema version)
+
+The report also stores which exact file was evaluated and whether it was golden.
+
+Share the whole `metrics_results/<session_id>/` folder after expert review is done.

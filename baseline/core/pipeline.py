@@ -192,6 +192,7 @@ def run_pipeline(
         print(f"  - Given: {steps_data['steps_by_type']['given']}")
         print(f"  - When: {steps_data['steps_by_type']['when']}")
         print(f"  - Then: {steps_data['steps_by_type']['then']}")
+        print(f"  - Step: {steps_data['steps_by_type']['step']}")
         print()
 
         database_url = resolve_database_url(db_url)

@@ -32,7 +32,7 @@ def build_step_id(*, step_type: str, pattern: str, source_file: str, function_na
 
 def parse_step_pattern(decorator_line: str, next_lines: list[str]) -> Optional[dict]:
     """Parse decorator line and return structured step info."""
-    step_type_match = re.match(r"@(given|when|then)\s*\(", decorator_line, re.IGNORECASE)
+    step_type_match = re.match(r"@(given|when|then|step)\s*\(", decorator_line, re.IGNORECASE)
     if not step_type_match:
         return None
 
@@ -44,7 +44,7 @@ def parse_step_pattern(decorator_line: str, next_lines: list[str]) -> Optional[d
         pattern = parse_match.group(1)
     else:
         simple_match = re.search(
-            r'@(?:given|when|then)\s*\(\s*[\'"](.+?)[\'"]\s*\)',
+            r'@(?:given|when|then|step)\s*\(\s*[\'"](.+?)[\'"]\s*\)',
             decorator_line,
             re.IGNORECASE,
         )
@@ -88,7 +88,7 @@ def parse_steps_file(file_path: str) -> list[dict]:
 
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if re.match(r"@(given|when|then)\s*\(", stripped, re.IGNORECASE):
+        if re.match(r"@(given|when|then|step)\s*\(", stripped, re.IGNORECASE):
             next_lines = [l.strip() for l in lines[i + 1 : i + 10]]
             step_info = parse_step_pattern(stripped, next_lines)
             if step_info:
@@ -114,7 +114,7 @@ def parse_steps_directory(directory_path: str) -> dict:
 
     result = {
         "total_steps": 0,
-        "steps_by_type": {"given": 0, "when": 0, "then": 0},
+        "steps_by_type": {"given": 0, "when": 0, "then": 0, "step": 0},
         "files_parsed": [],
         "steps": [],
     }

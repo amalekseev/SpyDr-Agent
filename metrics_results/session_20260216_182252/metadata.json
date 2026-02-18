@@ -1,0 +1,24 @@
+{
+  "session_id": "session_20260216_182252",
+  "expert": "zaychenkodd",
+  "created_at": "2026-02-16T15:22:52.685500+00:00",
+  "updated_at": "2026-02-16T15:31:06.604171+00:00",
+  "schema_version": "1.0",
+  "manual_tests_dir": "/home/zaychenkodd/auto-spydr/manual_tests/tests",
+  "golden_features_dir": "/home/zaychenkodd/auto-spydr/golden_features",
+  "preset_features_dir": "/home/zaychenkodd/auto-spydr/baseline/features",
+  "results_dir": "/home/zaychenkodd/auto-spydr/metrics_results",
+  "evaluated_tests": 9,
+  "golden_sample_prob": 0.5,
+  "assignments": {
+    "acquiring_delta_calculation": "golden",
+    "dcp_broker_account": "generated",
+    "liquidity_report_ui": "golden",
+    "acquiring_tariffs": "golden",
+    "api_mock": "generated",
+    "guarantee_margin": "generated",
+    "hierarchy_covenants": "generated",
+    "kncu_integration": "golden",
+    "tfm_monitoring": "golden"
+  }
+}

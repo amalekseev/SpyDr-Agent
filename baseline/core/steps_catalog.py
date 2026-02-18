@@ -18,7 +18,7 @@ def load_steps(steps_file: Path) -> dict[str, Any]:
     data = json.loads(steps_file.read_text(encoding="utf-8"))
     steps = data.get("steps", [])
 
-    counters = {"given": 0, "when": 0, "then": 0}
+    counters = {"given": 0, "when": 0, "then": 0, "step": 0}
     step_args_index = _load_step_signature_index()
     for step in steps:
         step_type = str(step.get("type", "")).lower()
