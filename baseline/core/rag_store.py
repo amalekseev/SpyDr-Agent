@@ -1,4 +1,4 @@
-"""PostgreSQL + pgvector storage for BDD step retrieval."""
+"""PostgreSQL + pgvector storage for BDD step retrieval via LangChain PGVector."""
 
 from __future__ import annotations
 
@@ -6,11 +6,13 @@ import json
 import os
 import time
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
-import psycopg
-from psycopg.rows import dict_row
+from langchain_core.documents import Document
+from langchain_openai import OpenAIEmbeddings
+from langchain_postgres import PGVector
+from langchain_postgres.vectorstores import DistanceStrategy
 
 from .constants import DEFAULT_EMBEDDING_MODEL
 from .tracing import get_tracer
@@ -18,105 +20,92 @@ from .tracing import get_tracer
 TRACER = get_tracer(__name__)
 LOGGER = logging.getLogger("baseline.rag")
 
+COLLECTION_NAME = "bdd_steps"
+
+
+def _langchain_connection_string(db_url: str) -> str:
+    """Convert a plain postgresql:// URL to the psycopg driver format LangChain expects."""
+    if db_url.startswith("postgresql+psycopg://"):
+        return db_url
+    if db_url.startswith("postgresql://"):
+        return db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return db_url
+
 
 @dataclass
 class StepRAGStore:
-    """Storage and search helper over BDD steps."""
+    """Storage and search helper over BDD steps using LangChain PGVector."""
 
     db_url: str
     client: Any
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
-    _embedding_dimension: int | None = None
+    _store: PGVector | None = field(default=None, init=False, repr=False)
+    _embeddings: OpenAIEmbeddings | None = field(default=None, init=False, repr=False)
 
-    def _get_embedding_dimension(self) -> int:
-        """Get embedding dimension dynamically from the model."""
-        if self._embedding_dimension is not None:
-            return self._embedding_dimension
-        # Make a test embedding call to get the actual dimension
-        LOGGER.debug(f"Determining embedding dimension for model: {self.embedding_model}")
-        test_embedding = self._embed_text("test")
-        self._embedding_dimension = len(test_embedding)
-        LOGGER.info(f"Detected embedding dimension: {self._embedding_dimension}")
-        return self._embedding_dimension
+    def _get_embeddings(self) -> OpenAIEmbeddings:
+        if self._embeddings is None:
+            self._embeddings = OpenAIEmbeddings(model=self.embedding_model)
+        return self._embeddings
+
+    def _get_store(self) -> PGVector:
+        if self._store is None:
+            conn_str = _langchain_connection_string(self.db_url)
+            self._store = PGVector(
+                embeddings=self._get_embeddings(),
+                collection_name=COLLECTION_NAME,
+                connection=conn_str,
+                distance_strategy=DistanceStrategy.COSINE,
+                use_jsonb=True,
+                async_mode=False,
+                create_extension=False,
+            )
+        return self._store
 
     def ensure_schema(self) -> None:
-        """Initialize extension, table and indexes required for vector search."""
-        with TRACER.start_as_current_span("baseline.rag.ensure_schema") as span:
+        """Ensure LangChain PGVector tables exist."""
+        with TRACER.start_as_current_span("baseline.rag.ensure_schema"):
             LOGGER.debug(f"Ensuring schema in DB: {self.db_url.split('@')[-1] if '@' in self.db_url else '...'}")
             print(f"  [rag] Проверка схемы БД (URL: {self.db_url.split('@')[-1] if '@' in self.db_url else '...'})")
-            embedding_dim = self._get_embedding_dimension()
-            span.set_attribute("rag.embedding_dimension", embedding_dim)
             try:
-                with psycopg.connect(self.db_url) as conn:
-                    with conn.cursor() as cur:
-                        LOGGER.debug("Setting up schemas and vector extension...")
-                        print("  [rag] Подключение установлено, настройка схем и расширения vector...")
-                        # Ensure schemas exist (though they should be created already)
-                        cur.execute("CREATE SCHEMA IF NOT EXISTS ext")
-                        cur.execute("CREATE SCHEMA IF NOT EXISTS spydr_ai")
-                        
-                        # Set search path to include our schemas
-                        cur.execute("SET search_path TO spydr_ai, ext, public")
-                        
-                        # Create extension in ext schema
-                        cur.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA ext")
-                        
-                        # Create main table in spydr_ai (default schema now) if not exists
-                        LOGGER.debug(f"Creating bdd_steps table with dimension {embedding_dim}...")
-                        print(f"  [rag] Создание таблицы bdd_steps (dim={embedding_dim}) если не существует...")
-                        cur.execute(
-                            f"""
-                            CREATE TABLE IF NOT EXISTS bdd_steps (
-                                step_id TEXT PRIMARY KEY,
-                                step_type TEXT NOT NULL,
-                                pattern TEXT NOT NULL,
-                                placeholders_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-                                docstring TEXT NULL,
-                                source_file TEXT NULL,
-                                function_name TEXT NULL,
-                                line_number INTEGER NULL,
-                                embedding ext.vector({embedding_dim}) NOT NULL,
-                                updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                            )
-                            """
-                        )
-                        
-                        LOGGER.debug("Creating index idx_bdd_steps_type...")
-                        print("  [rag] Создание индекса idx_bdd_steps_type...")
-                        cur.execute(
-                            "CREATE INDEX IF NOT EXISTS idx_bdd_steps_type ON bdd_steps(step_type)"
-                        )
-                    conn.commit()
-                LOGGER.info("DB schema is ready.")
-                print("  [rag] Схема БД готова")
+                self._get_store()
+                LOGGER.info("DB schema is ready (LangChain PGVector).")
+                print("  [rag] Схема БД готова (LangChain PGVector)")
             except Exception as e:
                 LOGGER.error(f"Error during schema initialization: {e}")
                 print(f"  [rag] ОШИБКА при инициализации схемы: {e}")
                 raise
 
     def clear_all(self) -> None:
-        """Clear all stored steps."""
-        LOGGER.warning("Clearing all steps from bdd_steps table.")
-        print("  [rag] Очистка таблицы bdd_steps...")
+        """Clear all stored steps from the collection."""
+        LOGGER.warning("Clearing all steps from LangChain PGVector collection.")
+        print("  [rag] Очистка коллекции bdd_steps...")
         try:
-            with psycopg.connect(self.db_url) as conn:
-                with conn.cursor() as cur:
-                    cur.execute("SET search_path TO spydr_ai, ext, public")
-                    cur.execute("TRUNCATE TABLE bdd_steps")
-                conn.commit()
-            print("  [rag] Таблица очищена")
+            store = self._get_store()
+            store.delete(filter={})
+            print("  [rag] Коллекция очищена")
         except Exception as e:
-            LOGGER.error(f"Error during table truncation: {e}")
-            print(f"  [rag] ОШИБКА при очистке таблицы: {e}")
+            LOGGER.error(f"Error during collection clearing: {e}")
+            print(f"  [rag] ОШИБКА при очистке коллекции: {e}")
             raise
 
     def count_steps(self) -> int:
         """Return current number of indexed steps in storage."""
         try:
-            with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            conn_str = _langchain_connection_string(self.db_url)
+            import psycopg
+            from psycopg.rows import dict_row
+            raw_url = conn_str.replace("postgresql+psycopg://", "postgresql://", 1)
+            with psycopg.connect(raw_url, row_factory=dict_row) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("SET search_path TO spydr_ai, ext, public")
-                    cur.execute("SELECT COUNT(*) AS total FROM bdd_steps")
+                    cur.execute(
+                        """
+                        SELECT COUNT(*) AS total
+                        FROM langchain_pg_embedding e
+                        JOIN langchain_pg_collection c ON e.collection_id = c.uuid
+                        WHERE c.name = %s
+                        """,
+                        (COLLECTION_NAME,),
+                    )
                     row = cur.fetchone() or {}
                     count = int(row.get("total") or 0)
                     LOGGER.debug(f"Current step count in DB: {count}")
@@ -127,83 +116,68 @@ class StepRAGStore:
             raise
 
     def upsert_steps(self, steps: list[dict[str, Any]], verbose: bool = False) -> int:
-        """Upsert all parsed steps and refresh their embeddings."""
+        """Upsert all parsed steps into LangChain PGVector."""
         if not steps:
             return 0
-        
+
         LOGGER.info(f"Starting indexing of {len(steps)} steps.")
-        # Always print start of indexing if not verbose, or more details if verbose
         print(f"  [rag] Начало индексации {len(steps)} шагов...")
-        
-        inserted = 0
+
         with TRACER.start_as_current_span("baseline.rag.upsert_steps") as span:
             span.set_attribute("rag.steps_count", len(steps))
+            store = self._get_store()
+
+            documents: list[Document] = []
+            ids: list[str] = []
+            last_log_time = time.perf_counter()
+
+            for idx, step in enumerate(steps, 1):
+                placeholders = ", ".join(
+                    p["name"] for p in step.get("placeholders", [])
+                )
+                page_content = (
+                    f"type: {step.get('type', '')}\n"
+                    f"pattern: {step.get('pattern', '')}\n"
+                    f"placeholders: {placeholders}\n"
+                    f"doc: {step.get('docstring') or ''}\n"
+                    f"source: {step.get('source_file') or ''}"
+                )
+                metadata = {
+                    "step_id": step["step_id"],
+                    "step_type": step.get("type", ""),
+                    "pattern": step.get("pattern", ""),
+                    "placeholders": step.get("placeholders", []),
+                    "docstring": step.get("docstring"),
+                    "source_file": step.get("source_file"),
+                    "function_name": step.get("function_name"),
+                    "line_number": step.get("line_number"),
+                }
+                documents.append(Document(page_content=page_content, metadata=metadata))
+                ids.append(step["step_id"])
+
+                current_time = time.perf_counter()
+                if idx % 50 == 0 or (current_time - last_log_time) > 5.0:
+                    LOGGER.info(f"Prepared {idx}/{len(steps)} documents")
+                    print(f"  [rag] Подготовлено документов: {idx}/{len(steps)}")
+                    last_log_time = current_time
+
             try:
-                with psycopg.connect(self.db_url) as conn:
-                    with conn.cursor() as cur:
-                        # Ensure search_path is set
-                        cur.execute("SET search_path TO spydr_ai, ext, public")
-                        
-                        last_log_time = time.perf_counter()
-                        for idx, step in enumerate(steps, 1):
-                            step_start = time.perf_counter()
-                            try:
-                                LOGGER.debug(f"Indexing step {idx}/{len(steps)}: {step.get('step_id')}")
-                                embedding = self._embed_step(step)
-                                cur.execute(
-                                    """
-                                    INSERT INTO bdd_steps (
-                                        step_id, step_type, pattern, placeholders_json, docstring,
-                                        source_file, function_name, line_number, embedding, updated_at
-                                    ) VALUES (
-                                        %(step_id)s, %(step_type)s, %(pattern)s, %(placeholders)s, %(docstring)s,
-                                        %(source_file)s, %(function_name)s, %(line_number)s,
-                                        %(embedding)s::ext.vector, now()
-                                    )
-                                    ON CONFLICT (step_id) DO UPDATE SET
-                                        step_type = EXCLUDED.step_type,
-                                        pattern = EXCLUDED.pattern,
-                                        placeholders_json = EXCLUDED.placeholders_json,
-                                        docstring = EXCLUDED.docstring,
-                                        source_file = EXCLUDED.source_file,
-                                        function_name = EXCLUDED.function_name,
-                                        line_number = EXCLUDED.line_number,
-                                        embedding = EXCLUDED.embedding,
-                                        updated_at = now()
-                                    """,
-                                    {
-                                        "step_id": step["step_id"],
-                                        "step_type": step["type"],
-                                        "pattern": step["pattern"],
-                                        "placeholders": json.dumps(step.get("placeholders", []), ensure_ascii=False),
-                                        "docstring": step.get("docstring"),
-                                        "source_file": step.get("source_file"),
-                                        "function_name": step.get("function_name"),
-                                        "line_number": step.get("line_number"),
-                                        "embedding": _vector_literal(embedding),
-                                    },
-                                )
-                                inserted += 1
-                                
-                                # Log progress every 5 steps or every 5 seconds to show it's alive
-                                current_time = time.perf_counter()
-                                if inserted % 5 == 0 or (current_time - last_log_time) > 5.0 or inserted == len(steps):
-                                    elapsed = current_time - last_log_time
-                                    LOGGER.info(f"Indexing progress: {inserted}/{len(steps)}")
-                                    print(f"  [rag] Прогресс: {inserted}/{len(steps)} (последний блок за {elapsed:.2f}s)")
-                                    last_log_time = current_time
-                                    
-                            except Exception as step_err:
-                                LOGGER.error(f"Error processing step {step.get('step_id')}: {step_err}")
-                                print(f"  [rag] ОШИБКА при обработке шага {step.get('step_id')}: {step_err}")
-                                raise
-                    conn.commit()
+                batch_size = 100
+                inserted = 0
+                for i in range(0, len(documents), batch_size):
+                    batch_docs = documents[i : i + batch_size]
+                    batch_ids = ids[i : i + batch_size]
+                    store.add_documents(batch_docs, ids=batch_ids)
+                    inserted += len(batch_docs)
+                    LOGGER.info(f"Indexing progress: {inserted}/{len(documents)}")
+                    print(f"  [rag] Прогресс: {inserted}/{len(documents)}")
             except Exception as e:
                 LOGGER.error(f"Critical error during indexing: {e}")
                 print(f"  [rag] КРИТИЧЕСКАЯ ОШИБКА при индексации: {e}")
                 raise
+
             span.set_attribute("rag.steps_upserted", inserted)
-        
+
         LOGGER.info(f"Indexing completed: {inserted} steps.")
         print(f"  [rag] Индексация завершена: {inserted} шагов обработано")
         return inserted
@@ -218,42 +192,21 @@ class StepRAGStore:
             span.set_attribute("rag.step_type", step_type or "any")
             span.set_attribute("rag.query_preview", query[:200])
             started_at = time.perf_counter()
-            
+
             if verbose:
                 print(f"  [rag] Поиск: '{query[:50]}...' (тип: {step_type or 'любой'})")
-            
-            try:
-                embedding = self._embed_text(query)
-            except Exception as e:
-                LOGGER.error(f"Error creating query embedding: {e}")
-                print(f"  [rag] ОШИБКА при создании эмбеддинга запроса: {e}")
-                raise
 
-            where_clause = "WHERE step_type = %(step_type)s" if step_type else ""
-            sql = f"""
-                SELECT
-                    step_id, step_type, pattern, placeholders_json, docstring,
-                    source_file, function_name, line_number,
-                    (1 - (embedding <=> %(embedding)s::ext.vector)) AS score
-                FROM bdd_steps
-                {where_clause}
-                ORDER BY embedding <=> %(embedding)s::ext.vector
-                LIMIT %(top_k)s
-            """
-            
+            store = self._get_store()
+            filter_dict = {}
+            if step_type:
+                filter_dict["step_type"] = step_type.lower()
+
             try:
-                with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-                    with conn.cursor() as cur:
-                        # Ensure search_path is set for the session
-                        cur.execute("SET search_path TO spydr_ai, ext, public")
-                        params: dict[str, Any] = {
-                            "embedding": _vector_literal(embedding),
-                            "top_k": top_k,
-                        }
-                        if step_type:
-                            params["step_type"] = step_type.lower()
-                        cur.execute(sql, params)
-                        rows = cur.fetchall()
+                docs_with_scores = store.similarity_search_with_score(
+                    query=query,
+                    k=top_k,
+                    filter=filter_dict if filter_dict else None,
+                )
             except Exception as e:
                 LOGGER.error(f"Error searching DB: {e}")
                 print(f"  [rag] ОШИБКА при поиске в БД: {e}")
@@ -261,21 +214,22 @@ class StepRAGStore:
 
             if verbose:
                 elapsed = time.perf_counter() - started_at
-                print(f"  [rag] Найдено кандидатов: {len(rows)} (за {elapsed:.2f}s)")
-            
+                print(f"  [rag] Найдено кандидатов: {len(docs_with_scores)} (за {elapsed:.2f}s)")
+
             results: list[dict[str, Any]] = []
-            for row in rows:
+            for doc, distance in docs_with_scores:
+                meta = doc.metadata or {}
                 results.append(
                     {
-                        "step_id": row["step_id"],
-                        "type": row["step_type"],
-                        "pattern": row["pattern"],
-                        "placeholders": row["placeholders_json"] or [],
-                        "docstring": row["docstring"],
-                        "source_file": row["source_file"],
-                        "function_name": row["function_name"],
-                        "line_number": row["line_number"],
-                        "score": float(row["score"]),
+                        "step_id": meta.get("step_id", ""),
+                        "type": meta.get("step_type", ""),
+                        "pattern": meta.get("pattern", ""),
+                        "placeholders": meta.get("placeholders", []),
+                        "docstring": meta.get("docstring"),
+                        "source_file": meta.get("source_file"),
+                        "function_name": meta.get("function_name"),
+                        "line_number": meta.get("line_number"),
+                        "score": round(1.0 - distance, 4),
                     }
                 )
             LOGGER.debug(f"Found {len(results)} candidates.")
@@ -319,9 +273,3 @@ def resolve_database_url(explicit_db_url: str | None = None) -> str:
             "URL базы данных не задан. Передайте --db-url или установите BASELINE_RAG_DB_URL."
         )
     return db_url
-
-
-def _vector_literal(values: list[float]) -> str:
-    """Format python list as pgvector textual literal."""
-    return "[" + ",".join(f"{value:.12f}" for value in values) + "]"
-
