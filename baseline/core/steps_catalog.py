@@ -18,17 +18,23 @@ def load_steps(steps_file: Path) -> dict[str, Any]:
     data = json.loads(steps_file.read_text(encoding="utf-8"))
     steps = data.get("steps", [])
 
-    counters = {"given": 0, "when": 0, "then": 0, "step": 0}
+    counters = {"given": 0, "when": 0, "then": 0}
     step_args_index = _load_step_signature_index()
     for step in steps:
-        step_type = str(step.get("type", "")).lower()
-        if step_type in counters:
-            counters[step_type] += 1
+        step_types = step.get("type", "")
+        if isinstance(step_types, str):
+            step_types = [step_types]
+        
+        for t in step_types:
+            t = t.lower()
+            if t in counters:
+                counters[t] += 1
+                
         if not step.get("placeholders"):
             step["placeholders"] = extract_placeholders(str(step.get("pattern", "")))
         if not step.get("step_id"):
             step["step_id"] = build_step_id(
-                step_type=step_type or "unknown",
+                step_type=step.get("type", "unknown"),
                 pattern=str(step.get("pattern", "")),
                 source_file=str(step.get("source_file", "")),
                 function_name=step.get("function_name"),
@@ -101,9 +107,14 @@ def format_steps_for_prompt(steps_data: dict[str, Any]) -> str:
 
     steps_by_type: dict[str, list[dict[str, Any]]] = {"given": [], "when": [], "then": []}
     for step in steps_data.get("steps", []):
-        step_type = str(step.get("type", "")).lower()
-        if step_type in steps_by_type:
-            steps_by_type[step_type].append(step)
+        step_types = step.get("type", "")
+        if isinstance(step_types, str):
+            step_types = [step_types]
+            
+        for t in step_types:
+            t = str(t).lower()
+            if t in steps_by_type:
+                steps_by_type[t].append(step)
 
     lines.append("=== GIVEN (предусловия) ===")
     for step in steps_by_type["given"]:
@@ -126,4 +137,3 @@ def format_steps_for_prompt(steps_data: dict[str, Any]) -> str:
         lines.append(f"  Then {pattern}" + (f"  # {docstring}" if docstring else ""))
 
     return "\n".join(lines)
-

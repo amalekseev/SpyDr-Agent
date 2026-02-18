@@ -4,10 +4,11 @@ import hashlib
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 
 PLACEHOLDER_RE = re.compile(r"\{(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)(?::(?P<type>[^}]+))?\}")
+DECORATOR_RE = re.compile(r"@(given|when|then|step)\s*\(", re.IGNORECASE)
 
 
 def extract_placeholders(pattern: str) -> list[dict]:
@@ -23,62 +24,47 @@ def extract_placeholders(pattern: str) -> list[dict]:
     return placeholders
 
 
-def build_step_id(*, step_type: str, pattern: str, source_file: str, function_name: str | None) -> str:
+def build_step_id(*, step_type: Union[str, list[str]], pattern: str, source_file: str, function_name: str | None) -> str:
     """Build deterministic step id used for retrieval and rendering."""
-    payload = f"{step_type}|{pattern}|{source_file}|{function_name or ''}"
+    if isinstance(step_type, list):
+        type_str = ",".join(sorted(step_type))
+    else:
+        type_str = step_type
+
+    payload = f"{type_str}|{pattern}|{source_file}|{function_name or ''}"
     digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]
-    return f"{step_type}_{digest}"
+    prefix = "step" if isinstance(step_type, list) else step_type
+    return f"{prefix}_{digest}"
 
 
-def parse_step_pattern(decorator_line: str, next_lines: list[str]) -> Optional[dict]:
-    """Parse decorator line and return structured step info."""
-    step_type_match = re.match(r"@(given|when|then|step)\s*\(", decorator_line, re.IGNORECASE)
-    if not step_type_match:
-        return None
-
-    step_type = step_type_match.group(1).lower()
-    pattern = None
-
+def _extract_pattern(decorator_line: str) -> Optional[str]:
+    """Extract the step pattern string from a decorator line."""
     parse_match = re.search(r'parsers\.parse\s*\(\s*[\'"](.+?)[\'"]\s*\)', decorator_line)
     if parse_match:
-        pattern = parse_match.group(1)
-    else:
-        simple_match = re.search(
-            r'@(?:given|when|then|step)\s*\(\s*[\'"](.+?)[\'"]\s*\)',
-            decorator_line,
-            re.IGNORECASE,
-        )
-        if simple_match:
-            pattern = simple_match.group(1)
+        return parse_match.group(1)
 
-    if not pattern:
-        return None
+    simple_match = re.search(
+        r'@(?:given|when|then|step)\s*\(\s*[\'"](.+?)[\'"]\s*\)',
+        decorator_line,
+        re.IGNORECASE,
+    )
+    if simple_match:
+        return simple_match.group(1)
+    return None
 
-    function_name = None
-    docstring = None
-    for i, line in enumerate(next_lines):
-        func_match = re.match(r"def\s+(\w+)\s*\(", line)
-        if func_match:
-            function_name = func_match.group(1)
-            for j in range(i + 1, min(i + 5, len(next_lines))):
-                doc_line = next_lines[j].strip()
-                if doc_line.startswith('"""') or doc_line.startswith("'''"):
-                    doc_match = re.match(r'[\'\"]{3}(.+?)[\'\"]{3}', doc_line)
-                    docstring = doc_match.group(1) if doc_match else doc_line.strip('"\' ')
-                    break
-            break
 
-    return {
-        "type": step_type,
-        "pattern": pattern,
-        "function_name": function_name,
-        "docstring": docstring,
-        "placeholders": extract_placeholders(pattern),
-    }
+def _extract_decorator_type(decorator_line: str) -> Optional[str]:
+    """Extract decorator type (given/when/then/step) from a line."""
+    m = DECORATOR_RE.match(decorator_line.strip())
+    return m.group(1).lower() if m else None
 
 
 def parse_steps_file(file_path: str) -> list[dict]:
-    """Parse one Python file and extract BDD steps."""
+    """Parse one Python file and extract BDD steps.
+
+    Groups consecutive decorators that belong to the same function into a
+    single step entry with a merged ``type`` field.
+    """
     steps: list[dict] = []
     try:
         lines = Path(file_path).read_text(encoding="utf-8").splitlines()
@@ -86,21 +72,77 @@ def parse_steps_file(file_path: str) -> list[dict]:
         print(f"Ошибка чтения файла {file_path}: {exc}")
         return steps
 
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if re.match(r"@(given|when|then|step)\s*\(", stripped, re.IGNORECASE):
-            next_lines = [l.strip() for l in lines[i + 1 : i + 10]]
-            step_info = parse_step_pattern(stripped, next_lines)
-            if step_info:
-                step_info["source_file"] = os.path.basename(file_path)
-                step_info["line_number"] = i + 1
-                step_info["step_id"] = build_step_id(
-                    step_type=step_info["type"],
-                    pattern=step_info["pattern"],
-                    source_file=step_info["source_file"],
-                    function_name=step_info.get("function_name"),
-                )
-                steps.append(step_info)
+    source_file = os.path.basename(file_path)
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].strip()
+        dec_type = _extract_decorator_type(stripped)
+        if dec_type is None:
+            i += 1
+            continue
+
+        # Collect all consecutive decorator lines for the same function
+        collected_types: set[str] = set()
+        pattern: Optional[str] = None
+        first_line = i + 1  # 1-based
+
+        while i < len(lines):
+            stripped = lines[i].strip()
+            dt = _extract_decorator_type(stripped)
+            if dt is None:
+                break
+            if dt == "step":
+                collected_types.update(["given", "when", "then"])
+            else:
+                collected_types.add(dt)
+            p = _extract_pattern(stripped)
+            if p and pattern is None:
+                pattern = p
+            i += 1
+
+        if not pattern:
+            continue
+
+        # Now find the function definition in the next few lines
+        function_name = None
+        docstring = None
+        for j in range(i, min(i + 5, len(lines))):
+            func_match = re.match(r"\s*def\s+(\w+)\s*\(", lines[j])
+            if func_match:
+                function_name = func_match.group(1)
+                for k in range(j + 1, min(j + 5, len(lines))):
+                    doc_line = lines[k].strip()
+                    if doc_line.startswith('"""') or doc_line.startswith("'''"):
+                        doc_match = re.match(r'[\'\"]{3}(.+?)[\'\"]{3}', doc_line)
+                        docstring = doc_match.group(1) if doc_match else doc_line.strip('"\' ')
+                        break
+                break
+
+        # Build the merged type field
+        sorted_types = sorted(collected_types)
+        step_type: Union[str, list[str]]
+        if len(sorted_types) == 1:
+            step_type = sorted_types[0]
+        else:
+            step_type = sorted_types
+
+        step_info = {
+            "type": step_type,
+            "pattern": pattern,
+            "function_name": function_name,
+            "docstring": docstring,
+            "placeholders": extract_placeholders(pattern),
+            "source_file": source_file,
+            "line_number": first_line,
+            "step_id": build_step_id(
+                step_type=step_type,
+                pattern=pattern,
+                source_file=source_file,
+                function_name=function_name,
+            ),
+        }
+        steps.append(step_info)
+
     return steps
 
 
@@ -114,7 +156,7 @@ def parse_steps_directory(directory_path: str) -> dict:
 
     result = {
         "total_steps": 0,
-        "steps_by_type": {"given": 0, "when": 0, "then": 0, "step": 0},
+        "steps_by_type": {"given": 0, "when": 0, "then": 0},
         "files_parsed": [],
         "steps": [],
     }
@@ -127,8 +169,14 @@ def parse_steps_directory(directory_path: str) -> dict:
         result["files_parsed"].append({"file": py_file.name, "steps_count": len(file_steps)})
         for step in file_steps:
             result["steps"].append(step)
-            result["steps_by_type"][step["type"]] += 1
+
+            types = step["type"]
+            if isinstance(types, str):
+                types = [types]
+            for t in types:
+                if t in result["steps_by_type"]:
+                    result["steps_by_type"][t] += 1
+
         result["total_steps"] += len(file_steps)
 
     return result
-
