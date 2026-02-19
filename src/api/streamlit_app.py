@@ -44,11 +44,11 @@ async def _astream_text(user_text: str) -> AsyncGenerator[str, None]:
     status_placeholder.empty()
 
 st.set_page_config(
-    page_title="SDyDR Agent", page_icon="🕷️", 
+    page_title="SpyDR Agent", page_icon="🕷️", 
     initial_sidebar_state="collapsed", 
     layout="centered"
 )
-st.title("SDyDR Agent")
+st.title("SpyDR Agent")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
