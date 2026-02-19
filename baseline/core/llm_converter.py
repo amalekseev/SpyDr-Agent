@@ -26,7 +26,7 @@ SYSTEM_PROMPT = (
     '      "name": "Название Scenario",\n'
     '      "tags": ["@tag"],\n'
     '      "steps": [\n'
-    '        {"keyword":"Given","step_id":"G-1","params":{"name":"value"},"docstring":null}\n'
+    '        {"keyword":"Given","step_id":"step_xxx","params":{"name":"value"},"docstring":null,"datatable":null}\n'
     "      ]\n"
     "    }\n"
     "  ]\n"
@@ -35,12 +35,17 @@ SYSTEM_PROMPT = (
     "1) Каждый шаг обязан иметь существующий step_id.\n"
     "2) params должны содержать значения для ВСЕХ плейсхолдеров выбранного шага. ВАЖНО: внимательно проверь pattern шага - каждый плейсхолдер в фигурных скобках {name} требует соответствующего параметра в params.\n"
     "3) КРИТИЧЕСКИ ВАЖНО: Если выбранный pattern оканчивается на ':', шаг ОБЯЗАТЕЛЬНО требует docstring. Ты ДОЛЖЕН передать docstring в JSON, даже если это пустая строка или пробелы - передай хотя бы минимальное содержимое.\n"
-    "4) Если шаг требует docstring или datatable (определяется по сигнатуре step-функции), ты ОБЯЗАН передать docstring в JSON. Без docstring такой шаг не будет работать.\n"
+    "4) Если шаг требует datatable (в результатах search_steps поле requires_datatable=true), "
+    "передай datatable как массив массивов строк, например: "
+    '"datatable": [["col1","col2"],["val1","val2"]]. '
+    "Это отрендерится как Gherkin datatable: | col1 | col2 |\\n| val1 | val2 |.\n"
     "5) Для SQL-шагов вида 'Выполнить запрос в базу ...' также обязательно передавай SQL в docstring, даже если в pattern нет ':'.\n"
     "6) docstring передавай как обычную JSON-строку с переносами \\n (без тройных кавычек в самом JSON).\n"
     "7) Никаких новых шагов, только найденные через tool.\n"
     "8) Язык названий feature/scenario - русский.\n"
-    "9) При выборе шага из результатов search_steps, обязательно извлеки из pattern все плейсхолдеры и заполни их в params на основе контекста ручного теста."
+    "9) При выборе шага из результатов search_steps, обязательно извлеки из pattern все плейсхолдеры и заполни их в params на основе контекста ручного теста.\n"
+    "10) step_id может начинаться с step_ (универсальный шаг, можно использовать с любым keyword: Given/When/Then/And/But) "
+    "или с given_/when_/then_ (привязан к конкретному типу)."
 )
 
 TOOL_SPEC = [
@@ -90,7 +95,7 @@ def build_user_prompt(test_content: str, feature_name: str) -> str:
 ---
 
 Используй tool search_steps, затем верни ТОЛЬКО JSON структуры feature/scenarios/steps.
-Шаги в JSON задавай через step_id, params и (при необходимости) docstring."""
+Шаги в JSON задавай через step_id, params и (при необходимости) docstring или datatable."""
 
 
 def _build_repair_prompt(repair_feedback: str) -> str:
@@ -338,9 +343,7 @@ def _looks_like_step_id_or_noise(query: str) -> bool:
     normalized = query.strip().lower()
     if len(normalized) < MIN_NATURAL_QUERY_LEN:
         return True
-    if normalized.startswith(("given_", "when_", "then_")):
-        return True
-    if re.fullmatch(r"[gwts]-\d+", normalized):
+    if normalized.startswith(("given_", "when_", "then_", "step_")):
         return True
     if re.fullmatch(r"[a-z0-9_\-:/.]+", normalized):
         # Purely technical token without spaces or cyrillic text.
@@ -376,6 +379,7 @@ def feature_plan_to_json_text(feature_plan: FeaturePlan) -> str:
                         "step_id": step.step_id,
                         "params": step.params,
                         "docstring": step.docstring,
+                        "datatable": step.datatable,
                     }
                     for step in scenario.steps
                 ],

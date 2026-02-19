@@ -38,7 +38,6 @@ def main() -> int:
         print(f"  - Given: {result['steps_by_type']['given']}")
         print(f"  - When: {result['steps_by_type']['when']}")
         print(f"  - Then: {result['steps_by_type']['then']}")
-        print(f"  - Step: {result['steps_by_type']['step']}")
         print(f"\nОбработано файлов: {len(result['files_parsed'])}")
 
         if args.verbose:

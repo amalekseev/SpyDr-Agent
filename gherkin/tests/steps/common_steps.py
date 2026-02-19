@@ -30,8 +30,10 @@ def set_base_url(context, url):
     context["base_url"] = url
     print(f"MOCK: Базовый URL установлен на {url}")
 
-@step(parsers.parse('заголовок "{name}" имеет значение "{value}"'))
-@given(parsers.parse('заголовок "{name}" имеет значение "{value}"'))
+@step(parsers.parse(
+    'заголовок "{name}" имеет значение "{value}"'))
+@given(parsers.parse(
+    'заголовок "{name}" имеет значение "{value}"'))
 def set_header(context, name, value):
     if "headers" not in context["request"]:
         context["request"]["headers"] = {}
@@ -1199,7 +1201,8 @@ def check_variable_less(context, var_name, value):
     actual_value = int(context["variables"].get(var_name, 0))
     print(f"MOCK: Проверка переменной {var_name}: должно быть < {value}")
     soft_assert(actual_value < value)
-
+    
+@step(parsers.parse('Выполнить питон код'))
 @step(parsers.parse('Выполнить python код'))
 @then(parsers.parse('Выполнить python код'))
 def execute_python_code(context):

@@ -32,6 +32,7 @@ class StepChoice:
     step_id: str
     params: dict[str, Any]
     docstring: str | None = None
+    datatable: list[list[str]] | None = None
 
 
 @dataclass
@@ -89,13 +90,40 @@ def parse_agent_response(content: str) -> FeaturePlan:
             params = step.get("params", {})
             if not isinstance(params, dict):
                 raise ValueError(f"Сценарий '{scenario_name}', шаг #{step_idx}: params должен быть объектом.")
+
+            # Parse docstring
             raw_docstring = step.get("docstring")
             if raw_docstring is not None and not isinstance(raw_docstring, str):
                 raise ValueError(
                     f"Сценарий '{scenario_name}', шаг #{step_idx}: docstring должен быть строкой или null."
                 )
             docstring = raw_docstring if isinstance(raw_docstring, str) else None
-            steps.append(StepChoice(keyword=keyword, step_id=step_id, params=params, docstring=docstring))
+
+            # Parse datatable
+            raw_datatable = step.get("datatable")
+            datatable: list[list[str]] | None = None
+            if raw_datatable is not None:
+                if not isinstance(raw_datatable, list):
+                    raise ValueError(
+                        f"Сценарий '{scenario_name}', шаг #{step_idx}: "
+                        "datatable должен быть массивом строк (массивом массивов) или null."
+                    )
+                datatable = []
+                for row_idx, row in enumerate(raw_datatable):
+                    if not isinstance(row, list):
+                        raise ValueError(
+                            f"Сценарий '{scenario_name}', шаг #{step_idx}, datatable строка #{row_idx + 1}: "
+                            "каждая строка datatable должна быть массивом значений."
+                        )
+                    datatable.append([str(cell) for cell in row])
+
+            steps.append(StepChoice(
+                keyword=keyword,
+                step_id=step_id,
+                params=params,
+                docstring=docstring,
+                datatable=datatable,
+            ))
         scenarios.append(ScenarioPlan(name=scenario_name, tags=scenario_tags, steps=steps))
 
     return FeaturePlan(title=title, tags=feature_tags, scenarios=scenarios)
@@ -135,4 +163,3 @@ def _normalize_keyword(raw_keyword: str) -> str:
     if alias:
         return alias
     return cleaned
-

@@ -6,20 +6,26 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from baseline.core.agent_protocol import parse_agent_response
-from baseline.core.step_parser import StepIdCounter, build_step_id, extract_placeholders
+from baseline.core.step_parser import build_step_id, extract_placeholders
 from baseline.core.step_renderer import render_feature_from_plan
 
 
 def test_step_id_format():
-    counter = StepIdCounter()
-    first = build_step_id(counter, step_type="given")
-    second = build_step_id(counter, step_type="when")
-    third = build_step_id(counter, step_type="then")
-    fourth = build_step_id(counter, step_type="step")
-    assert first == "G-1"
-    assert second == "W-2"
-    assert third == "T-3"
-    assert fourth == "S-4"
+    sid = build_step_id(
+        step_type="given", pattern="some pattern", source_file="test.py", function_name="step_fn"
+    )
+    assert sid.startswith("given_")
+    assert len(sid) > len("given_")
+
+    sid_list = build_step_id(
+        step_type=["given", "when"], pattern="multi", source_file="test.py", function_name="fn"
+    )
+    assert sid_list.startswith("step_")
+
+    sid_same = build_step_id(
+        step_type="given", pattern="some pattern", source_file="test.py", function_name="step_fn"
+    )
+    assert sid == sid_same
 
 
 def test_render_feature_uses_step_id_and_params():

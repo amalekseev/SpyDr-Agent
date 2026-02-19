@@ -124,58 +124,53 @@ class StepRAGStore:
         LOGGER.info(f"Starting indexing of {len(steps)} steps.")
         print(f"  [rag] Начало индексации {len(steps)} шагов...")
 
+        inserted = 0
         with TRACER.start_as_current_span("baseline.rag.upsert_steps") as span:
             span.set_attribute("rag.steps_count", len(steps))
-            store = self._get_store()
 
-            documents: list[Document] = []
-            ids: list[str] = []
+            store = self._get_store()
             last_log_time = time.perf_counter()
 
             for idx, step in enumerate(steps, 1):
-                placeholders = ", ".join(
-                    p["name"] for p in step.get("placeholders", [])
-                )
-                page_content = (
-                    f"type: {step.get('type', '')}\n"
-                    f"pattern: {step.get('pattern', '')}\n"
-                    f"placeholders: {placeholders}\n"
-                    f"doc: {step.get('docstring') or ''}\n"
-                    f"source: {step.get('source_file') or ''}"
-                )
-                metadata = {
-                    "step_id": step["step_id"],
-                    "step_type": step.get("type", ""),
-                    "pattern": step.get("pattern", ""),
-                    "placeholders": step.get("placeholders", []),
-                    "docstring": step.get("docstring"),
-                    "source_file": step.get("source_file"),
-                    "function_name": step.get("function_name"),
-                    "line_number": step.get("line_number"),
-                }
-                documents.append(Document(page_content=page_content, metadata=metadata))
-                ids.append(step["step_id"])
+                try:
+                    LOGGER.debug(f"Indexing step {idx}/{len(steps)}: {step.get('step_id')}")
 
-                current_time = time.perf_counter()
-                if idx % 50 == 0 or (current_time - last_log_time) > 5.0:
-                    LOGGER.info(f"Prepared {idx}/{len(steps)} documents")
-                    print(f"  [rag] Подготовлено документов: {idx}/{len(steps)}")
-                    last_log_time = current_time
+                    step_type_raw = step.get("type", "")
+                    if isinstance(step_type_raw, list):
+                        step_type_str = ",".join(sorted(step_type_raw))
+                    else:
+                        step_type_str = str(step_type_raw)
 
-            try:
-                batch_size = 100
-                inserted = 0
-                for i in range(0, len(documents), batch_size):
-                    batch_docs = documents[i : i + batch_size]
-                    batch_ids = ids[i : i + batch_size]
-                    store.add_documents(batch_docs, ids=batch_ids)
-                    inserted += len(batch_docs)
-                    LOGGER.info(f"Indexing progress: {inserted}/{len(documents)}")
-                    print(f"  [rag] Прогресс: {inserted}/{len(documents)}")
-            except Exception as e:
-                LOGGER.error(f"Critical error during indexing: {e}")
-                print(f"  [rag] КРИТИЧЕСКАЯ ОШИБКА при индексации: {e}")
-                raise
+                    text = self._build_embed_text(step)
+
+                    metadata = {
+                        "step_id": step["step_id"],
+                        "step_type": step_type_str,
+                        "pattern": step["pattern"],
+                        "placeholders": json.dumps(step.get("placeholders", []), ensure_ascii=False),
+                        "docstring": step.get("docstring"),
+                        "source_file": step.get("source_file"),
+                        "function_name": step.get("function_name"),
+                        "line_number": step.get("line_number"),
+                        "requires_docstring": bool(step.get("requires_docstring")),
+                        "requires_datatable": bool(step.get("requires_datatable")),
+                    }
+
+                    doc = Document(page_content=text, metadata=metadata)
+                    store.add_documents([doc], ids=[step["step_id"]])
+                    inserted += 1
+
+                    current_time = time.perf_counter()
+                    if inserted % 5 == 0 or (current_time - last_log_time) > 5.0 or inserted == len(steps):
+                        elapsed = current_time - last_log_time
+                        LOGGER.info(f"Indexing progress: {inserted}/{len(steps)}")
+                        print(f"  [rag] Прогресс: {inserted}/{len(steps)} (последний блок за {elapsed:.2f}s)")
+                        last_log_time = current_time
+
+                except Exception as step_err:
+                    LOGGER.error(f"Error processing step {step.get('step_id')}: {step_err}")
+                    print(f"  [rag] ОШИБКА при обработке шага {step.get('step_id')}: {step_err}")
+                    raise
 
             span.set_attribute("rag.steps_upserted", inserted)
 
@@ -220,16 +215,32 @@ class StepRAGStore:
             results: list[dict[str, Any]] = []
             for doc, distance in docs_with_scores:
                 meta = doc.metadata or {}
+
+                raw_type = meta.get("step_type", "")
+                if "," in raw_type:
+                    type_value: Any = raw_type.split(",")
+                else:
+                    type_value = raw_type
+
+                raw_placeholders = meta.get("placeholders", [])
+                if isinstance(raw_placeholders, str):
+                    try:
+                        raw_placeholders = json.loads(raw_placeholders)
+                    except (json.JSONDecodeError, TypeError):
+                        raw_placeholders = []
+
                 results.append(
                     {
                         "step_id": meta.get("step_id", ""),
-                        "type": meta.get("step_type", ""),
+                        "type": type_value,
                         "pattern": meta.get("pattern", ""),
-                        "placeholders": meta.get("placeholders", []),
+                        "placeholders": raw_placeholders,
                         "docstring": meta.get("docstring"),
                         "source_file": meta.get("source_file"),
                         "function_name": meta.get("function_name"),
                         "line_number": meta.get("line_number"),
+                        "requires_docstring": meta.get("requires_docstring", False),
+                        "requires_datatable": meta.get("requires_datatable", False),
                         "score": round(1.0 - distance, 4),
                     }
                 )
@@ -237,18 +248,53 @@ class StepRAGStore:
             span.set_attribute("rag.results_count", len(results))
             return results
 
-    def _embed_step(self, step: dict[str, Any]) -> list[float]:
+    # Hard ceiling (in characters) for text sent to the embedding API.
+    # text-embedding-3-large supports 8 191 tokens ~ 25-30K chars for English,
+    # but Cyrillic is tokenised less efficiently, so we stay conservative.
+    _MAX_EMBED_CHARS: int = 8_000
+    _MAX_DOCSTRING_CHARS: int = 500
+
+    def _build_embed_text(self, step: dict[str, Any]) -> str:
+        """Build the text representation of a step for embedding."""
         placeholders = ", ".join(p["name"] for p in step.get("placeholders", []))
+        step_type = step.get("type", "")
+        if isinstance(step_type, list):
+            type_str = ",".join(sorted(step_type))
+        else:
+            type_str = str(step_type)
+
+        raw_doc = step.get("docstring") or ""
+        if len(raw_doc) > self._MAX_DOCSTRING_CHARS:
+            LOGGER.debug(
+                f"Truncating docstring for step {step.get('step_id')}: "
+                f"{len(raw_doc)} -> {self._MAX_DOCSTRING_CHARS} chars"
+            )
+            raw_doc = raw_doc[: self._MAX_DOCSTRING_CHARS] + "…"
+
         text = (
-            f"type: {step.get('type', '')}\n"
+            f"type: {type_str}\n"
             f"pattern: {step.get('pattern', '')}\n"
             f"placeholders: {placeholders}\n"
-            f"doc: {step.get('docstring') or ''}\n"
+            f"doc: {raw_doc}\n"
             f"source: {step.get('source_file') or ''}"
         )
+        if len(text) > self._MAX_EMBED_CHARS:
+            LOGGER.warning(
+                f"Embedding text truncated: {len(text)} -> {self._MAX_EMBED_CHARS} chars"
+            )
+            text = text[: self._MAX_EMBED_CHARS]
+        return text
+
+    def _embed_step(self, step: dict[str, Any]) -> list[float]:
+        text = self._build_embed_text(step)
         return self._embed_text(text)
 
     def _embed_text(self, text: str) -> list[float]:
+        if len(text) > self._MAX_EMBED_CHARS:
+            LOGGER.warning(
+                f"Embedding text truncated: {len(text)} -> {self._MAX_EMBED_CHARS} chars"
+            )
+            text = text[: self._MAX_EMBED_CHARS]
         try:
             LOGGER.debug(f"Calling embedding API for model: {self.embedding_model}")
             response = self.client.embeddings.create(

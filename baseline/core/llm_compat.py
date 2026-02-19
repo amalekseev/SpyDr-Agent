@@ -255,6 +255,7 @@ def _build_gigachat_common_kwargs(chat_model_cls: type[Any]) -> dict[str, Any]:
     if key_password:
         for arg_name in key_password_arg_names:
             kwargs[arg_name] = key_password
+    return _filter_supported_kwargs(chat_model_cls, kwargs)
 
 
 
