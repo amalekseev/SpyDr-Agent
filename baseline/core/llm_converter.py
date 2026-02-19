@@ -26,7 +26,7 @@ SYSTEM_PROMPT = (
     '      "name": "Название Scenario",\n'
     '      "tags": ["@tag"],\n'
     '      "steps": [\n'
-    '        {"keyword":"Given","step_id":"given_xxx","params":{"name":"value"},"docstring":null}\n'
+    '        {"keyword":"Given","step_id":"G-1","params":{"name":"value"},"docstring":null}\n'
     "      ]\n"
     "    }\n"
     "  ]\n"
@@ -339,6 +339,8 @@ def _looks_like_step_id_or_noise(query: str) -> bool:
     if len(normalized) < MIN_NATURAL_QUERY_LEN:
         return True
     if normalized.startswith(("given_", "when_", "then_")):
+        return True
+    if re.fullmatch(r"[gwts]-\d+", normalized):
         return True
     if re.fullmatch(r"[a-z0-9_\-:/.]+", normalized):
         # Purely technical token without spaces or cyrillic text.

@@ -81,7 +81,8 @@ class StepRAGStore:
         print("  [rag] Очистка коллекции bdd_steps...")
         try:
             store = self._get_store()
-            store.delete(filter={})
+            store.delete_collection()
+            self._store = None
             print("  [rag] Коллекция очищена")
         except Exception as e:
             LOGGER.error(f"Error during collection clearing: {e}")

@@ -6,25 +6,20 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from baseline.core.agent_protocol import parse_agent_response
-from baseline.core.step_parser import build_step_id, extract_placeholders
+from baseline.core.step_parser import StepIdCounter, build_step_id, extract_placeholders
 from baseline.core.step_renderer import render_feature_from_plan
 
 
-def test_step_id_is_deterministic():
-    first = build_step_id(
-        step_type="given",
-        pattern='установлен базовый URL "{url}"',
-        source_file="common_steps.py",
-        function_name="set_base_url",
-    )
-    second = build_step_id(
-        step_type="given",
-        pattern='установлен базовый URL "{url}"',
-        source_file="common_steps.py",
-        function_name="set_base_url",
-    )
-    assert first == second
-    assert first.startswith("given_")
+def test_step_id_format():
+    counter = StepIdCounter()
+    first = build_step_id(counter, step_type="given")
+    second = build_step_id(counter, step_type="when")
+    third = build_step_id(counter, step_type="then")
+    fourth = build_step_id(counter, step_type="step")
+    assert first == "G-1"
+    assert second == "W-2"
+    assert third == "T-3"
+    assert fourth == "S-4"
 
 
 def test_render_feature_uses_step_id_and_params():
@@ -36,7 +31,7 @@ def test_render_feature_uses_step_id_and_params():
                 "steps": [
                     {
                         "keyword": "Given",
-                        "step_id": "given_abc",
+                        "step_id": "G-1",
                         "params": {"url": "http://localhost:8080"},
                     }
                 ],
@@ -45,7 +40,7 @@ def test_render_feature_uses_step_id_and_params():
     }
     plan = parse_agent_response(str(payload).replace("'", '"'))
     steps_index = {
-        "given_abc": {
+        "G-1": {
             "pattern": 'установлен базовый URL "{url}"',
             "placeholders": extract_placeholders('установлен базовый URL "{url}"'),
         }
@@ -64,7 +59,7 @@ def test_render_feature_fails_on_missing_param():
                 "steps": [
                     {
                         "keyword": "Given",
-                        "step_id": "given_abc",
+                        "step_id": "G-1",
                         "params": {},
                     }
                 ],
@@ -73,7 +68,7 @@ def test_render_feature_fails_on_missing_param():
     }
     plan = parse_agent_response(str(payload).replace("'", '"'))
     steps_index = {
-        "given_abc": {
+        "G-1": {
             "pattern": 'установлен базовый URL "{url}"',
             "placeholders": extract_placeholders('установлен базовый URL "{url}"'),
         }
@@ -95,7 +90,7 @@ def test_render_feature_renders_docstring_for_colon_steps():
                 "steps": [
                     {
                         "keyword": "When",
-                        "step_id": "when_sql",
+                        "step_id": "W-1",
                         "params": {"db_name": "postgres_mock_raw"},
                         "docstring": "sql\nselect 1;",
                     }
@@ -105,7 +100,7 @@ def test_render_feature_renders_docstring_for_colon_steps():
     }
     plan = parse_agent_response(str(payload).replace("'", '"'))
     steps_index = {
-        "when_sql": {
+        "W-1": {
             "pattern": 'Выполнить запрос в базу "{db_name}":',
             "placeholders": extract_placeholders('Выполнить запрос в базу "{db_name}":'),
         }
@@ -125,7 +120,7 @@ def test_render_feature_fails_when_docstring_missing_for_colon_step():
                 "steps": [
                     {
                         "keyword": "When",
-                        "step_id": "when_sql",
+                        "step_id": "W-1",
                         "params": {"db_name": "postgres_mock_raw"},
                     }
                 ],
@@ -134,7 +129,7 @@ def test_render_feature_fails_when_docstring_missing_for_colon_step():
     }
     plan = parse_agent_response(str(payload).replace("'", '"'))
     steps_index = {
-        "when_sql": {
+        "W-1": {
             "pattern": 'Выполнить запрос в базу "{db_name}":',
             "placeholders": extract_placeholders('Выполнить запрос в базу "{db_name}":'),
         }
@@ -156,7 +151,7 @@ def test_render_feature_fails_when_docstring_missing_for_signature_required_step
                 "steps": [
                     {
                         "keyword": "When",
-                        "step_id": "when_sql_no_colon",
+                        "step_id": "W-2",
                         "params": {"db_name": "postgres_mock_raw"},
                     }
                 ],
@@ -165,7 +160,7 @@ def test_render_feature_fails_when_docstring_missing_for_signature_required_step
     }
     plan = parse_agent_response(str(payload).replace("'", '"'))
     steps_index = {
-        "when_sql_no_colon": {
+        "W-2": {
             "pattern": 'Выполнить запрос в базу "{db_name}"',
             "placeholders": extract_placeholders('Выполнить запрос в базу "{db_name}"'),
             "requires_docstring": True,

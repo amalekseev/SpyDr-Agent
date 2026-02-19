@@ -1,6 +1,5 @@
 """Parser for pytest-bdd step decorators from Python files."""
 
-import hashlib
 import os
 import re
 from pathlib import Path
@@ -8,6 +7,25 @@ from typing import Optional
 
 
 PLACEHOLDER_RE = re.compile(r"\{(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)(?::(?P<type>[^}]+))?\}")
+
+STEP_TYPE_PREFIX = {"given": "G", "when": "W", "then": "T", "step": "S"}
+
+
+class StepIdCounter:
+    """Sequential counter that produces step IDs like G-1, W-2, T-3, S-4."""
+
+    def __init__(self, start: int = 1) -> None:
+        self._next = start
+
+    def next_id(self, step_type: str) -> str:
+        prefix = STEP_TYPE_PREFIX.get(step_type.lower(), step_type[0].upper())
+        step_id = f"{prefix}-{self._next}"
+        self._next += 1
+        return step_id
+
+    @property
+    def current(self) -> int:
+        return self._next
 
 
 def extract_placeholders(pattern: str) -> list[dict]:
@@ -23,11 +41,9 @@ def extract_placeholders(pattern: str) -> list[dict]:
     return placeholders
 
 
-def build_step_id(*, step_type: str, pattern: str, source_file: str, function_name: str | None) -> str:
-    """Build deterministic step id used for retrieval and rendering."""
-    payload = f"{step_type}|{pattern}|{source_file}|{function_name or ''}"
-    digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]
-    return f"{step_type}_{digest}"
+def build_step_id(counter: StepIdCounter, *, step_type: str) -> str:
+    """Build sequential step id like G-1, W-2, T-3, S-4."""
+    return counter.next_id(step_type)
 
 
 def parse_step_pattern(decorator_line: str, next_lines: list[str]) -> Optional[dict]:
@@ -77,8 +93,10 @@ def parse_step_pattern(decorator_line: str, next_lines: list[str]) -> Optional[d
     }
 
 
-def parse_steps_file(file_path: str) -> list[dict]:
+def parse_steps_file(file_path: str, counter: Optional[StepIdCounter] = None) -> list[dict]:
     """Parse one Python file and extract BDD steps."""
+    if counter is None:
+        counter = StepIdCounter()
     steps: list[dict] = []
     try:
         lines = Path(file_path).read_text(encoding="utf-8").splitlines()
@@ -95,10 +113,7 @@ def parse_steps_file(file_path: str) -> list[dict]:
                 step_info["source_file"] = os.path.basename(file_path)
                 step_info["line_number"] = i + 1
                 step_info["step_id"] = build_step_id(
-                    step_type=step_info["type"],
-                    pattern=step_info["pattern"],
-                    source_file=step_info["source_file"],
-                    function_name=step_info.get("function_name"),
+                    counter, step_type=step_info["type"],
                 )
                 steps.append(step_info)
     return steps
@@ -119,8 +134,9 @@ def parse_steps_directory(directory_path: str) -> dict:
         "steps": [],
     }
 
-    for py_file in directory.glob("*.py"):
-        file_steps = parse_steps_file(str(py_file))
+    counter = StepIdCounter()
+    for py_file in sorted(directory.glob("*.py")):
+        file_steps = parse_steps_file(str(py_file), counter=counter)
         if not file_steps:
             continue
 

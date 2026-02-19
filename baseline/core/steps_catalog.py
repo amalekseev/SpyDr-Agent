@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .step_parser import build_step_id, extract_placeholders
+from .step_parser import StepIdCounter, build_step_id, extract_placeholders
 
 STEP_FUNC_RE = re.compile(r"^\s*def\s+(\w+)\s*\((.*?)\)\s*:")
 
@@ -19,6 +19,7 @@ def load_steps(steps_file: Path) -> dict[str, Any]:
     steps = data.get("steps", [])
 
     counters = {"given": 0, "when": 0, "then": 0, "step": 0}
+    id_counter = StepIdCounter()
     step_args_index = _load_step_signature_index()
     for step in steps:
         step_type = str(step.get("type", "")).lower()
@@ -28,10 +29,7 @@ def load_steps(steps_file: Path) -> dict[str, Any]:
             step["placeholders"] = extract_placeholders(str(step.get("pattern", "")))
         if not step.get("step_id"):
             step["step_id"] = build_step_id(
-                step_type=step_type or "unknown",
-                pattern=str(step.get("pattern", "")),
-                source_file=str(step.get("source_file", "")),
-                function_name=step.get("function_name"),
+                id_counter, step_type=step_type or "unknown",
             )
         _annotate_step_payload_requirements(step=step, step_args_index=step_args_index)
 
