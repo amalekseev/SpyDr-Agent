@@ -3,11 +3,17 @@ import asyncio
 
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import DistanceStrategy
-from langchain_openai import OpenAIEmbeddings
 
 from src.configs import global_config
 
-embed_model = OpenAIEmbeddings(model=global_config.embeddings.embed_model)
+if global_config.embeddings.provider == "openai":
+    from langchain_openai import OpenAIEmbeddings
+    embed_model = OpenAIEmbeddings(**global_config.embeddings.params)
+elif global_config.embeddings.provider == "gigachat":
+    from langchain_gigachat import GigaChatEmbeddings
+    embed_model = GigaChatEmbeddings(**global_config.embeddings.params)
+else:
+    raise ValueError(f"Unsupported embedding provider: {global_config.embeddings.provider}")
 
 _vector_stores: dict[str, PGVector] = {}
 _lock = asyncio.Lock()

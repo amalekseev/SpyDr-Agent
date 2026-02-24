@@ -302,6 +302,7 @@ def add_step(
     step_id: str,
     params: Optional[dict[str, Any]] = None,
     docstring: Optional[str] = None,
+    docstring_lang: Optional[str] = None,
     datatable: Optional[list[list[str]]] = None,
 ) -> Command:
     """Добавить шаг в сценарий. Валидирует step_id, параметры, docstring/datatable.
@@ -312,6 +313,7 @@ def add_step(
         step_id: Идентификатор шага из каталога (например "S-1").
         params: Значения плейсхолдеров. Необязательно, если плейсхолдеров нет.
         docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
+        docstring_lang: Язык содержимого docstring для статической валидации. Допустимые значения из конфига (например python, json, xml, sql). Необязательно.
         datatable: Таблица данных как массив строк. Обязателен если requires_datatable=true.
 
     Returns:
@@ -349,7 +351,7 @@ def add_step(
             "error": f"Невалидное ключевое слово '{keyword}'. Допустимые: Given, When, Then, And, But.",
         }, ensure_ascii=False))
 
-    errors = validate_step_params(step_def, params, docstring, datatable)
+    errors = validate_step_params(step_def, params, docstring, datatable, docstring_lang)
     if errors:
         return _cmd(runtime, json.dumps({
             "ok": False, "errors": errors, "hint": "Исправь параметры и вызови add_step снова.",
@@ -357,7 +359,7 @@ def add_step(
 
     step = StepChoice(
         keyword=keyword_norm, step_id=step_id,
-        params=params, docstring=docstring, datatable=datatable,
+        params=params, docstring=docstring, docstring_lang=docstring_lang, datatable=datatable,
     )
     scenarios[scenario_index].steps.append(step)
     step_idx = len(scenarios[scenario_index].steps) - 1
@@ -391,6 +393,7 @@ def edit_step(
     step_id: Optional[str] = None,
     params: Optional[dict[str, Any]] = None,
     docstring: Optional[str] = None,
+    docstring_lang: Optional[str] = None,
     datatable: Optional[list[list[str]]] = None,
 ) -> Command:
     """Редактировать существующий шаг. Обновляются только переданные поля.
@@ -402,6 +405,7 @@ def edit_step(
         step_id: Новый step_id. Необязательно.
         params: Новые параметры. Необязательно.
         docstring: Новый docstring. Необязательно.
+        docstring_lang: Язык docstring для валидации (python, json, xml, sql из конфига). Необязательно.
         datatable: Новая datatable. Необязательно.
 
     Returns:
@@ -437,6 +441,7 @@ def edit_step(
     new_step_id = step_id if step_id is not None else cur.step_id
     new_params = params if params is not None else cur.params
     new_docstring = docstring if docstring is not None else cur.docstring
+    new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
     new_datatable = datatable if datatable is not None else cur.datatable
 
     sdef = get_step_def(new_step_id)
@@ -445,7 +450,7 @@ def edit_step(
             "ok": False, "error": f"Шаг с id '{new_step_id}' не найден в каталоге.",
         }, ensure_ascii=False))
 
-    errors = validate_step_params(sdef, new_params, new_docstring, new_datatable)
+    errors = validate_step_params(sdef, new_params, new_docstring, new_datatable, new_docstring_lang)
     if errors:
         return _cmd(runtime, json.dumps({
             "ok": False, "errors": errors, "hint": "Исправь параметры и вызови edit_step снова.",
@@ -453,7 +458,7 @@ def edit_step(
 
     scenario.steps[step_index] = StepChoice(
         keyword=new_keyword, step_id=new_step_id,
-        params=new_params, docstring=new_docstring, datatable=new_datatable,
+        params=new_params, docstring=new_docstring, docstring_lang=new_docstring_lang, datatable=new_datatable,
     )
 
     rendered = _render_step_preview(sdef, scenario.steps[step_index])
@@ -564,7 +569,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
             if not sdef:
                 all_errors.append(f"Сценарий {si}, шаг {sti}: step_id '{step.step_id}' не найден.")
                 continue
-            for e in validate_step_params(sdef, step.params, step.docstring, step.datatable):
+            for e in validate_step_params(sdef, step.params, step.docstring, step.datatable, step.docstring_lang):
                 all_errors.append(f"Сценарий {si}, шаг {sti}: {e}")
 
     if all_errors:
@@ -624,10 +629,10 @@ def _render_feature(
                     if parsed:
                         lines.extend(_render_datatable_block(parsed))
                     else:
-                        lines.extend(_render_docstring_block(step.docstring))
+                        lines.extend(_render_docstring_block(step.docstring, step.docstring_lang))
             elif requires_docstring(step_def):
                 if step.docstring and step.docstring.strip():
-                    lines.extend(_render_docstring_block(step.docstring))
+                    lines.extend(_render_docstring_block(step.docstring, step.docstring_lang))
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
@@ -653,7 +658,9 @@ def _render_step_preview(step_def: dict[str, Any], step: StepChoice) -> str:
     )
     preview = f"{step.keyword} {text}"
     if step.docstring:
-        preview += '\n      """\n'
+        lang = step.docstring_lang
+        opener = f'"""{(lang or "")}' if lang else '"""'
+        preview += f"\n      {opener}\n"
         for line in step.docstring.splitlines():
             preview += f"      {line}\n" if line else "      \n"
         preview += '      """'
@@ -663,8 +670,9 @@ def _render_step_preview(step_def: dict[str, Any], step: StepChoice) -> str:
     return preview
 
 
-def _render_docstring_block(docstring: str) -> list[str]:
-    lines = ['      """']
+def _render_docstring_block(docstring: str, lang: str | None = None) -> list[str]:
+    opener = f'"""{lang}' if lang else '"""'
+    lines = [f"      {opener}"]
     for raw_line in docstring.splitlines():
         lines.append(f"      {raw_line}" if raw_line else "      ")
     lines.append('      """')

@@ -9,6 +9,7 @@ from src.agents import config
 from src.agents.base import BaseAgent
 from src.agents.models import AgentState
 from src.agents.tools import ALL_TOOLS
+from src.configs import global_config
 
 
 class SpydrAgent(BaseAgent):
@@ -26,16 +27,34 @@ class SpydrAgent(BaseAgent):
         )
 
     def _build_graph(self) -> CompiledStateGraph:
-        base_prompt = self._load_system_prompt()
+        supported_langs = list(
+            global_config.get("docstring", {}).get("supported_langs", [])
+        )
+        langs_str = ", ".join(supported_langs) if supported_langs else ""
+        system_prompt = self._load_system_prompt().format(
+            docstring_supported_langs=langs_str,
+        )
+
+        user_rules = self._load_user_rules()
+        if user_rules:
+            system_prompt += f"\n\n# Пользовательские правила\n\n{user_rules}"
+
         return create_agent(
             model=self.llm,
             middleware=[self.retry_middleware],
             tools=ALL_TOOLS,
             state_schema=AgentState,
-            system_prompt=base_prompt,
+            system_prompt=system_prompt,
             checkpointer=self.memory,
         )
 
     def _load_system_prompt(self) -> str:
         prompt_path = Path(__file__).parent / "prompts" / "system_prompt.md"
         return prompt_path.read_text()
+
+    def _load_user_rules(self) -> str:
+        rules_path = Path(__file__).resolve().parents[2] / "RULES.md"
+        if not rules_path.exists():
+            return ""
+        content = rules_path.read_text().strip()
+        return content

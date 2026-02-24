@@ -25,6 +25,7 @@ class StepChoice(BaseModel):
     step_id: str
     params: dict[str, Any] = Field(default_factory=dict)
     docstring: str | None = None
+    docstring_lang: str | None = None
     datatable: list[list[str]] | None = None
 
 

@@ -1,8 +1,17 @@
 embeddings:
-  embed_model: text-embedding-3-large
+  provider: openai
+  params:
+    model: text-embedding-3-large
+
   collection_name: bdd_steps
   top_k: 8
-
   chunk_size: 512
   chunk_overlap: 50
   batch_size: 512
+
+docstring:
+  supported_langs:
+    - python
+    - json
+    - xml
+    - sql

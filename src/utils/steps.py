@@ -8,6 +8,8 @@ from typing import Any
 
 from baseline.core.steps_catalog import load_steps, build_steps_index
 from baseline.core.constants import DEFAULT_STEPS_FILE
+from src.configs import global_config
+from src.utils.docstring_lint import validate_docstring_content
 
 PLACEHOLDER_RE = re.compile(
     r"\{(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)(?::(?P<type>[^}]+))?\}"
@@ -55,6 +57,7 @@ def validate_step_params(
     params: dict[str, Any],
     docstring: str | None,
     datatable: list[list[str]] | None,
+    docstring_lang: str | None = None,
 ) -> list[str]:
     """Validate params/docstring/datatable against step definition.
 
@@ -81,4 +84,16 @@ def validate_step_params(
             f"Шаг '{step_def.get('step_id')}' требует datatable "
             f"(requires_datatable=true)."
         )
+
+    if docstring_lang:
+        supported_langs = list(global_config.get("docstring", {}).get("supported_langs", []))
+        if docstring_lang.strip().lower() not in [s.lower() for s in supported_langs]:
+            errors.append(
+                f"docstring_lang '{docstring_lang}' не в списке поддерживаемых: {supported_langs}."
+            )
+        elif not (docstring and docstring.strip()):
+            errors.append("Указан docstring_lang, но docstring пустой.")
+        else:
+            errors.extend(validate_docstring_content(docstring, docstring_lang))
+
     return errors
