@@ -6,7 +6,6 @@ decorators, ``parsers.parse()``, ``parsers.re()``, ``parsers.cfparse()``,
 """
 
 import ast
-import hashlib
 import os
 import re
 from pathlib import Path
@@ -56,24 +55,12 @@ def extract_placeholders(pattern: str) -> list[dict]:
     return placeholders
 
 
-def build_step_id(
-    *,
-    step_type: Union[str, list[str]],
-    pattern: str,
-    source_file: str,
-    function_name: str | None,
-) -> str:
-    """Build deterministic step id used for retrieval and rendering."""
-    if isinstance(step_type, list):
-        type_str = ",".join(sorted(step_type))
-    else:
-        type_str = step_type
+def build_step_id(counter: StepIdCounter,) -> str:
+    """Build sequential step id like G-1, W-2, T-3, S-4.
 
-    payload = f"{type_str}|{pattern}|{source_file}|{function_name or ''}"
-    digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]
-    prefix = "step" if isinstance(step_type, list) else step_type
-    return f"{prefix}_{digest}"
-
+    For multi-type steps (list), the prefix is ``S`` (step).
+    """
+    return counter.next_id("step")
 
 # ---------------------------------------------------------------------------
 # AST-based extraction
@@ -140,7 +127,7 @@ def _function_param_names(node: ast.FunctionDef) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def parse_steps_file(file_path: str) -> list[dict]:
+def parse_steps_file(file_path: str, counter: Optional[StepIdCounter] = None) -> list[dict]:
     """Parse one Python file and extract BDD steps using AST.
 
     Each unique *pattern* on a function becomes its own step entry.  If the
@@ -149,6 +136,8 @@ def parse_steps_file(file_path: str) -> list[dict]:
     with *different* patterns, each pattern produces a separate step entry
     sharing the same function metadata.
     """
+    if counter is None:
+        counter = StepIdCounter()
     steps: list[dict] = []
     source_path = Path(file_path)
     try:
@@ -217,12 +206,7 @@ def parse_steps_file(file_path: str) -> list[dict]:
                 "placeholders": extract_placeholders(pattern),
                 "source_file": source_file,
                 "line_number": node.lineno,
-                "step_id": build_step_id(
-                    step_type=step_type,
-                    pattern=pattern,
-                    source_file=source_file,
-                    function_name=node.name,
-                ),
+                "step_id": build_step_id(counter),
             }
 
             if requires_datatable:
@@ -250,8 +234,9 @@ def parse_steps_directory(directory_path: str) -> dict:
         "steps": [],
     }
 
+    counter = StepIdCounter()
     for py_file in sorted(directory.glob("*.py")):
-        file_steps = parse_steps_file(str(py_file))
+        file_steps = parse_steps_file(str(py_file), counter=counter)
         if not file_steps:
             continue
 

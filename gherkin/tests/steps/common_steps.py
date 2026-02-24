@@ -24,8 +24,8 @@ def context():
 # --- Given steps ---
 # ============================================================================
 
-@step(parsers.parse('установлен базовый URL "{url}"'))
 @given(parsers.parse('установлен базовый URL "{url}"'))
+@when(parsers.parse('установлен базовый URL "{url}"'))
 def set_base_url(context, url):
     context["base_url"] = url
     print(f"MOCK: Базовый URL установлен на {url}")

@@ -83,7 +83,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--embedding-model", default=os.getenv("BASELINE_EMBEDDING_MODEL", "text-embedding-3-large"))
     parser.add_argument("--db-url", default=os.getenv("BASELINE_RAG_DB_URL"))
     parser.add_argument("--rag-top-k", type=int, default=5)
-    parser.add_argument("--steps-file", default="baseline/steps.json")
+    parser.add_argument("--steps-file", default="steps.json")
     parser.add_argument(
         "--golden-sample-prob",
         type=float,

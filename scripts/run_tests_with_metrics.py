@@ -185,7 +185,7 @@ def main():
         print(f"Ошибка: Директория {test_path} не найдена.")
         sys.exit(1)
 
-    steps_path = Path("baseline/steps.json")
+    steps_path = Path("steps.json")
     valid_features, skipped, total_scenarios, filtered_content, skipped_scenarios = collect_feature_files(
         test_path,
         steps_path,

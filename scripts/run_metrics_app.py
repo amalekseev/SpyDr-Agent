@@ -21,7 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--embedding-model", default=None)
     parser.add_argument("--db-url", default=None)
     parser.add_argument("--rag-top-k", type=int, default=None)
-    parser.add_argument("--steps-file", default="baseline/steps.json")
+    parser.add_argument("--steps-file", default="steps.json")
     parser.add_argument("--server-port", type=int, default=8501)
     return parser
 

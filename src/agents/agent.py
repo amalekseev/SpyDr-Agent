@@ -7,7 +7,9 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from src.agents import config
 from src.agents.base import BaseAgent
-from src.agents.tools import search_steps
+from src.agents.models import AgentState
+from src.agents.tools import ALL_TOOLS
+
 
 class SpydrAgent(BaseAgent):
     def __init__(self) -> None:
@@ -26,11 +28,12 @@ class SpydrAgent(BaseAgent):
     def _build_graph(self) -> CompiledStateGraph:
         base_prompt = self._load_system_prompt()
         return create_agent(
-            model=self.llm, 
+            model=self.llm,
             middleware=[self.retry_middleware],
-            tools=[search_steps],
+            tools=ALL_TOOLS,
+            state_schema=AgentState,
             system_prompt=base_prompt,
-            checkpointer=self.memory
+            checkpointer=self.memory,
         )
 
     def _load_system_prompt(self) -> str:

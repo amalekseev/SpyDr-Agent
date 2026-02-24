@@ -135,23 +135,23 @@ class StepRAGStore:
                 try:
                     LOGGER.debug(f"Indexing step {idx}/{len(steps)}: {step.get('step_id')}")
 
-                    step_type_raw = step.get("type", "")
-                    if isinstance(step_type_raw, list):
-                        step_type_str = ",".join(sorted(step_type_raw))
-                    else:
-                        step_type_str = str(step_type_raw)
+                    step_type = step.get("type", None)
+
+                    if not step_type:
+                        LOGGER.warning(f"Step {step.get('step_id')} has no type")
+                        continue
 
                     text = self._build_embed_text(step)
 
                     metadata = {
                         "step_id": step["step_id"],
-                        "step_type": step_type_str,
+                        "step_type": step_type,
                         "pattern": step["pattern"],
-                        "placeholders": json.dumps(step.get("placeholders", []), ensure_ascii=False),
-                        "docstring": step.get("docstring"),
-                        "source_file": step.get("source_file"),
-                        "function_name": step.get("function_name"),
-                        "line_number": step.get("line_number"),
+                        "placeholders": step.get("placeholders", None),
+                        "docstring": step.get("docstring", None),
+                        "source_file": step.get("source_file", None),
+                        "function_name": step.get("function_name", None),
+                        "line_number": step.get("line_number", None),
                         "requires_docstring": bool(step.get("requires_docstring")),
                         "requires_datatable": bool(step.get("requires_datatable")),
                     }

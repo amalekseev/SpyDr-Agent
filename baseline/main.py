@@ -54,7 +54,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "-s",
         "--steps",
         default=None,
-        help="Путь к файлу steps.json с доступными шагами (по умолчанию: baseline/steps.json)",
+        help="Путь к файлу steps.json с доступными шагами (по умолчанию: steps.json)",
     )
     parser.add_argument(
         "-m",
