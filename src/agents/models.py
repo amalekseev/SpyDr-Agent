@@ -38,5 +38,6 @@ class ScenarioDraft(BaseModel):
 class AgentState(MessagesState):
     feature_title: Annotated[str, _last_value]
     feature_tags: Annotated[list[str], _last_value]
+    background_steps: Annotated[list[StepChoice], _last_value]
     scenarios: Annotated[list[ScenarioDraft], _last_value]
     found_steps: Annotated[dict[str, dict[str, Any]], _merge_dicts]

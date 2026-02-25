@@ -54,6 +54,7 @@ def _stream_feature_preview(runtime: ToolRuntime, **overrides: Any) -> None:
     state = runtime.state
     title: str = overrides.get("feature_title", state.get("feature_title", ""))
     tags: list[str] = overrides.get("feature_tags", state.get("feature_tags", []))
+    bg_steps: list[StepChoice] = overrides.get("background_steps", state.get("background_steps") or [])
     scenarios: list[ScenarioDraft] = overrides.get("scenarios", state.get("scenarios") or [])
 
     if not title:
@@ -63,7 +64,7 @@ def _stream_feature_preview(runtime: ToolRuntime, **overrides: Any) -> None:
     steps_index = get_steps_index()
 
     try:
-        feature_text = _render_feature(title, tags, scenarios, steps_index)
+        feature_text = _render_feature(title, tags, bg_steps, scenarios, steps_index)
     except Exception as exc:
         logger.warning("_stream_feature_preview: render failed: %s", exc)
         return
@@ -291,7 +292,206 @@ def remove_scenario(
 
 
 # ---------------------------------------------------------------------------
-# 6. add_step
+# 6. add_background_step
+# ---------------------------------------------------------------------------
+
+@tool
+def add_background_step(
+    runtime: ToolRuntime,
+    keyword: str,
+    step_id: str,
+    params: Optional[dict[str, Any]] = None,
+    docstring: Optional[str] = None,
+    docstring_lang: Optional[str] = None,
+    datatable: Optional[list[list[str]]] = None,
+) -> Command:
+    """Добавить шаг в блок Background. Background-шаги выполняются перед каждым сценарием.
+
+    Args:
+        keyword: Ключевое слово Gherkin: Given, When, Then, And, But.
+        step_id: Идентификатор шага из каталога (например "S-1").
+        params: Значения плейсхолдеров. Необязательно, если плейсхолдеров нет.
+        docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
+        docstring_lang: Язык содержимого docstring для статической валидации. Необязательно.
+        datatable: Таблица данных как массив строк. Обязателен если requires_datatable=true.
+
+    Returns:
+        JSON с подтверждением и отрендеренным текстом шага, или ошибка валидации.
+    """
+    bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
+    if params is None:
+        params = {}
+
+    step_def = get_step_def(step_id)
+    if step_def is None:
+        return _cmd(runtime, json.dumps({
+            "ok": False, "error": f"Шаг с id '{step_id}' не найден в каталоге.",
+        }, ensure_ascii=False))
+
+    found = runtime.state.get("found_steps") or {}
+    if step_id not in found:
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"step_id '{step_id}' не был найден через search_steps. "
+                     "Сначала найди шаг через search_steps, затем используй step_id из результатов.",
+        }, ensure_ascii=False))
+
+    keyword_norm = _normalize_keyword(keyword)
+    if keyword_norm is None:
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"Невалидное ключевое слово '{keyword}'. Допустимые: Given, When, Then, And, But.",
+        }, ensure_ascii=False))
+
+    errors = validate_step_params(step_def, params, docstring, datatable, docstring_lang)
+    if errors:
+        return _cmd(runtime, json.dumps({
+            "ok": False, "errors": errors, "hint": "Исправь параметры и вызови add_background_step снова.",
+        }, ensure_ascii=False))
+
+    step = StepChoice(
+        keyword=keyword_norm, step_id=step_id,
+        params=params, docstring=docstring, docstring_lang=docstring_lang, datatable=datatable,
+    )
+    bg_steps.append(step)
+    step_idx = len(bg_steps) - 1
+
+    rendered = _render_step_preview(step_def, step)
+    step_text = _render_step_text(
+        pattern=str(step_def.get("pattern", "")),
+        placeholders=step_def.get("placeholders", []),
+        params=step.params,
+    )
+    set_status(f"Добавляю Background шаг: {keyword_norm} {step_text}")
+    _stream_feature_preview(runtime, background_steps=bg_steps)
+
+    content = json.dumps({
+        "ok": True, "step_index": step_idx, "rendered": rendered,
+    }, ensure_ascii=False)
+    return _cmd(runtime, content, background_steps=bg_steps)
+
+
+# ---------------------------------------------------------------------------
+# 7. edit_background_step
+# ---------------------------------------------------------------------------
+
+@tool
+def edit_background_step(
+    runtime: ToolRuntime,
+    step_index: int,
+    keyword: Optional[str] = None,
+    step_id: Optional[str] = None,
+    params: Optional[dict[str, Any]] = None,
+    docstring: Optional[str] = None,
+    docstring_lang: Optional[str] = None,
+    datatable: Optional[list[list[str]]] = None,
+) -> Command:
+    """Редактировать существующий шаг в блоке Background. Обновляются только переданные поля.
+
+    Args:
+        step_index: Индекс шага внутри Background.
+        keyword: Новое ключевое слово (Given/When/Then/And/But). Необязательно.
+        step_id: Новый step_id. Необязательно.
+        params: Новые параметры. Необязательно.
+        docstring: Новый docstring. Необязательно.
+        docstring_lang: Язык docstring для валидации. Необязательно.
+        datatable: Новая datatable. Необязательно.
+
+    Returns:
+        JSON с подтверждением или ошибкой.
+    """
+    set_status(f"Редактирую Background шаг {step_index}…")
+    bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
+
+    if step_index < 0 or step_index >= len(bg_steps):
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"Background шаг с индексом {step_index} не существует. "
+                     f"Доступные индексы: 0..{len(bg_steps) - 1}",
+        }, ensure_ascii=False))
+
+    cur = bg_steps[step_index]
+
+    new_keyword = cur.keyword
+    if keyword is not None:
+        kw = _normalize_keyword(keyword)
+        if kw is None:
+            return _cmd(runtime, json.dumps({
+                "ok": False, "error": f"Невалидное ключевое слово '{keyword}'.",
+            }, ensure_ascii=False))
+        new_keyword = kw
+
+    new_step_id = step_id if step_id is not None else cur.step_id
+    new_params = params if params is not None else cur.params
+    new_docstring = docstring if docstring is not None else cur.docstring
+    new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
+    new_datatable = datatable if datatable is not None else cur.datatable
+
+    sdef = get_step_def(new_step_id)
+    if sdef is None:
+        return _cmd(runtime, json.dumps({
+            "ok": False, "error": f"Шаг с id '{new_step_id}' не найден в каталоге.",
+        }, ensure_ascii=False))
+
+    errors = validate_step_params(sdef, new_params, new_docstring, new_datatable, new_docstring_lang)
+    if errors:
+        return _cmd(runtime, json.dumps({
+            "ok": False, "errors": errors, "hint": "Исправь параметры и вызови edit_background_step снова.",
+        }, ensure_ascii=False))
+
+    bg_steps[step_index] = StepChoice(
+        keyword=new_keyword, step_id=new_step_id,
+        params=new_params, docstring=new_docstring, docstring_lang=new_docstring_lang, datatable=new_datatable,
+    )
+
+    rendered = _render_step_preview(sdef, bg_steps[step_index])
+    _stream_feature_preview(runtime, background_steps=bg_steps)
+
+    content = json.dumps({
+        "ok": True, "step_index": step_index, "rendered": rendered,
+    }, ensure_ascii=False)
+    return _cmd(runtime, content, background_steps=bg_steps)
+
+
+# ---------------------------------------------------------------------------
+# 8. remove_background_step
+# ---------------------------------------------------------------------------
+
+@tool
+def remove_background_step(
+    runtime: ToolRuntime,
+    step_index: int,
+) -> Command:
+    """Удалить шаг из блока Background.
+
+    Args:
+        step_index: Индекс шага для удаления.
+
+    Returns:
+        JSON с подтверждением.
+    """
+    set_status(f"Удаляю Background шаг {step_index}…")
+    bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
+
+    if step_index < 0 or step_index >= len(bg_steps):
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"Background шаг с индексом {step_index} не существует. "
+                     f"Доступные индексы: 0..{len(bg_steps) - 1}",
+        }, ensure_ascii=False))
+
+    removed = bg_steps.pop(step_index)
+    _stream_feature_preview(runtime, background_steps=bg_steps)
+
+    content = json.dumps({
+        "ok": True, "removed_step_id": removed.step_id,
+        "remaining_background_steps": len(bg_steps),
+    }, ensure_ascii=False)
+    return _cmd(runtime, content, background_steps=bg_steps)
+
+
+# ---------------------------------------------------------------------------
+# 9. add_step
 # ---------------------------------------------------------------------------
 
 @tool
@@ -530,6 +730,7 @@ def show_state(runtime: ToolRuntime) -> str:
     payload = {
         "feature_title": state.get("feature_title", ""),
         "feature_tags": state.get("feature_tags", []),
+        "background_steps": [s.model_dump() for s in (state.get("background_steps") or [])],
         "scenarios": [s.model_dump() for s in (state.get("scenarios") or [])],
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
@@ -552,6 +753,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
     state = runtime.state
     title: str = state.get("feature_title", "")
     tags: list[str] = state.get("feature_tags", [])
+    bg_steps: list[StepChoice] = state.get("background_steps") or []
     scenarios: list[ScenarioDraft] = state.get("scenarios") or []
     steps_index = get_steps_index()
 
@@ -561,6 +763,15 @@ def generate_feature(runtime: ToolRuntime) -> str:
         return json.dumps({"ok": False, "error": "Нет ни одного сценария. Вызови add_scenario."}, ensure_ascii=False)
 
     all_errors: list[str] = []
+
+    for bsi, step in enumerate(bg_steps):
+        sdef = steps_index.get(step.step_id)
+        if not sdef:
+            all_errors.append(f"Background, шаг {bsi}: step_id '{step.step_id}' не найден.")
+            continue
+        for e in validate_step_params(sdef, step.params, step.docstring, step.datatable, step.docstring_lang):
+            all_errors.append(f"Background, шаг {bsi}: {e}")
+
     for si, scenario in enumerate(scenarios):
         if not scenario.steps:
             all_errors.append(f"Сценарий {si} ('{scenario.name}') не содержит шагов.")
@@ -579,7 +790,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
         }, ensure_ascii=False)
 
     try:
-        feature_text = _render_feature(title, tags, scenarios, steps_index)
+        feature_text = _render_feature(title, tags, bg_steps, scenarios, steps_index)
     except ValueError as exc:
         return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
 
@@ -598,6 +809,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
 def _render_feature(
     title: str,
     tags: list[str],
+    background_steps: list[StepChoice],
     scenarios: list[ScenarioDraft],
     steps_index: dict[str, dict[str, Any]],
 ) -> str:
@@ -607,35 +819,51 @@ def _render_feature(
     lines.append(f"Feature: {title}")
     lines.append("")
 
+    if background_steps:
+        lines.append("  Background:")
+        for step in background_steps:
+            _render_step_into(lines, step, steps_index, indent="    ")
+        lines.append("")
+
     for scenario in scenarios:
         if scenario.tags:
             lines.append("  " + " ".join(scenario.tags))
         lines.append(f"  Scenario: {scenario.name}")
 
         for step in scenario.steps:
-            step_def = steps_index[step.step_id]
-            step_text = _render_step_text(
-                pattern=str(step_def.get("pattern", "")),
-                placeholders=step_def.get("placeholders", []),
-                params=step.params,
-            )
-            lines.append(f"    {step.keyword} {step_text}")
-
-            if requires_datatable(step_def):
-                if step.datatable:
-                    lines.extend(_render_datatable_block(step.datatable))
-                elif step.docstring and step.docstring.strip():
-                    parsed = _parse_datatable_from_string(step.docstring)
-                    if parsed:
-                        lines.extend(_render_datatable_block(parsed))
-                    else:
-                        lines.extend(_render_docstring_block(step.docstring, step.docstring_lang))
-            elif requires_docstring(step_def):
-                if step.docstring and step.docstring.strip():
-                    lines.extend(_render_docstring_block(step.docstring, step.docstring_lang))
+            _render_step_into(lines, step, steps_index, indent="    ")
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_step_into(
+    lines: list[str],
+    step: StepChoice,
+    steps_index: dict[str, dict[str, Any]],
+    indent: str = "    ",
+) -> None:
+    step_def = steps_index[step.step_id]
+    step_text = _render_step_text(
+        pattern=str(step_def.get("pattern", "")),
+        placeholders=step_def.get("placeholders", []),
+        params=step.params,
+    )
+    lines.append(f"{indent}{step.keyword} {step_text}")
+
+    doc_indent = indent + "  "
+    if requires_datatable(step_def):
+        if step.datatable:
+            lines.extend(_render_datatable_block(step.datatable, doc_indent))
+        elif step.docstring and step.docstring.strip():
+            parsed = _parse_datatable_from_string(step.docstring)
+            if parsed:
+                lines.extend(_render_datatable_block(parsed, doc_indent))
+            else:
+                lines.extend(_render_docstring_block(step.docstring, step.docstring_lang, doc_indent))
+    elif requires_docstring(step_def):
+        if step.docstring and step.docstring.strip():
+            lines.extend(_render_docstring_block(step.docstring, step.docstring_lang, doc_indent))
 
 
 def _render_step_text(
@@ -670,16 +898,16 @@ def _render_step_preview(step_def: dict[str, Any], step: StepChoice) -> str:
     return preview
 
 
-def _render_docstring_block(docstring: str, lang: str | None = None) -> list[str]:
+def _render_docstring_block(docstring: str, lang: str | None = None, indent: str = "      ") -> list[str]:
     opener = f'"""{lang}' if lang else '"""'
-    lines = [f"      {opener}"]
+    lines = [f"{indent}{opener}"]
     for raw_line in docstring.splitlines():
-        lines.append(f"      {raw_line}" if raw_line else "      ")
-    lines.append('      """')
+        lines.append(f"{indent}{raw_line}" if raw_line else indent)
+    lines.append(f'{indent}"""')
     return lines
 
 
-def _render_datatable_block(datatable: list[list[str]]) -> list[str]:
+def _render_datatable_block(datatable: list[list[str]], indent: str = "      ") -> list[str]:
     if not datatable:
         return []
     num_cols = max(len(row) for row in datatable)
@@ -693,7 +921,7 @@ def _render_datatable_block(datatable: list[list[str]]) -> list[str]:
         for ci in range(num_cols):
             cell = row[ci] if ci < len(row) else ""
             cells.append(f" {cell:<{col_widths[ci]}} ")
-        lines.append("      |" + "|".join(cells) + "|")
+        lines.append(f"{indent}|" + "|".join(cells) + "|")
     return lines
 
 
@@ -731,6 +959,9 @@ ALL_TOOLS = [
     add_scenario,
     edit_scenario,
     remove_scenario,
+    add_background_step,
+    edit_background_step,
+    remove_background_step,
     add_step,
     edit_step,
     remove_step,

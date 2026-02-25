@@ -27,17 +27,7 @@ class SpydrAgent(BaseAgent):
         )
 
     def _build_graph(self) -> CompiledStateGraph:
-        supported_langs = list(
-            global_config.get("docstring", {}).get("supported_langs", [])
-        )
-        langs_str = ", ".join(supported_langs) if supported_langs else ""
-        system_prompt = self._load_system_prompt().format(
-            docstring_supported_langs=langs_str,
-        )
-
-        user_rules = self._load_user_rules()
-        if user_rules:
-            system_prompt += f"\n\n# Пользовательские правила\n\n{user_rules}"
+        system_prompt = self._build_system_prompt()
 
         return create_agent(
             model=self.llm,
@@ -47,6 +37,19 @@ class SpydrAgent(BaseAgent):
             system_prompt=system_prompt,
             checkpointer=self.memory,
         )
+
+    def _build_system_prompt(self) -> str:
+        supported_langs = list(
+            global_config.get("docstring", {}).get("supported_langs", [])
+        )
+        langs_str = ", ".join(supported_langs) if supported_langs else ""
+        system_prompt = self._load_system_prompt().format(
+            docstring_supported_langs=langs_str,
+        )
+        user_rules = self._load_user_rules()
+        if user_rules:
+            system_prompt += f"\n\n# Пользовательские правила\n\n{user_rules}"
+        return system_prompt
 
     def _load_system_prompt(self) -> str:
         prompt_path = Path(__file__).parent / "prompts" / "system_prompt.md"
