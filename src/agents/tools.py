@@ -33,6 +33,20 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _parse_json_obj(raw: Optional[str]) -> dict[str, Any]:
+    """Parse a JSON string into a dict. Returns {} for None/empty."""
+    if not raw or not raw.strip():
+        return {}
+    return json.loads(raw)
+
+
+def _parse_json_table(raw: Optional[str]) -> list[list[str]] | None:
+    """Parse a JSON string into list[list[str]]. Returns None for None/empty."""
+    if not raw or not raw.strip():
+        return None
+    return json.loads(raw)
+
+
 def _cmd(runtime: ToolRuntime, content: str, **state_updates) -> Command:
     """Build a Command that updates state fields and returns a ToolMessage."""
     return Command(
@@ -301,27 +315,27 @@ def add_background_step(
     runtime: ToolRuntime,
     keyword: str,
     step_id: str,
-    params: Optional[dict[str, Any]] = None,
+    params: Optional[str] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[list[list[str]]] = None,
+    datatable: Optional[str] = None,
 ) -> Command:
     """Добавить шаг в блок Background. Background-шаги выполняются перед каждым сценарием.
 
     Args:
         keyword: Ключевое слово Gherkin: Given, When, Then, And, But.
         step_id: Идентификатор шага из каталога (например "S-1").
-        params: Значения плейсхолдеров. Необязательно, если плейсхолдеров нет.
+        params: JSON-объект со значениями плейсхолдеров, например '{"url": "https://..."}'. Необязательно.
         docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
         docstring_lang: Язык содержимого docstring для статической валидации. Необязательно.
-        datatable: Таблица данных как массив строк. Обязателен если requires_datatable=true.
+        datatable: JSON-массив строк таблицы, например '[["col1","col2"],["val1","val2"]]'. Обязателен если requires_datatable=true.
 
     Returns:
         JSON с подтверждением и отрендеренным текстом шага, или ошибка валидации.
     """
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
-    if params is None:
-        params = {}
+    params = _parse_json_obj(params)
+    datatable = _parse_json_table(datatable)
 
     step_def = get_step_def(step_id)
     if step_def is None:
@@ -382,10 +396,10 @@ def edit_background_step(
     step_index: int,
     keyword: Optional[str] = None,
     step_id: Optional[str] = None,
-    params: Optional[dict[str, Any]] = None,
+    params: Optional[str] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[list[list[str]]] = None,
+    datatable: Optional[str] = None,
 ) -> Command:
     """Редактировать существующий шаг в блоке Background. Обновляются только переданные поля.
 
@@ -393,15 +407,17 @@ def edit_background_step(
         step_index: Индекс шага внутри Background.
         keyword: Новое ключевое слово (Given/When/Then/And/But). Необязательно.
         step_id: Новый step_id. Необязательно.
-        params: Новые параметры. Необязательно.
+        params: JSON-объект с новыми параметрами. Необязательно.
         docstring: Новый docstring. Необязательно.
         docstring_lang: Язык docstring для валидации. Необязательно.
-        datatable: Новая datatable. Необязательно.
+        datatable: JSON-массив строк новой таблицы. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
     """
     set_status(f"Редактирую Background шаг {step_index}…")
+    parsed_params = _parse_json_obj(params) if params is not None else None
+    parsed_datatable = _parse_json_table(datatable) if datatable is not None else None
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
 
     if step_index < 0 or step_index >= len(bg_steps):
@@ -423,10 +439,10 @@ def edit_background_step(
         new_keyword = kw
 
     new_step_id = step_id if step_id is not None else cur.step_id
-    new_params = params if params is not None else cur.params
+    new_params = parsed_params if parsed_params is not None else cur.params
     new_docstring = docstring if docstring is not None else cur.docstring
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
-    new_datatable = datatable if datatable is not None else cur.datatable
+    new_datatable = parsed_datatable if parsed_datatable is not None else cur.datatable
 
     sdef = get_step_def(new_step_id)
     if sdef is None:
@@ -501,10 +517,10 @@ def add_step(
     scenario_index: int,
     keyword: str,
     step_id: str,
-    params: Optional[dict[str, Any]] = None,
+    params: Optional[str] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[list[list[str]]] = None,
+    datatable: Optional[str] = None,
 ) -> Command:
     """Добавить шаг в сценарий. Валидирует step_id, параметры, docstring/datatable.
 
@@ -512,17 +528,17 @@ def add_step(
         scenario_index: Индекс сценария (начиная с 0).
         keyword: Ключевое слово Gherkin: Given, When, Then, And, But.
         step_id: Идентификатор шага из каталога (например "S-1").
-        params: Значения плейсхолдеров. Необязательно, если плейсхолдеров нет.
+        params: JSON-объект со значениями плейсхолдеров, например '{"url": "https://..."}'. Необязательно.
         docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
         docstring_lang: Язык содержимого docstring для статической валидации. Допустимые значения из конфига (например python, json, xml, sql). Необязательно.
-        datatable: Таблица данных как массив строк. Обязателен если requires_datatable=true.
+        datatable: JSON-массив строк таблицы, например '[["col1","col2"],["val1","val2"]]'. Обязателен если requires_datatable=true.
 
     Returns:
         JSON с подтверждением и отрендеренным текстом шага, или ошибка валидации.
     """
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
-    if params is None:
-        params = {}
+    params = _parse_json_obj(params)
+    datatable = _parse_json_table(datatable)
 
     if scenario_index < 0 or scenario_index >= len(scenarios):
         return _cmd(runtime, json.dumps({
@@ -592,10 +608,10 @@ def edit_step(
     step_index: int,
     keyword: Optional[str] = None,
     step_id: Optional[str] = None,
-    params: Optional[dict[str, Any]] = None,
+    params: Optional[str] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[list[list[str]]] = None,
+    datatable: Optional[str] = None,
 ) -> Command:
     """Редактировать существующий шаг. Обновляются только переданные поля.
 
@@ -604,15 +620,17 @@ def edit_step(
         step_index: Индекс шага внутри сценария.
         keyword: Новое ключевое слово (Given/When/Then/And/But). Необязательно.
         step_id: Новый step_id. Необязательно.
-        params: Новые параметры. Необязательно.
+        params: JSON-объект с новыми параметрами. Необязательно.
         docstring: Новый docstring. Необязательно.
         docstring_lang: Язык docstring для валидации (python, json, xml, sql из конфига). Необязательно.
-        datatable: Новая datatable. Необязательно.
+        datatable: JSON-массив строк новой таблицы. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
     """
     set_status(f"Редактирую шаг {step_index} в сценарии {scenario_index}…")
+    parsed_params = _parse_json_obj(params) if params is not None else None
+    parsed_datatable = _parse_json_table(datatable) if datatable is not None else None
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
 
     if scenario_index < 0 or scenario_index >= len(scenarios):
@@ -640,10 +658,10 @@ def edit_step(
         new_keyword = kw
 
     new_step_id = step_id if step_id is not None else cur.step_id
-    new_params = params if params is not None else cur.params
+    new_params = parsed_params if parsed_params is not None else cur.params
     new_docstring = docstring if docstring is not None else cur.docstring
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
-    new_datatable = datatable if datatable is not None else cur.datatable
+    new_datatable = parsed_datatable if parsed_datatable is not None else cur.datatable
 
     sdef = get_step_def(new_step_id)
     if sdef is None:

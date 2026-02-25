@@ -31,7 +31,7 @@ def _filter_supported_kwargs(cls: type, kwargs: dict[str, Any]) -> dict[str, Any
 
 
 def _build_gigachat_llm(model: str, temperature: float = 0, **extra: Any) -> BaseChatModel:
-    """Создаёт ChatGigaChat с mTLS-аутентификацией из переменных окружения."""
+    """Создаёт GigaChat с mTLS-аутентификацией из переменных окружения."""
     try:
         from langchain_gigachat import GigaChat as ChatGigaChat
     except ImportError as exc:

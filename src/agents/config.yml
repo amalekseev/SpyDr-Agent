@@ -1,4 +1,4 @@
 llm_params:
-  provider: openai          # openai | gigachat
-  model: gpt-4.1-mini
+  provider: gigachat         # openai | gigachat
+  model: GigaChat-2-Max
   temperature: 0
