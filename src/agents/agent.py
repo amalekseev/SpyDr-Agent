@@ -53,11 +53,11 @@ class SpydrAgent(BaseAgent):
 
     def _load_system_prompt(self) -> str:
         prompt_path = Path(__file__).parent / "prompts" / "system_prompt.md"
-        return prompt_path.read_text()
+        return prompt_path.read_text(encoding="utf-8")
 
     def _load_user_rules(self) -> str:
         rules_path = Path(__file__).resolve().parents[2] / "RULES.md"
         if not rules_path.exists():
             return ""
-        content = rules_path.read_text().strip()
+        content = rules_path.read_text(encoding="utf-8").strip()
         return content

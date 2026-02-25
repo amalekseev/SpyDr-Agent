@@ -11,19 +11,29 @@ from omegaconf import OmegaConf
 
 
 def _filter_supported_kwargs(cls: type, kwargs: dict[str, Any]) -> dict[str, Any]:
-    """Оставляет только kwargs, принимаемые конструктором *cls*."""
+    """Оставляет только kwargs, принимаемые конструктором *cls*.
+
+    Для Pydantic-моделей (например GigaChat) проверяет model_fields,
+    т.к. __init__ у них имеет сигнатуру (*args, **kwargs).
+    """
+    if hasattr(cls, "model_fields"):
+        valid = set(cls.model_fields.keys())
+        return {k: v for k, v in kwargs.items() if k in valid}
     try:
         sig = inspect.signature(cls.__init__)
     except (TypeError, ValueError):
         return kwargs
-    valid = set(sig.parameters.keys()) - {"self"}
+    params = sig.parameters
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+        return kwargs
+    valid = set(params.keys()) - {"self"}
     return {k: v for k, v in kwargs.items() if k in valid}
 
 
 def _build_gigachat_llm(model: str, temperature: float = 0, **extra: Any) -> BaseChatModel:
     """Создаёт ChatGigaChat с mTLS-аутентификацией из переменных окружения."""
     try:
-        from langchain_gigachat import ChatGigaChat
+        from langchain_gigachat import GigaChat as ChatGigaChat
     except ImportError as exc:
         raise ImportError(
             "Для провайдера gigachat установите пакет: "
@@ -76,13 +86,10 @@ def _build_gigachat_llm(model: str, temperature: float = 0, **extra: Any) -> Bas
             "(или алиасы GIGACHAT_CLIENT_CERT_FILE / GIGACHAT_CLIENT_KEY_FILE)."
         )
 
-    for name in ("cert_file", "client_cert_file", "ssl_cert_file", "cert_path"):
-        kwargs[name] = cert_file
-    for name in ("key_file", "client_key_file", "ssl_key_file", "key_path"):
-        kwargs[name] = key_file
+    kwargs["cert_file"] = cert_file
+    kwargs["key_file"] = key_file
     if key_password:
-        for name in ("key_file_password", "client_key_password", "ssl_key_password", "key_password"):
-            kwargs[name] = key_password
+        kwargs["key_file_password"] = key_password
 
     kwargs = _filter_supported_kwargs(ChatGigaChat, kwargs)
     return ChatGigaChat(**kwargs)
