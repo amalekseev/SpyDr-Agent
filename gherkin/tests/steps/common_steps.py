@@ -1205,7 +1205,7 @@ def check_variable_less(context, var_name, value):
 @step(parsers.parse('Выполнить питон код'))
 @step(parsers.parse('Выполнить python код'))
 @then(parsers.parse('Выполнить python код'))
-def execute_python_code(context):
+def execute_python_code(context, docstring):
     print(f"MOCK: Выполнение Python кода")
     pass
 

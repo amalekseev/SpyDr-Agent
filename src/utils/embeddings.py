@@ -16,21 +16,42 @@ else:
     raise ValueError(f"Unsupported embedding provider: {global_config.embeddings.provider}")
 
 _vector_stores: dict[str, PGVector] = {}
-_lock = asyncio.Lock()
+_bound_loop: asyncio.AbstractEventLoop | None = None
+_lock: asyncio.Lock | None = None
+
+
+def _get_lock() -> asyncio.Lock:
+    global _lock, _bound_loop
+    loop = asyncio.get_running_loop()
+    if _bound_loop is not loop:
+        _lock = asyncio.Lock()
+        _bound_loop = loop
+    return _lock
+
 
 async def get_vector_store(collection_name: str) -> PGVector:
-    if collection_name not in _vector_stores:
-        async with _lock:
-            if collection_name not in _vector_stores:  # double-check
-                store = PGVector(
-                    embeddings=embed_model,
-                    collection_name=collection_name,
-                    connection=os.getenv("CONNECTION_STRING"),
-                    distance_strategy=DistanceStrategy.COSINE,
-                    use_jsonb=True,
-                    async_mode=True,
-                    create_extension=False  # Расширение vector должно быть установлено в БД заранее
-                )
-                await store.__apost_init__()
-                _vector_stores[collection_name] = store
-    return _vector_stores[collection_name]
+    loop = asyncio.get_running_loop()
+    lock = _get_lock()
+
+    cached = _vector_stores.get(collection_name)
+    if cached is not None and cached[1] is loop:
+        return cached[0]
+
+    async with lock:
+        cached = _vector_stores.get(collection_name)
+        if cached is not None and cached[1] is loop:
+            return cached[0]
+
+        store = PGVector(
+            embeddings=embed_model,
+            collection_name=collection_name,
+            connection=os.getenv("CONNECTION_STRING"),
+            distance_strategy=DistanceStrategy.COSINE,
+            use_jsonb=True,
+            async_mode=True,
+            create_extension=False,
+        )
+        await store.__apost_init__()
+        _vector_stores[collection_name] = (store, loop)
+
+    return _vector_stores[collection_name][0]

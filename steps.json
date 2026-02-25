@@ -3054,7 +3054,8 @@
       "placeholders": [],
       "source_file": "common_steps.py",
       "line_number": 1208,
-      "step_id": "S-153"
+      "step_id": "S-153",
+      "requires_docstring": true
     },
     {
       "type": [
@@ -3068,7 +3069,8 @@
       "placeholders": [],
       "source_file": "common_steps.py",
       "line_number": 1208,
-      "step_id": "S-154"
+      "step_id": "S-154",
+      "requires_docstring": true
     },
     {
       "type": [

@@ -78,6 +78,14 @@ with st.sidebar:
     artifact_slot.markdown(
         f"```gherkin\n{st.session_state.last_artifact}```"
     )
+    if st.session_state.last_artifact:
+        st.download_button(
+            label="Скачать .feature",
+            data=st.session_state.last_artifact,
+            file_name="feature.feature",
+            icon=":material/download:",
+            mime="text/plain",
+        )
     st.divider()
     st.caption("Сессия")
     if st.button("Очистить чат"):
