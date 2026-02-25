@@ -6,14 +6,14 @@ from langchain_postgres.vectorstores import DistanceStrategy
 
 from src.configs import global_config
 
-if global_config.embeddings.provider == "openai":
+if global_config.rag.provider == "openai":
     from langchain_openai import OpenAIEmbeddings
-    embed_model = OpenAIEmbeddings(**global_config.embeddings.params)
-elif global_config.embeddings.provider == "gigachat":
+    embed_model = OpenAIEmbeddings(**global_config.rag.params)
+elif global_config.rag.provider == "gigachat":
     from langchain_gigachat import GigaChatEmbeddings
-    embed_model = GigaChatEmbeddings(**global_config.embeddings.params)
+    embed_model = GigaChatEmbeddings(**global_config.rag.params)
 else:
-    raise ValueError(f"Unsupported embedding provider: {global_config.embeddings.provider}")
+    raise ValueError(f"Unsupported embedding provider: {global_config.rag.provider}")
 
 _vector_stores: dict[str, PGVector] = {}
 _bound_loop: asyncio.AbstractEventLoop | None = None

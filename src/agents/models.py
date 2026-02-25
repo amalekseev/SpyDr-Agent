@@ -41,3 +41,4 @@ class AgentState(MessagesState):
     background_steps: Annotated[list[StepChoice], _last_value]
     scenarios: Annotated[list[ScenarioDraft], _last_value]
     found_steps: Annotated[dict[str, dict[str, Any]], _merge_dicts]
+    found_docs: Annotated[dict[str, dict[str, Any]], _merge_dicts]

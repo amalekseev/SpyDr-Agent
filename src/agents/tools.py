@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import re
@@ -93,7 +94,7 @@ async def search_steps(
     Returns:
         JSON со списком найденных уникальных шагов.
     """
-    k = top_k if top_k and top_k > 0 else global_config.embeddings.top_k
+    k = top_k if top_k and top_k > 0 else global_config.rag.steps.top_k
 
     logger.info("search_steps: queries=%r, top_k=%d", queries, k)
     set_status(f"Ищу шаги по {len(queries)} запросам…")
@@ -105,7 +106,7 @@ async def search_steps(
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    vector_store = await get_vector_store(global_config.embeddings.collection_name)
+    vector_store = await get_vector_store(global_config.rag.steps.collection_name)
 
     async def _search_one(embedding: list[float]) -> list[tuple]:
         return await vector_store.asimilarity_search_with_score_by_vector(
@@ -115,7 +116,7 @@ async def search_steps(
     try:
         all_results = await asyncio.gather(*[_search_one(emb) for emb in embeddings])
     except Exception as e:
-        error_msg = f"Ошибка при поиске в коллекции {global_config.embeddings.collection_name}: {e}"
+        error_msg = f"Ошибка при поиске в коллекции {global_config.rag.steps.collection_name}: {e}"
         logger.error(error_msg)
         raise ValueError(error_msg)
 
@@ -950,11 +951,81 @@ def _normalize_keyword(raw: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# 11. search_info  (project docs RAG)
+# ---------------------------------------------------------------------------
+
+@tool
+async def search_info(
+    runtime: ToolRuntime,
+    query: str,
+    top_k: Optional[int] = None,
+) -> Command:
+    """Семантический поиск по проектной документации (docs/).
+    Результаты дедуплицируются по содержимому и накапливаются между вызовами.
+
+    Args:
+        query: Поисковый запрос на естественном языке.
+        top_k: Количество результатов (по умолчанию берётся из конфига).
+
+    Returns:
+        JSON с найденными фрагментами документации.
+    """
+    cfg = global_config.rag.docs
+    k = top_k if top_k and top_k > 0 else cfg.top_k
+
+    logger.info("search_info: query=%r, top_k=%d", query, k)
+    set_status("Ищу информацию в документации…")
+
+    vector_store = await get_vector_store(cfg.collection_name)
+
+    try:
+        results = await vector_store.asimilarity_search_with_score(query, k=k)
+    except Exception as e:
+        error_msg = f"Ошибка при поиске в коллекции {cfg.collection_name}: {e}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    already_known: dict[str, dict[str, Any]] = runtime.state.get("found_docs") or {}
+    new_docs: dict[str, dict[str, Any]] = {}
+
+    for doc, distance in results:
+        text = doc.page_content
+        chunk_hash = hashlib.md5(text.encode()).hexdigest()[:12]
+        score = round(1.0 - distance, 4)
+        entry = {
+            "text": text,
+            "source": (doc.metadata or {}).get("source", ""),
+            "score": score,
+        }
+        new_docs[chunk_hash] = entry
+
+    only_new = {h: v for h, v in new_docs.items() if h not in already_known}
+
+    set_status(f"Найдено {len(new_docs)} фрагмент(ов), из них новых: {len(only_new)}")
+    logger.info(
+        "search_info: total=%d, new=%d", len(new_docs), len(only_new),
+    )
+
+    response_items = [
+        {"chunk_id": h, **v} for h, v in only_new.items()
+    ] if only_new else [
+        {"chunk_id": h, **v} for h, v in new_docs.items()
+    ]
+
+    content = json.dumps(
+        {"docs": response_items, "total_known": len(already_known) + len(only_new)},
+        ensure_ascii=False,
+    )
+    return _cmd(runtime, content, found_docs=new_docs)
+
+
+# ---------------------------------------------------------------------------
 # All tools for agent registration
 # ---------------------------------------------------------------------------
 
 ALL_TOOLS = [
     search_steps,
+    search_info,
     set_feature_meta,
     add_scenario,
     edit_scenario,

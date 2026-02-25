@@ -1,13 +1,18 @@
-embeddings:
+rag:
   provider: openai
   params:
     model: text-embedding-3-large
 
-  collection_name: bdd_steps
-  top_k: 8
-  chunk_size: 512
-  chunk_overlap: 50
-  batch_size: 512
+  steps:
+    collection_name: bdd_steps
+    top_k: 8
+
+  docs:
+    collection_name: project_docs
+    path: docs
+    top_k: 5
+    chunk_size: 1000
+    chunk_overlap: 200
 
 docstring:
   supported_langs:
