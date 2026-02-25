@@ -6,26 +6,22 @@ import ast
 import json
 from xml.etree import ElementTree
 
+import sqlglot
+
 
 def validate_docstring_content(content: str, lang: str) -> list[str]:
     """Statically validate docstring content for the given language.
 
     Returns a list of error strings (empty if valid).
-    Supported languages: python, json, xml, sql.
+    Validator is resolved by convention: _validate_{lang}().
     """
     content = content or ""
     lang_lower = lang.strip().lower()
 
-    if lang_lower == "json":
-        return _validate_json(content)
-    if lang_lower == "xml":
-        return _validate_xml(content)
-    if lang_lower == "python":
-        return _validate_python(content)
-    if lang_lower == "sql":
-        return _validate_sql(content)
-
-    return [f"Unknown docstring language: {lang}"]
+    validator = globals().get(f"_validate_{lang_lower}")
+    if validator is None:
+        return [f"Unknown docstring language: {lang}"]
+    return validator(content)
 
 
 def _validate_json(content: str) -> list[str]:
@@ -55,68 +51,18 @@ def _validate_python(content: str) -> list[str]:
     return errors
 
 
-def _balance_check(
-    content: str,
-    open_chars: str,
-    close_chars: str,
-    lang_name: str,
-) -> list[str]:
-    """Check that bracket/brace counts are balanced. Returns list of errors."""
-    errors: list[str] = []
-    if len(open_chars) != len(close_chars):
-        return errors
-    stack: list[tuple[str, int]] = []
-    line = 1
-    col = 0
-    i = 0
-    in_single = False
-    in_double = False
-    escape = False
-    while i < len(content):
-        c = content[i]
-        if escape:
-            escape = False
-            i += 1
-            col += 1
-            continue
-        if c == "\\" and (in_single or in_double):
-            escape = True
-            i += 1
-            col += 1
-            continue
-        if not in_single and not in_double:
-            if c == "'" and (i == 0 or content[i - 1] != "\\"):
-                in_single = True
-            elif c == '"':
-                in_double = True
-            elif c in open_chars:
-                idx = open_chars.index(c)
-                stack.append((close_chars[idx], line))
-            elif c in close_chars:
-                if not stack:
-                    errors.append(f"{lang_name}: unexpected closing '{c}' at line {line}, column {col}")
-                    return errors
-                expected, _ = stack.pop()
-                if c != expected:
-                    errors.append(f"{lang_name}: mismatched bracket at line {line} (expected '{expected}', got '{c}')")
-                    return errors
-        elif c == "'" and in_single:
-            in_single = False
-        elif c == '"' and in_double:
-            in_double = False
-        if c == "\n":
-            line += 1
-            col = 0
-        else:
-            col += 1
-        i += 1
-    if in_single or in_double:
-        errors.append(f"{lang_name}: unclosed string literal")
-    elif stack:
-        _, open_line = stack[-1]
-        errors.append(f"{lang_name}: unclosed bracket starting at line {open_line}")
-    return errors
-
-
 def _validate_sql(content: str) -> list[str]:
-    return _balance_check(content, "([{", ")]}", "SQL")
+    errors: list[str] = []
+    try:
+        parsed = sqlglot.transpile(content, error_level=sqlglot.ErrorLevel.RAISE)
+    except sqlglot.errors.ParseError as e:
+        for err in e.errors:
+            desc = err.get("description", str(e))
+            line = err.get("line")
+            col = err.get("col")
+            loc = f"line {line}, col {col}: " if line is not None else ""
+            errors.append(f"SQL: {loc}{desc}")
+    if not errors:
+        if not parsed or all(not s.strip() for s in parsed):
+            errors.append("SQL: empty or blank statement")
+    return errors
