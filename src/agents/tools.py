@@ -23,7 +23,7 @@ from src.utils.steps import (
     validate_step_params,
     requires_docstring,
     requires_datatable,
-    PLACEHOLDER_RE,
+    substitute_pattern,
 )
 
 logger = logging.getLogger(__name__)
@@ -376,6 +376,7 @@ def add_background_step(
         pattern=str(step_def.get("pattern", "")),
         placeholders=step_def.get("placeholders", []),
         params=step.params,
+        parser_kind=step_def.get("parser_kind", "parse"),
     )
     set_status(f"Добавляю Background шаг: {keyword_norm} {step_text}")
     _stream_feature_preview(runtime, background_steps=bg_steps)
@@ -586,6 +587,7 @@ def add_step(
         pattern=str(step_def.get("pattern", "")),
         placeholders=step_def.get("placeholders", []),
         params=step.params,
+        parser_kind=step_def.get("parser_kind", "parse"),
     )
     set_status(f"Добавляю шаг: {keyword_norm} {step_text}")
     _stream_feature_preview(runtime, scenarios=scenarios)
@@ -867,6 +869,7 @@ def _render_step_into(
         pattern=str(step_def.get("pattern", "")),
         placeholders=step_def.get("placeholders", []),
         params=step.params,
+        parser_kind=step_def.get("parser_kind", "parse"),
     )
     lines.append(f"{indent}{step.keyword} {step_text}")
 
@@ -887,14 +890,9 @@ def _render_step_into(
 
 def _render_step_text(
     *, pattern: str, placeholders: list[dict[str, Any]], params: dict[str, Any],
+    parser_kind: str = "parse",
 ) -> str:
-    def replace(match: re.Match) -> str:
-        key = match.group("name")
-        val = params[key]
-        if isinstance(val, bool):
-            return "true" if val else "false"
-        return "" if val is None else str(val)
-    return PLACEHOLDER_RE.sub(replace, pattern)
+    return substitute_pattern(pattern, params, parser_kind)
 
 
 def _render_step_preview(step_def: dict[str, Any], step: StepChoice) -> str:
@@ -902,6 +900,7 @@ def _render_step_preview(step_def: dict[str, Any], step: StepChoice) -> str:
         pattern=str(step_def.get("pattern", "")),
         placeholders=step_def.get("placeholders", []),
         params=step.params,
+        parser_kind=step_def.get("parser_kind", "parse"),
     )
     preview = f"{step.keyword} {text}"
     if step.docstring:
