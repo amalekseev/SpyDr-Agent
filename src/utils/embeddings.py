@@ -1,21 +1,139 @@
-import os
+"""Embedding model and PGVector store management.
+
+Supports OpenAI and GigaChat providers.  GigaChat connections use mTLS
+certificates read from environment variables — the same set of env vars
+used by the LLM layer (``GIGACHAT_CERT_FILE``, ``GIGACHAT_KEY_FILE``, etc.).
+"""
+
+from __future__ import annotations
+
 import asyncio
+import inspect
+import os
+from typing import Any
 
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import DistanceStrategy
 
 from src.configs import global_config
 
-if global_config.rag.provider == "openai":
-    from langchain_openai import OpenAIEmbeddings
-    embed_model = OpenAIEmbeddings(**global_config.rag.params)
-elif global_config.rag.provider == "gigachat":
-    from langchain_gigachat import GigaChatEmbeddings
-    embed_model = GigaChatEmbeddings(**global_config.rag.params)
-else:
-    raise ValueError(f"Unsupported embedding provider: {global_config.rag.provider}")
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-_vector_stores: dict[str, PGVector] = {}
+
+def _filter_supported_kwargs(cls: type, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Keep only kwargs accepted by *cls* constructor / Pydantic fields."""
+    if hasattr(cls, "model_fields"):
+        valid = set(cls.model_fields.keys())
+        return {k: v for k, v in kwargs.items() if k in valid}
+    try:
+        sig = inspect.signature(cls.__init__)
+    except (TypeError, ValueError):
+        return kwargs
+    params = sig.parameters
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+        return kwargs
+    valid = set(params.keys()) - {"self"}
+    return {k: v for k, v in kwargs.items() if k in valid}
+
+
+def _build_gigachat_embeddings(**config_params: Any) -> Any:
+    """Create :class:`GigaChatEmbeddings` with mTLS certs from env vars.
+
+    Environment variables (same as for the chat model):
+        ``GIGACHAT_AUTH_URL``, ``GIGACHAT_BASE_URL``,
+        ``GIGACHAT_VERIFY_SSL_CERTS``, ``GIGACHAT_CA_BUNDLE_FILE``,
+        ``GIGACHAT_TIMEOUT``,
+        ``GIGACHAT_CERT_FILE`` (or ``GIGACHAT_CLIENT_CERT_FILE``),
+        ``GIGACHAT_KEY_FILE``  (or ``GIGACHAT_CLIENT_KEY_FILE``),
+        ``GIGACHAT_KEY_PASSWORD`` (or ``GIGACHAT_KEY_FILE_PASSWORD``).
+    """
+    from langchain_gigachat import GigaChatEmbeddings
+
+    kwargs: dict[str, Any] = dict(config_params)
+
+    # --- scalar env vars ---
+    env_map: dict[str, str] = {
+        "GIGACHAT_AUTH_URL": "auth_url",
+        "GIGACHAT_BASE_URL": "base_url",
+        "GIGACHAT_VERIFY_SSL_CERTS": "verify_ssl_certs",
+        "GIGACHAT_CA_BUNDLE_FILE": "ca_bundle_file",
+        "GIGACHAT_TIMEOUT": "timeout",
+    }
+    for env_name, arg_name in env_map.items():
+        val = os.getenv(env_name, "").strip()
+        if not val:
+            continue
+        if arg_name == "verify_ssl_certs":
+            kwargs[arg_name] = val.lower() in {"1", "true", "yes", "on"}
+        elif arg_name == "timeout":
+            try:
+                kwargs[arg_name] = float(val)
+            except ValueError:
+                continue
+        else:
+            kwargs[arg_name] = val
+
+    # --- mTLS certificates ---
+    cert_file = (
+        os.getenv("GIGACHAT_CERT_FILE")
+        or os.getenv("GIGACHAT_CLIENT_CERT_FILE")
+        or ""
+    ).strip()
+    key_file = (
+        os.getenv("GIGACHAT_KEY_FILE")
+        or os.getenv("GIGACHAT_CLIENT_KEY_FILE")
+        or ""
+    ).strip()
+    key_password = (
+        os.getenv("GIGACHAT_KEY_PASSWORD")
+        or os.getenv("GIGACHAT_KEY_FILE_PASSWORD")
+        or ""
+    ).strip()
+
+    if not cert_file or not key_file:
+        raise ValueError(
+            "Для GigaChat (mTLS) задайте GIGACHAT_CERT_FILE и GIGACHAT_KEY_FILE "
+            "(или алиасы GIGACHAT_CLIENT_CERT_FILE / GIGACHAT_CLIENT_KEY_FILE)."
+        )
+
+    kwargs["cert_file"] = cert_file
+    kwargs["key_file"] = key_file
+    if key_password:
+        kwargs["key_file_password"] = key_password
+
+    kwargs = _filter_supported_kwargs(GigaChatEmbeddings, kwargs)
+    return GigaChatEmbeddings(**kwargs)
+
+
+# ---------------------------------------------------------------------------
+# Embedding model singleton
+# ---------------------------------------------------------------------------
+
+
+def _build_embed_model() -> Any:
+    """Instantiate the embedding model based on ``rag.provider`` config."""
+    provider = global_config.rag.provider
+    params = dict(global_config.rag.get("params", {}))
+
+    if provider == "openai":
+        from langchain_openai import OpenAIEmbeddings
+        return OpenAIEmbeddings(**params)
+
+    if provider == "gigachat":
+        return _build_gigachat_embeddings(**params)
+
+    raise ValueError(f"Unsupported embedding provider: {provider}")
+
+
+embed_model = _build_embed_model()
+
+# ---------------------------------------------------------------------------
+# PGVector store cache
+# ---------------------------------------------------------------------------
+
+_vector_stores: dict[str, tuple[PGVector, asyncio.AbstractEventLoop]] = {}
 _bound_loop: asyncio.AbstractEventLoop | None = None
 _lock: asyncio.Lock | None = None
 
