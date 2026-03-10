@@ -1,9 +1,9 @@
 steps_dir: gherkin/tests/steps
 
 rag:
-  provider: openai
+  provider: openai          # openai | gigachat
   params:
-    model: text-embedding-3-large
+    model: text-embedding-3-large  # gigachat: Embeddings
 
   steps:
     collection_name: bdd_steps

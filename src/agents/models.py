@@ -33,6 +33,7 @@ class ScenarioDraft(BaseModel):
     name: str
     tags: list[str] = Field(default_factory=list)
     steps: list[StepChoice] = Field(default_factory=list)
+    examples: list[list[str]] | None = None
 
 
 class AgentState(MessagesState):

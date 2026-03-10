@@ -101,18 +101,11 @@ def _step_to_document(step: dict[str, Any]) -> Document:
     else:
         type_str = str(step_type)
 
-    # Serialize placeholders as JSON string for PGVector JSON-B storage.
-    raw_placeholders = step.get("placeholders", [])
-    if isinstance(raw_placeholders, list):
-        placeholders_str = json.dumps(raw_placeholders, ensure_ascii=False)
-    else:
-        placeholders_str = str(raw_placeholders)
-
     metadata: dict[str, Any] = {
         "step_id": step["step_id"],
         "step_type": type_str,
         "pattern": step["pattern"],
-        "placeholders": placeholders_str,
+        "placeholders": step.get("placeholders", []),
         "parser_kind": step.get("parser_kind", "parse"),
         "docstring": step.get("docstring") or "",
         "source_file": step.get("source_file") or "",

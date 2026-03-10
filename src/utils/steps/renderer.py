@@ -29,6 +29,7 @@ class ScenarioLike(Protocol):
     name: str
     tags: list[str]
     steps: Sequence[StepLike]
+    examples: list[list[str]] | None
 
 
 class FeatureLike(Protocol):
@@ -64,9 +65,12 @@ def render_feature_from_plan(
     lines.append("")
 
     for scenario in feature_plan.scenarios:
+        has_examples = scenario.examples and len(scenario.examples) >= 2
+        scenario_keyword = "Scenario Outline" if has_examples else "Scenario"
+
         if scenario.tags:
             lines.append("  " + " ".join(scenario.tags))
-        lines.append(f"  Scenario: {scenario.name}")
+        lines.append(f"  {scenario_keyword}: {scenario.name}")
 
         for chosen_step in scenario.steps:
             metrics["rag_steps_total"] += 1
@@ -115,6 +119,12 @@ def render_feature_from_plan(
                         f"Шаг '{chosen_step.step_id}' требует docstring "
                         f"(по сигнатуре step-функции/паттерну). Обязательно передай docstring."
                     )
+
+        if has_examples:
+            lines.append("")
+            lines.append("    Examples:")
+            lines.extend(_render_datatable_block(scenario.examples, indent="      "))
+
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n", metrics
@@ -172,7 +182,7 @@ def _render_docstring_block(docstring: str) -> list[str]:
     return lines
 
 
-def _render_datatable_block(datatable: list[list[str]]) -> list[str]:
+def _render_datatable_block(datatable: list[list[str]], indent: str = "      ") -> list[str]:
     """Render a Gherkin datatable (pipe-delimited) with step indentation."""
     if not datatable:
         return []
@@ -189,7 +199,7 @@ def _render_datatable_block(datatable: list[list[str]]) -> list[str]:
         for col_idx in range(num_cols):
             cell = row[col_idx] if col_idx < len(row) else ""
             cells.append(f" {cell:<{col_widths[col_idx]}} ")
-        lines.append("      |" + "|".join(cells) + "|")
+        lines.append(f"{indent}|" + "|".join(cells) + "|")
     return lines
 
 

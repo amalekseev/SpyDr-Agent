@@ -33,18 +33,17 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _parse_json_obj(raw: Optional[str]) -> dict[str, Any]:
-    """Parse a JSON string into a dict. Returns {} for None/empty."""
-    if not raw or not raw.strip():
-        return {}
-    return json.loads(raw)
-
-
-def _parse_json_table(raw: Optional[str]) -> list[list[str]] | None:
-    """Parse a JSON string into list[list[str]]. Returns None for None/empty."""
-    if not raw or not raw.strip():
-        return None
-    return json.loads(raw)
+def _validate_examples_table(table: list[list[str]]) -> str | None:
+    """Validate Examples table structure. Returns error string or None."""
+    if len(table) < 2:
+        return ("Таблица Examples должна содержать минимум 2 строки: "
+                "заголовок (названия колонок) и хотя бы одну строку данных.")
+    header_len = len(table[0])
+    for ri, row in enumerate(table[1:], start=1):
+        if len(row) != header_len:
+            return (f"Строка {ri} содержит {len(row)} столбцов, "
+                    f"а заголовок — {header_len}. Все строки должны иметь одинаковое количество столбцов.")
+    return None
 
 
 def _cmd(runtime: ToolRuntime, content: str, **state_updates) -> Command:
@@ -198,12 +197,16 @@ def add_scenario(
     runtime: ToolRuntime,
     name: str,
     tags: Optional[list[str]] = None,
+    examples: Optional[list[list[str]]] = None,
 ) -> Command:
-    """Добавить новый сценарий в Feature.
+    """Добавить новый сценарий в Feature. Если передан examples, сценарий становится Scenario Outline.
 
     Args:
         name: Название сценария (на русском).
         tags: Список тегов сценария. Необязательно.
+        examples: Таблица Examples. Первая строка — заголовки (названия колонок),
+                  остальные — данные. Например: [["name","request"],["type_a","req_a.json"]].
+                  При наличии сценарий рендерится как Scenario Outline. Необязательно.
 
     Returns:
         JSON с индексом нового сценария.
@@ -211,7 +214,13 @@ def add_scenario(
     set_status(f"Добавляю сценарий «{name.strip()[:50]}»…")
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
     norm_tags = [t if t.startswith("@") else f"@{t}" for t in tags] if tags else []
-    scenario = ScenarioDraft(name=name.strip(), tags=norm_tags)
+
+    if examples:
+        err = _validate_examples_table(examples)
+        if err:
+            return _cmd(runtime, json.dumps({"ok": False, "error": err}, ensure_ascii=False))
+
+    scenario = ScenarioDraft(name=name.strip(), tags=norm_tags, examples=examples or None)
     scenarios.append(scenario)
     idx = len(scenarios) - 1
 
@@ -231,14 +240,17 @@ def edit_scenario(
     scenario_index: int,
     name: Optional[str] = None,
     tags: Optional[list[str]] = None,
+    examples: Optional[list[list[str]]] = None,
 ) -> Command:
-    """Редактировать метаданные существующего сценария (название и/или теги).
-    Обновляются только переданные поля.
+    """Редактировать метаданные существующего сценария. Обновляются только переданные поля.
+    Для удаления Examples передай пустой массив [].
 
     Args:
         scenario_index: Индекс сценария (начиная с 0).
         name: Новое название сценария. Необязательно.
         tags: Новый список тегов сценария. Необязательно.
+        examples: Таблица Examples или [] для удаления.
+                  Первая строка — заголовки, остальные — данные. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
@@ -258,6 +270,14 @@ def edit_scenario(
         scenario.name = name.strip()
     if tags is not None:
         scenario.tags = [t if t.startswith("@") else f"@{t}" for t in tags]
+    if examples is not None:
+        if not examples:
+            scenario.examples = None
+        else:
+            err = _validate_examples_table(examples)
+            if err:
+                return _cmd(runtime, json.dumps({"ok": False, "error": err}, ensure_ascii=False))
+            scenario.examples = examples
 
     set_status(f"Обновляю сценарий {scenario_index}: «{scenario.name[:50]}»…")
     _stream_feature_preview(runtime, scenarios=scenarios)
@@ -315,27 +335,26 @@ def add_background_step(
     runtime: ToolRuntime,
     keyword: str,
     step_id: str,
-    params: Optional[str] = None,
+    params: Optional[dict[str, Any]] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[str] = None,
+    datatable: Optional[list[list[str]]] = None,
 ) -> Command:
     """Добавить шаг в блок Background. Background-шаги выполняются перед каждым сценарием.
 
     Args:
         keyword: Ключевое слово Gherkin: Given, When, Then, And, But.
         step_id: Идентификатор шага из каталога (например "S-1").
-        params: JSON-объект со значениями плейсхолдеров, например '{"url": "https://..."}'. Необязательно.
+        params: Значения плейсхолдеров, например {"url": "https://..."}. Необязательно.
         docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
         docstring_lang: Язык содержимого docstring для статической валидации. Необязательно.
-        datatable: JSON-массив строк таблицы, например '[["col1","col2"],["val1","val2"]]'. Обязателен если requires_datatable=true.
+        datatable: Таблица данных, например [["col1","col2"],["val1","val2"]]. Обязателен если requires_datatable=true.
 
     Returns:
         JSON с подтверждением и отрендеренным текстом шага, или ошибка валидации.
     """
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
-    params = _parse_json_obj(params)
-    datatable = _parse_json_table(datatable)
+    params = params or {}
 
     step_def = get_step_def(step_id)
     if step_def is None:
@@ -397,10 +416,10 @@ def edit_background_step(
     step_index: int,
     keyword: Optional[str] = None,
     step_id: Optional[str] = None,
-    params: Optional[str] = None,
+    params: Optional[dict[str, Any]] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[str] = None,
+    datatable: Optional[list[list[str]]] = None,
 ) -> Command:
     """Редактировать существующий шаг в блоке Background. Обновляются только переданные поля.
 
@@ -408,17 +427,15 @@ def edit_background_step(
         step_index: Индекс шага внутри Background.
         keyword: Новое ключевое слово (Given/When/Then/And/But). Необязательно.
         step_id: Новый step_id. Необязательно.
-        params: JSON-объект с новыми параметрами. Необязательно.
+        params: Новые параметры. Необязательно.
         docstring: Новый docstring. Необязательно.
         docstring_lang: Язык docstring для валидации. Необязательно.
-        datatable: JSON-массив строк новой таблицы. Необязательно.
+        datatable: Новая таблица данных. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
     """
     set_status(f"Редактирую Background шаг {step_index}…")
-    parsed_params = _parse_json_obj(params) if params is not None else None
-    parsed_datatable = _parse_json_table(datatable) if datatable is not None else None
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
 
     if step_index < 0 or step_index >= len(bg_steps):
@@ -440,10 +457,10 @@ def edit_background_step(
         new_keyword = kw
 
     new_step_id = step_id if step_id is not None else cur.step_id
-    new_params = parsed_params if parsed_params is not None else cur.params
+    new_params = params if params is not None else cur.params
     new_docstring = docstring if docstring is not None else cur.docstring
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
-    new_datatable = parsed_datatable if parsed_datatable is not None else cur.datatable
+    new_datatable = datatable if datatable is not None else cur.datatable
 
     sdef = get_step_def(new_step_id)
     if sdef is None:
@@ -518,10 +535,10 @@ def add_step(
     scenario_index: int,
     keyword: str,
     step_id: str,
-    params: Optional[str] = None,
+    params: Optional[dict[str, Any]] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[str] = None,
+    datatable: Optional[list[list[str]]] = None,
 ) -> Command:
     """Добавить шаг в сценарий. Валидирует step_id, параметры, docstring/datatable.
 
@@ -529,17 +546,16 @@ def add_step(
         scenario_index: Индекс сценария (начиная с 0).
         keyword: Ключевое слово Gherkin: Given, When, Then, And, But.
         step_id: Идентификатор шага из каталога (например "S-1").
-        params: JSON-объект со значениями плейсхолдеров, например '{"url": "https://..."}'. Необязательно.
+        params: Значения плейсхолдеров, например {"url": "https://..."}. Необязательно.
         docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
         docstring_lang: Язык содержимого docstring для статической валидации. Допустимые значения из конфига (например python, json, xml, sql). Необязательно.
-        datatable: JSON-массив строк таблицы, например '[["col1","col2"],["val1","val2"]]'. Обязателен если requires_datatable=true.
+        datatable: Таблица данных, например [["col1","col2"],["val1","val2"]]. Обязателен если requires_datatable=true.
 
     Returns:
         JSON с подтверждением и отрендеренным текстом шага, или ошибка валидации.
     """
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
-    params = _parse_json_obj(params)
-    datatable = _parse_json_table(datatable)
+    params = params or {}
 
     if scenario_index < 0 or scenario_index >= len(scenarios):
         return _cmd(runtime, json.dumps({
@@ -610,10 +626,10 @@ def edit_step(
     step_index: int,
     keyword: Optional[str] = None,
     step_id: Optional[str] = None,
-    params: Optional[str] = None,
+    params: Optional[dict[str, Any]] = None,
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
-    datatable: Optional[str] = None,
+    datatable: Optional[list[list[str]]] = None,
 ) -> Command:
     """Редактировать существующий шаг. Обновляются только переданные поля.
 
@@ -622,17 +638,15 @@ def edit_step(
         step_index: Индекс шага внутри сценария.
         keyword: Новое ключевое слово (Given/When/Then/And/But). Необязательно.
         step_id: Новый step_id. Необязательно.
-        params: JSON-объект с новыми параметрами. Необязательно.
+        params: Новые параметры. Необязательно.
         docstring: Новый docstring. Необязательно.
         docstring_lang: Язык docstring для валидации (python, json, xml, sql из конфига). Необязательно.
-        datatable: JSON-массив строк новой таблицы. Необязательно.
+        datatable: Новая таблица данных. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
     """
     set_status(f"Редактирую шаг {step_index} в сценарии {scenario_index}…")
-    parsed_params = _parse_json_obj(params) if params is not None else None
-    parsed_datatable = _parse_json_table(datatable) if datatable is not None else None
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
 
     if scenario_index < 0 or scenario_index >= len(scenarios):
@@ -660,10 +674,10 @@ def edit_step(
         new_keyword = kw
 
     new_step_id = step_id if step_id is not None else cur.step_id
-    new_params = parsed_params if parsed_params is not None else cur.params
+    new_params = params if params is not None else cur.params
     new_docstring = docstring if docstring is not None else cur.docstring
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
-    new_datatable = parsed_datatable if parsed_datatable is not None else cur.datatable
+    new_datatable = datatable if datatable is not None else cur.datatable
 
     sdef = get_step_def(new_step_id)
     if sdef is None:
@@ -804,6 +818,21 @@ def generate_feature(runtime: ToolRuntime) -> str:
             for e in validate_step_params(sdef, step.params, step.docstring, step.datatable, step.docstring_lang):
                 all_errors.append(f"Сценарий {si}, шаг {sti}: {e}")
 
+        if scenario.examples is not None:
+            if len(scenario.examples) < 2:
+                all_errors.append(
+                    f"Сценарий {si} ('{scenario.name}'): таблица Examples должна содержать "
+                    f"минимум 2 строки (заголовок + данные)."
+                )
+            else:
+                header_len = len(scenario.examples[0])
+                for ri, row in enumerate(scenario.examples[1:], start=1):
+                    if len(row) != header_len:
+                        all_errors.append(
+                            f"Сценарий {si} ('{scenario.name}'): строка {ri} в Examples "
+                            f"содержит {len(row)} столбцов, а заголовок — {header_len}."
+                        )
+
     if all_errors:
         return json.dumps({
             "ok": False, "errors": all_errors,
@@ -847,12 +876,21 @@ def _render_feature(
         lines.append("")
 
     for scenario in scenarios:
+        has_examples = scenario.examples and len(scenario.examples) >= 2
+        scenario_keyword = "Scenario Outline" if has_examples else "Scenario"
+
         if scenario.tags:
             lines.append("  " + " ".join(scenario.tags))
-        lines.append(f"  Scenario: {scenario.name}")
+        lines.append(f"  {scenario_keyword}: {scenario.name}")
 
         for step in scenario.steps:
             _render_step_into(lines, step, steps_index, indent="    ")
+
+        if has_examples:
+            lines.append("")
+            lines.append("    Examples:")
+            lines.extend(_render_datatable_block(scenario.examples, indent="      "))
+
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
