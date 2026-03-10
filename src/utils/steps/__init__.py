@@ -1,9 +1,9 @@
-"""BDD steps: parsing, indexing, validation, and rendering.
+"""BDD steps: parsing, indexing, validation.
 
 Public API
 ----------
 Singleton access (lazy-loaded from step source files):
-    get_steps_index, get_steps_data, get_step_def, reload_steps
+    get_steps_index, get_step_def, reload_steps
 
 Indexing (async, PGVector):
     reindex_steps
@@ -12,10 +12,7 @@ Validation:
     validate_step_params, requires_docstring, requires_datatable
 
 Parsing primitives (re-exported from ``parser`` sub-module):
-    PLACEHOLDER_RE, REGEX_NAMED_GROUP_RE, substitute_pattern
-
-Rendering (re-exported from ``renderer`` sub-module):
-    render_step_text
+    substitute_pattern
 """
 
 from __future__ import annotations
@@ -26,37 +23,18 @@ from typing import Any
 from src.configs import global_config
 from src.utils.docstring_lint import validate_docstring_content
 
-from .catalog import build_steps_index, format_steps_for_prompt
-from .indexer import reindex_steps
-from .parser import (
-    PLACEHOLDER_RE,
-    REGEX_NAMED_GROUP_RE,
-    parse_steps_directory,
-    substitute_pattern,
-)
-from .renderer import render_step_text
+from .catalog import build_steps_index
+from .parser import parse_steps_directory, substitute_pattern
 
 __all__ = [
-    # Singleton
     "get_step_def",
-    "get_steps_data",
     "get_steps_index",
     "reload_steps",
-    # Indexing
     "reindex_steps",
-    # Validation
     "requires_datatable",
     "requires_docstring",
     "validate_step_params",
-    # Parser re-exports
-    "PLACEHOLDER_RE",
-    "REGEX_NAMED_GROUP_RE",
     "substitute_pattern",
-    # Catalog re-exports
-    "build_steps_index",
-    "format_steps_for_prompt",
-    # Renderer re-exports
-    "render_step_text",
 ]
 
 # ---------------------------------------------------------------------------
@@ -96,13 +74,6 @@ def reload_steps() -> None:
     _steps_data = None
     _steps_index = None
     _ensure_loaded()
-
-
-def get_steps_data() -> dict[str, Any]:
-    """Return the full parsed steps dictionary."""
-    _ensure_loaded()
-    assert _steps_data is not None
-    return _steps_data
 
 
 def get_steps_index() -> dict[str, dict[str, Any]]:
