@@ -197,16 +197,12 @@ def add_scenario(
     runtime: ToolRuntime,
     name: str,
     tags: Optional[list[str]] = None,
-    examples: Optional[list[list[str]]] = None,
 ) -> Command:
-    """Добавить новый сценарий в Feature. Если передан examples, сценарий становится Scenario Outline.
+    """Добавить новый сценарий в Feature.
 
     Args:
         name: Название сценария (на русском).
         tags: Список тегов сценария. Необязательно.
-        examples: Таблица Examples. Первая строка — заголовки (названия колонок),
-                  остальные — данные. Например: [["name","request"],["type_a","req_a.json"]].
-                  При наличии сценарий рендерится как Scenario Outline. Необязательно.
 
     Returns:
         JSON с индексом нового сценария.
@@ -215,12 +211,7 @@ def add_scenario(
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
     norm_tags = [t if t.startswith("@") else f"@{t}" for t in tags] if tags else []
 
-    if examples:
-        err = _validate_examples_table(examples)
-        if err:
-            return _cmd(runtime, json.dumps({"ok": False, "error": err}, ensure_ascii=False))
-
-    scenario = ScenarioDraft(name=name.strip(), tags=norm_tags, examples=examples or None)
+    scenario = ScenarioDraft(name=name.strip(), tags=norm_tags)
     scenarios.append(scenario)
     idx = len(scenarios) - 1
 
@@ -240,17 +231,14 @@ def edit_scenario(
     scenario_index: int,
     name: Optional[str] = None,
     tags: Optional[list[str]] = None,
-    examples: Optional[list[list[str]]] = None,
 ) -> Command:
-    """Редактировать метаданные существующего сценария. Обновляются только переданные поля.
-    Для удаления Examples передай пустой массив [].
+    """Редактировать метаданные существующего сценария (название, теги). Обновляются только переданные поля.
+    Для управления таблицей Examples используй add_example / remove_example.
 
     Args:
         scenario_index: Индекс сценария (начиная с 0).
         name: Новое название сценария. Необязательно.
         tags: Новый список тегов сценария. Необязательно.
-        examples: Таблица Examples или [] для удаления.
-                  Первая строка — заголовки, остальные — данные. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
@@ -270,14 +258,6 @@ def edit_scenario(
         scenario.name = name.strip()
     if tags is not None:
         scenario.tags = [t if t.startswith("@") else f"@{t}" for t in tags]
-    if examples is not None:
-        if not examples:
-            scenario.examples = None
-        else:
-            err = _validate_examples_table(examples)
-            if err:
-                return _cmd(runtime, json.dumps({"ok": False, "error": err}, ensure_ascii=False))
-            scenario.examples = examples
 
     set_status(f"Обновляю сценарий {scenario_index}: «{scenario.name[:50]}»…")
     _stream_feature_preview(runtime, scenarios=scenarios)
@@ -327,7 +307,133 @@ def remove_scenario(
 
 
 # ---------------------------------------------------------------------------
-# 6. add_background_step
+# 6. add_example
+# ---------------------------------------------------------------------------
+
+@tool
+def add_example(
+    runtime: ToolRuntime,
+    scenario_index: int,
+    examples: list[list[str]],
+) -> Command:
+    """Установить или заменить таблицу Examples для сценария, превращая его в Scenario Outline.
+
+    Args:
+        scenario_index: Индекс сценария (начиная с 0).
+        examples: Таблица Examples. Первая строка — заголовки (названия колонок),
+                  остальные — строки данных.
+                  Например: [["name","request"],["type_a","req_a.json"],["type_b","req_b.json"]].
+
+    Returns:
+        JSON с подтверждением или ошибкой.
+    """
+    scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
+
+    if scenario_index < 0 or scenario_index >= len(scenarios):
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"Сценарий с индексом {scenario_index} не существует. "
+                     f"Доступные индексы: 0..{len(scenarios) - 1}",
+        }, ensure_ascii=False))
+
+    err = _validate_examples_table(examples)
+    if err:
+        return _cmd(runtime, json.dumps({"ok": False, "error": err}, ensure_ascii=False))
+
+    scenario = scenarios[scenario_index]
+    scenario.examples = examples
+
+    set_status(f"Устанавливаю Examples для сценария {scenario_index}: «{scenario.name[:50]}»…")
+    _stream_feature_preview(runtime, scenarios=scenarios)
+
+    content = json.dumps({
+        "ok": True, "scenario_index": scenario_index,
+        "name": scenario.name,
+        "examples_rows": len(examples) - 1,
+    }, ensure_ascii=False)
+    return _cmd(runtime, content, scenarios=scenarios)
+
+
+# ---------------------------------------------------------------------------
+# 7. remove_example
+# ---------------------------------------------------------------------------
+
+@tool
+def remove_example(
+    runtime: ToolRuntime,
+    scenario_index: int,
+    row_index: Optional[int] = None,
+) -> Command:
+    """Удалить таблицу Examples из сценария (или отдельную строку данных).
+    Если после удаления строки остаётся только заголовок — таблица удаляется полностью,
+    и сценарий перестаёт быть Scenario Outline.
+
+    Args:
+        scenario_index: Индекс сценария (начиная с 0).
+        row_index: Индекс строки данных для удаления (начиная с 0, не считая заголовок).
+                   Если не указан — удаляется вся таблица Examples целиком.
+
+    Returns:
+        JSON с подтверждением или ошибкой.
+    """
+    scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
+
+    if scenario_index < 0 or scenario_index >= len(scenarios):
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"Сценарий с индексом {scenario_index} не существует. "
+                     f"Доступные индексы: 0..{len(scenarios) - 1}",
+        }, ensure_ascii=False))
+
+    scenario = scenarios[scenario_index]
+
+    if scenario.examples is None:
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"Сценарий {scenario_index} ('{scenario.name}') не содержит таблицу Examples.",
+        }, ensure_ascii=False))
+
+    if row_index is None:
+        # Remove the entire Examples table
+        scenario.examples = None
+        set_status(f"Удаляю Examples из сценария {scenario_index}: «{scenario.name[:50]}»…")
+        _stream_feature_preview(runtime, scenarios=scenarios)
+        content = json.dumps({
+            "ok": True, "scenario_index": scenario_index,
+            "message": "Таблица Examples удалена полностью.",
+        }, ensure_ascii=False)
+        return _cmd(runtime, content, scenarios=scenarios)
+
+    # Remove a specific data row (row_index is 0-based among data rows, header is examples[0])
+    data_rows_count = len(scenario.examples) - 1
+    if row_index < 0 or row_index >= data_rows_count:
+        return _cmd(runtime, json.dumps({
+            "ok": False,
+            "error": f"Строка данных с индексом {row_index} не существует. "
+                     f"Доступные индексы: 0..{data_rows_count - 1}",
+        }, ensure_ascii=False))
+
+    removed_row = scenario.examples.pop(row_index + 1)  # +1 because [0] is header
+
+    # If only the header remains, remove the whole table
+    if len(scenario.examples) < 2:
+        scenario.examples = None
+        msg = "Строка удалена. Осталась только шапка — таблица Examples удалена полностью."
+    else:
+        msg = f"Строка {row_index} удалена. Осталось строк данных: {len(scenario.examples) - 1}."
+
+    set_status(f"Удаляю строку из Examples сценария {scenario_index}…")
+    _stream_feature_preview(runtime, scenarios=scenarios)
+
+    content = json.dumps({
+        "ok": True, "scenario_index": scenario_index,
+        "removed_row": removed_row, "message": msg,
+    }, ensure_ascii=False)
+    return _cmd(runtime, content, scenarios=scenarios)
+
+
+# ---------------------------------------------------------------------------
+# 8. add_background_step
 # ---------------------------------------------------------------------------
 
 @tool
@@ -1085,6 +1191,8 @@ ALL_TOOLS = [
     add_scenario,
     edit_scenario,
     remove_scenario,
+    add_example,
+    remove_example,
     add_background_step,
     edit_background_step,
     remove_background_step,
