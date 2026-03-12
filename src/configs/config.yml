@@ -16,6 +16,12 @@ rag:
     chunk_size: 1000
     chunk_overlap: 200
 
+projects:
+  # project_alpha:
+  #   custom_steps_dir: /path/to/alpha/custom_steps
+  # project_beta:
+  #   custom_steps_dir: /path/to/beta/custom_steps
+
 docstring:
   supported_langs:
     - python

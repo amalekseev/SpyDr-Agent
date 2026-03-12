@@ -18,8 +18,7 @@ from src.utils.streaming import set_status, stream_artifact, stream_text
 from src.utils.embeddings import get_vector_store, embed_model
 from src.agents.models import ScenarioDraft, StepChoice
 from src.utils.steps import (
-    get_step_def,
-    get_steps_index,
+    get_custom_collection_name,
     validate_step_params,
     requires_docstring,
     requires_datatable,
@@ -32,6 +31,14 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _get_project_id(runtime: ToolRuntime) -> str | None:
+    """Extract active project_id from configurable (session-level setting)."""
+    configurable = (runtime.config or {}).get("configurable") or {}
+    pid = configurable.get("project_id") or ""
+    return pid.strip() or None
+
+
 
 def _validate_examples_table(table: list[list[str]]) -> str | None:
     """Validate Examples table structure. Returns error string or None."""
@@ -75,10 +82,8 @@ def _stream_feature_preview(runtime: ToolRuntime, **overrides: Any) -> None:
         logger.debug("_stream_feature_preview: no title, skipping")
         return
 
-    steps_index = get_steps_index()
-
     try:
-        feature_text = _render_feature(title, tags, bg_steps, scenarios, steps_index)
+        feature_text = _render_feature(title, tags, bg_steps, scenarios, runtime.state.get("found_steps") or {})
     except Exception as exc:
         logger.warning("_stream_feature_preview: render failed: %s", exc)
         return
@@ -108,8 +113,9 @@ async def search_steps(
         JSON со списком найденных уникальных шагов.
     """
     k = top_k if top_k and top_k > 0 else global_config.rag.steps.top_k
+    project_id = _get_project_id(runtime)
 
-    logger.info("search_steps: queries=%r, top_k=%d", queries, k)
+    logger.info("search_steps: queries=%r, top_k=%d, project=%s", queries, k, project_id)
     set_status(f"Ищу шаги по {len(queries)} запросам…")
 
     try:
@@ -119,17 +125,32 @@ async def search_steps(
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    vector_store = await get_vector_store(global_config.rag.steps.collection_name)
+    # Search default collection
+    default_store = await get_vector_store(global_config.rag.steps.collection_name)
 
-    async def _search_one(embedding: list[float]) -> list[tuple]:
-        return await vector_store.asimilarity_search_with_score_by_vector(
+    # Optionally search custom collection for the active project
+    custom_store = None
+    if project_id:
+        custom_coll = get_custom_collection_name(project_id)
+        try:
+            custom_store = await get_vector_store(custom_coll)
+        except Exception:
+            logger.warning("Custom collection '%s' not available, skipping.", custom_coll)
+
+    async def _search_one(store, embedding: list[float]) -> list[tuple]:
+        return await store.asimilarity_search_with_score_by_vector(
             embedding=embedding, k=k,
         )
 
+    # Build search tasks: default + (optionally) custom for each embedding
+    search_tasks = [_search_one(default_store, emb) for emb in embeddings]
+    if custom_store is not None:
+        search_tasks.extend([_search_one(custom_store, emb) for emb in embeddings])
+
     try:
-        all_results = await asyncio.gather(*[_search_one(emb) for emb in embeddings])
+        all_results = await asyncio.gather(*search_tasks)
     except Exception as e:
-        error_msg = f"Ошибка при поиске в коллекции {global_config.rag.steps.collection_name}: {e}"
+        error_msg = f"Ошибка при поиске шагов: {e}"
         logger.error(error_msg)
         raise ValueError(error_msg)
 
@@ -144,6 +165,7 @@ async def search_steps(
                 "step_id": sid,
                 "type": meta.get("step_type", ""),
                 "pattern": meta.get("pattern", ""),
+                "parser_kind": meta.get("parser_kind", "parse"),
                 "placeholders": meta.get("placeholders", None),
                 "docstring": meta.get("docstring"),
                 "requires_docstring": bool(meta.get("requires_docstring", None)),
@@ -462,14 +484,9 @@ def add_background_step(
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
     params = params or {}
 
-    step_def = get_step_def(step_id)
-    if step_def is None:
-        return _cmd(runtime, json.dumps({
-            "ok": False, "error": f"Шаг с id '{step_id}' не найден в каталоге.",
-        }, ensure_ascii=False))
-
     found = runtime.state.get("found_steps") or {}
-    if step_id not in found:
+    step_def = found.get(step_id)
+    if step_def is None:
         return _cmd(runtime, json.dumps({
             "ok": False,
             "error": f"step_id '{step_id}' не был найден через search_steps. "
@@ -568,10 +585,11 @@ def edit_background_step(
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
     new_datatable = datatable if datatable is not None else cur.datatable
 
-    sdef = get_step_def(new_step_id)
+    found = runtime.state.get("found_steps") or {}
+    sdef = found.get(new_step_id)
     if sdef is None:
         return _cmd(runtime, json.dumps({
-            "ok": False, "error": f"Шаг с id '{new_step_id}' не найден в каталоге.",
+            "ok": False, "error": f"step_id '{new_step_id}' не найден в found_steps. Сначала search_steps.",
         }, ensure_ascii=False))
 
     errors = validate_step_params(sdef, new_params, new_docstring, new_datatable, new_docstring_lang)
@@ -670,14 +688,9 @@ def add_step(
                      f"Доступные индексы: 0..{len(scenarios) - 1}",
         }, ensure_ascii=False))
 
-    step_def = get_step_def(step_id)
-    if step_def is None:
-        return _cmd(runtime, json.dumps({
-            "ok": False, "error": f"Шаг с id '{step_id}' не найден в каталоге.",
-        }, ensure_ascii=False))
-
     found = runtime.state.get("found_steps") or {}
-    if step_id not in found:
+    step_def = found.get(step_id)
+    if step_def is None:
         return _cmd(runtime, json.dumps({
             "ok": False,
             "error": f"step_id '{step_id}' не был найден через search_steps. "
@@ -785,10 +798,11 @@ def edit_step(
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
     new_datatable = datatable if datatable is not None else cur.datatable
 
-    sdef = get_step_def(new_step_id)
+    found = runtime.state.get("found_steps") or {}
+    sdef = found.get(new_step_id)
     if sdef is None:
         return _cmd(runtime, json.dumps({
-            "ok": False, "error": f"Шаг с id '{new_step_id}' не найден в каталоге.",
+            "ok": False, "error": f"step_id '{new_step_id}' не найден в found_steps. Сначала search_steps.",
         }, ensure_ascii=False))
 
     errors = validate_step_params(sdef, new_params, new_docstring, new_datatable, new_docstring_lang)
@@ -896,7 +910,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
     tags: list[str] = state.get("feature_tags", [])
     bg_steps: list[StepChoice] = state.get("background_steps") or []
     scenarios: list[ScenarioDraft] = state.get("scenarios") or []
-    steps_index = get_steps_index()
+    steps_index = state.get("found_steps") or {}
 
     if not title:
         return json.dumps({"ok": False, "error": "Feature title не задан. Вызови set_feature_meta."}, ensure_ascii=False)

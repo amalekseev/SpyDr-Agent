@@ -1,20 +1,13 @@
 """Async indexer: parse step source files and upsert into PGVector.
 
-Usage from code::
+Usage::
 
-    from src.utils.steps.indexer import reindex_steps
-    stats = await reindex_steps()          # full reindex
-    stats = await reindex_steps(force=False)  # skip if collection already has data
-
-Usage from CLI::
-
-    python -m src.scripts.index_steps          # full reindex
-    python -m src.scripts.index_steps --check  # index only if empty
+    stats = await reindex_steps()                              # default steps
+    stats = await reindex_steps(steps_dir=d, collection_name=c, start_id=N)  # custom
 """
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any
@@ -130,34 +123,26 @@ async def reindex_steps(
     *,
     steps_dir: str | None = None,
     collection_name: str | None = None,
+    start_id: int = 1,
     force: bool = True,
     batch_size: int = 50,
 ) -> IndexStats:
     """Parse step source files and upsert them into PGVector.
 
-    Args:
-        steps_dir: Override for the step files directory.
-                   Defaults to ``steps_dir`` from config.
-        collection_name: Override for the PGVector collection name.
-                         Defaults to ``rag.steps.collection_name``.
-        force: If ``True`` (default), clear the collection and reindex
-               from scratch.  If ``False``, skip when data already exists.
-        batch_size: Number of documents to add per batch.
-
-    Returns:
-        :class:`IndexStats` with counts and any errors.
+    *start_id* sets the first counter value for generated step IDs.
+    For custom steps pass ``len(get_steps_index()) + 1`` so numbering
+    continues after the default steps.
     """
     from src.utils.steps import _resolve_steps_dir  # avoid circular at module level
 
+    is_default = steps_dir is None
     stats = IndexStats()
     coll = collection_name or global_config.rag.steps.collection_name
+    resolved_dir = str(_resolve_steps_dir()) if is_default else steps_dir
 
-    # 1. Parse step source files
-    resolved_dir = str(_resolve_steps_dir()) if steps_dir is None else steps_dir
     logger.info("Parsing steps from %s …", resolved_dir)
-
     try:
-        steps_data = parse_steps_directory(resolved_dir)
+        steps_data = parse_steps_directory(resolved_dir, start_id=start_id)
     except (FileNotFoundError, NotADirectoryError) as exc:
         stats.errors.append(str(exc))
         logger.error("Failed to parse steps directory: %s", exc)
@@ -171,39 +156,32 @@ async def reindex_steps(
         logger.warning("No steps found — nothing to index.")
         return stats
 
-    # 2. Refresh the in-memory singleton index
-    from src.utils.steps import reload_steps
-    reload_steps()
-    logger.info("In-memory index reloaded")
+    # Refresh the in-memory default index when re-indexing default steps
+    if is_default:
+        from src.utils.steps import reload_steps
+        reload_steps()
+        logger.info("In-memory index reloaded")
 
-    # 3. Get the vector store
     store = await get_vector_store(coll)
 
-    # 4. Check whether we need to index
     if not force:
         try:
             existing = await store.asimilarity_search("test", k=1)
             if existing:
-                logger.info(
-                    "Collection '%s' already has data and force=False — skipping.",
-                    coll,
-                )
+                logger.info("Collection '%s' already has data — skipping.", coll)
                 stats.skipped = True
                 return stats
         except Exception:
-            pass  # collection might be empty or broken — proceed with indexing
+            pass
 
-    # 5. Clear existing data
     logger.info("Clearing collection '%s' …", coll)
     try:
         await store.adelete_collection()
-        # Re-initialize the collection after clearing.
         store._async_init = False
         await store.__apost_init__()
     except Exception as exc:
         logger.warning("Could not clear collection (may be fresh): %s", exc)
 
-    # 6. Build documents and upsert in batches
     docs: list[Document] = []
     ids: list[str] = []
     for step in all_steps:
@@ -215,24 +193,17 @@ async def reindex_steps(
             logger.error(msg)
             stats.errors.append(msg)
 
-    logger.info("Indexing %d documents into '%s' (batch_size=%d) …", len(docs), coll, batch_size)
-
+    logger.info("Indexing %d documents into '%s' …", len(docs), coll)
     for i in range(0, len(docs), batch_size):
         batch_docs = docs[i : i + batch_size]
         batch_ids = ids[i : i + batch_size]
         try:
             await store.aadd_documents(batch_docs, ids=batch_ids)
             stats.indexed += len(batch_docs)
-            logger.info("  batch %d–%d indexed (%d/%d)", i, i + len(batch_docs), stats.indexed, len(docs))
         except Exception as exc:
             msg = f"Error indexing batch {i}–{i + len(batch_docs)}: {exc}"
             logger.error(msg)
             stats.errors.append(msg)
 
-    logger.info(
-        "Indexing complete: %d parsed, %d indexed, %d errors",
-        stats.parsed,
-        stats.indexed,
-        len(stats.errors),
-    )
+    logger.info("Done: %d parsed, %d indexed, %d errors", stats.parsed, stats.indexed, len(stats.errors))
     return stats

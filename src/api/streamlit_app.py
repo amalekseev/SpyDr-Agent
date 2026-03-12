@@ -6,15 +6,39 @@ from langchain_core.messages import AIMessage
 
 from src.api.dependencies import agent
 from src.api.models import AgentResponse
+from src.configs import global_config
 from src.utils.streaming import langgraph_event_map
 
 _CUSTOM_META_TYPES = {"text", "artifact"}
 
+# ---------------------------------------------------------------------------
+# Project helpers
+# ---------------------------------------------------------------------------
+
+_NO_PROJECT = "(без проекта)"
+
+
+def _available_projects() -> list[str]:
+    """Return project names from config (may be empty)."""
+    projects = global_config.get("projects") or {}
+    return list(projects.keys())
+
+
+# ---------------------------------------------------------------------------
+# Streaming
+# ---------------------------------------------------------------------------
+
 
 async def _astream_agent_response(user_text: str) -> AsyncGenerator[AgentResponse, None]:
     """Stream agent events using graph.astream and normalize to AgentResponse."""
-    graph_input = {"messages": [{"role": "user", "content": user_text}]}
-    graph_config = {"configurable": {"thread_id": st.session_state.thread_id}}
+    graph_input: dict = {"messages": [{"role": "user", "content": user_text}]}
+
+    graph_config = {
+        "configurable": {
+            "thread_id": st.session_state.thread_id,
+            "project_id": st.session_state.get("project_id") or "",
+        },
+    }
 
     async for namespace, event, (chunk, meta) in agent.graph.astream(
         graph_input,
@@ -58,6 +82,10 @@ async def _astream_text(
     status_placeholder.empty()
 
 
+# ---------------------------------------------------------------------------
+# Page config & session state init
+# ---------------------------------------------------------------------------
+
 st.set_page_config(
     page_title="SpyDR Agent", page_icon="🕷️",
     initial_sidebar_state="auto",
@@ -71,8 +99,32 @@ if "thread_id" not in st.session_state:
     st.session_state.thread_id = str(uuid.uuid4())
 if "last_artifact" not in st.session_state:
     st.session_state.last_artifact = ""
+if "project_id" not in st.session_state:
+    st.session_state.project_id = ""
+
+# ---------------------------------------------------------------------------
+# Sidebar
+# ---------------------------------------------------------------------------
 
 with st.sidebar:
+    # --- Project selector ---
+    projects = _available_projects()
+    if projects:
+        options = [_NO_PROJECT] + projects
+        current = st.session_state.project_id
+        default_idx = options.index(current) if current in options else 0
+
+        selected = st.selectbox("Проект", options, index=default_idx)
+        chosen_project = "" if selected == _NO_PROJECT else selected
+
+        # If user changed the project, reset the session
+        if chosen_project != st.session_state.project_id:
+            st.session_state.project_id = chosen_project
+            st.session_state.messages = []
+            st.session_state.thread_id = str(uuid.uuid4())
+            st.session_state.last_artifact = ""
+            st.rerun()
+
     st.subheader("Feature")
     artifact_slot = st.empty()    
     artifact_slot.markdown(

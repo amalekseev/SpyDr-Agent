@@ -63,8 +63,8 @@ class StepIdCounter:
         self._next = start
 
     def next_id(self, step_type: str) -> str:
-        prefix = STEP_TYPE_PREFIX.get(step_type.lower(), step_type[0].upper())
-        step_id = f"{prefix}-{self._next}"
+        type_prefix = STEP_TYPE_PREFIX.get(step_type.lower(), step_type[0].upper())
+        step_id = f"{type_prefix}-{self._next}"
         self._next += 1
         return step_id
 
@@ -369,8 +369,15 @@ def parse_steps_file(
     return steps
 
 
-def parse_steps_directory(directory_path: str) -> dict:
-    """Parse all Python files in a directory and aggregate step stats."""
+def parse_steps_directory(directory_path: str, *, start_id: int = 1) -> dict:
+    """Parse all Python files in a directory and aggregate step stats.
+
+    Args:
+        directory_path: Filesystem path to the directory with step files.
+        start_id: First counter value for generated step IDs (default 1).
+                  Pass a higher value so custom steps continue numbering
+                  after default steps.
+    """
     directory = Path(directory_path)
     if not directory.exists():
         raise FileNotFoundError(f"Директория не найдена: {directory_path}")
@@ -384,7 +391,7 @@ def parse_steps_directory(directory_path: str) -> dict:
         "steps": [],
     }
 
-    counter = StepIdCounter()
+    counter = StepIdCounter(start=start_id)
     for py_file in sorted(directory.glob("*.py")):
         file_steps = parse_steps_file(str(py_file), counter=counter)
         if not file_steps:

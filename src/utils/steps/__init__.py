@@ -1,22 +1,8 @@
-"""BDD steps: parsing, indexing, validation.
-
-Public API
-----------
-Singleton access (lazy-loaded from step source files):
-    get_steps_index, get_step_def, reload_steps
-
-Indexing (async, PGVector):
-    reindex_steps
-
-Validation:
-    validate_step_params, requires_docstring, requires_datatable
-
-Parsing primitives (re-exported from ``parser`` sub-module):
-    substitute_pattern
-"""
+"""BDD steps: parsing, indexing, validation."""
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -35,10 +21,13 @@ __all__ = [
     "requires_docstring",
     "validate_step_params",
     "substitute_pattern",
+    "get_custom_collection_name",
 ]
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
-# Singleton: lazy-loaded step index
+# Default step index (singleton, lazy-loaded)
 # ---------------------------------------------------------------------------
 
 _steps_data: dict[str, Any] | None = None
@@ -46,16 +35,10 @@ _steps_index: dict[str, dict[str, Any]] | None = None
 
 
 def _resolve_steps_dir() -> Path:
-    """Return the absolute path to the BDD step-definition directory.
-
-    Uses ``steps_dir`` from ``config.yml`` (relative to project root) or
-    falls back to ``gherkin/tests/steps``.
-    """
     configured = global_config.get("steps_dir", "gherkin/tests/steps")
     steps_dir = Path(configured)
     if not steps_dir.is_absolute():
-        project_root = Path(__file__).resolve().parents[3]
-        steps_dir = project_root / steps_dir
+        steps_dir = Path(__file__).resolve().parents[3] / steps_dir
     return steps_dir
 
 
@@ -63,28 +46,50 @@ def _ensure_loaded() -> None:
     global _steps_data, _steps_index
     if _steps_index is not None:
         return
-    steps_dir = _resolve_steps_dir()
-    _steps_data = parse_steps_directory(str(steps_dir))
+    _steps_data = parse_steps_directory(str(_resolve_steps_dir()))
     _steps_index = build_steps_index(_steps_data)
 
 
 def reload_steps() -> None:
-    """Force re-parse of step source files (e.g. after directory changes)."""
     global _steps_data, _steps_index
     _steps_data = None
     _steps_index = None
     _ensure_loaded()
 
 
+# ---------------------------------------------------------------------------
+# Per-project helpers (config → path / collection name)
+# ---------------------------------------------------------------------------
+
+
+def _resolve_custom_steps_dir(project_id: str) -> Path | None:
+    projects = global_config.get("projects") or {}
+    cfg = projects.get(project_id)
+    if not cfg:
+        return None
+    raw = cfg.get("custom_steps_dir")
+    if not raw:
+        return None
+    p = Path(raw)
+    return p if p.is_absolute() else Path(__file__).resolve().parents[3] / p
+
+
+def get_custom_collection_name(project_id: str) -> str:
+    return f"{global_config.rag.steps.collection_name}_custom_{project_id}"
+
+
+# ---------------------------------------------------------------------------
+# Index access
+# ---------------------------------------------------------------------------
+
+
 def get_steps_index() -> dict[str, dict[str, Any]]:
-    """Return the step-id → step-def lookup index."""
     _ensure_loaded()
     assert _steps_index is not None
     return _steps_index
 
 
 def get_step_def(step_id: str) -> dict[str, Any] | None:
-    """Look up a single step definition by its id."""
     return get_steps_index().get(step_id)
 
 
