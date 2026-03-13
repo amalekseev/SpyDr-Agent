@@ -32,14 +32,6 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _get_project_id(runtime: ToolRuntime) -> str | None:
-    """Extract active project_id from configurable (session-level setting)."""
-    configurable = (runtime.config or {}).get("configurable") or {}
-    pid = configurable.get("project_id") or ""
-    return pid.strip() or None
-
-
-
 def _validate_examples_table(table: list[list[str]]) -> str | None:
     """Validate Examples table structure. Returns error string or None."""
     if len(table) < 2:
@@ -113,7 +105,7 @@ async def search_steps(
         JSON со списком найденных уникальных шагов.
     """
     k = top_k if top_k and top_k > 0 else global_config.rag.steps.top_k
-    project_id = _get_project_id(runtime)
+    project_id = ((runtime.config or {}).get("configurable") or {}).get("project_id", "").strip() or None
 
     logger.info("search_steps: queries=%r, top_k=%d, project=%s", queries, k, project_id)
     set_status(f"Ищу шаги по {len(queries)} запросам…")

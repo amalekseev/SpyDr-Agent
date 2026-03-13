@@ -13,7 +13,6 @@ from .catalog import build_steps_index
 from .parser import parse_steps_directory, substitute_pattern
 
 __all__ = [
-    "get_step_def",
     "get_steps_index",
     "reload_steps",
     "reindex_steps",
@@ -88,9 +87,6 @@ def get_steps_index() -> dict[str, dict[str, Any]]:
     assert _steps_index is not None
     return _steps_index
 
-
-def get_step_def(step_id: str) -> dict[str, Any] | None:
-    return get_steps_index().get(step_id)
 
 
 # ---------------------------------------------------------------------------
