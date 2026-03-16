@@ -29,8 +29,21 @@ from src.utils.steps import (
     get_step_def,
     validate_step_params,
 )
+from src.agents.few_shot_selector import FewShotSelector
 
 logger = logging.getLogger(__name__)
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_few_shot_selector: FewShotSelector | None = None
+
+
+def _get_few_shot_selector() -> FewShotSelector:
+    """Lazy-init singleton for the few-shot selector."""
+    global _few_shot_selector
+    if _few_shot_selector is None:
+        few_shots_dir = _PROJECT_ROOT / global_config.rag.few_shots.few_shots_dir
+        _few_shot_selector = FewShotSelector(few_shots_dir=few_shots_dir)
+    return _few_shot_selector
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +170,16 @@ async def create_plan(
 
     system_prompt = _load_planner_prompt()
 
-    few_shots: list[dict[str, str]] = runtime.state.get("selected_few_shots", [])
+    # --- select few-shots via embedding search ---
+    set_status("Подбираю примеры (few-shots)…")
+    selector = _get_few_shot_selector()
+    try:
+        few_shots: list[dict[str, str]] = await selector.select(user_request)
+    except Exception as exc:
+        logger.warning("create_plan: few-shot selection failed: %s", exc)
+        few_shots = []
+    logger.info("create_plan: selected %d few-shot(s)", len(few_shots))
+
     few_shots_block = ""
     if few_shots:
         parts = []
@@ -208,7 +230,7 @@ async def create_plan(
     logger.info("create_plan: plan generated (%d chars)", len(plan_text))
     set_status("План составлен")
 
-    return _cmd(runtime, plan_text)
+    return _cmd(runtime, plan_text, selected_few_shots=few_shots)
 
 
 # ---------------------------------------------------------------------------

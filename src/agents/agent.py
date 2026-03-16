@@ -14,7 +14,6 @@ from langgraph.config import get_config
 
 from src.agents import config
 from src.agents.base import BaseAgent, build_chat_model
-from src.agents.few_shot_selector import FewShotSelector
 from src.agents.models import AgentState
 from src.agents.tools import ALL_TOOLS
 from src.agents.validator import FeatureValidator
@@ -22,8 +21,6 @@ from src.configs import global_config
 from src.utils.streaming import set_status, stream_text
 
 logger = logging.getLogger(__name__)
-
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class SpydrAgent(BaseAgent):
@@ -44,9 +41,6 @@ class SpydrAgent(BaseAgent):
         self._validator = FeatureValidator(llm=val_llm)
         self._default_max_iterations: int = val_cfg.get("max_iterations", 3)
 
-        few_shots_dir = _PROJECT_ROOT / global_config.rag.few_shots.few_shots_dir
-        self._few_shot_selector = FewShotSelector(few_shots_dir=few_shots_dir)
-
     def _build_graph(self) -> CompiledStateGraph:
         system_prompt = self._build_system_prompt()
 
@@ -59,13 +53,11 @@ class SpydrAgent(BaseAgent):
         )
 
         graph = StateGraph(AgentState)
-        graph.add_node("select_few_shots", self._select_few_shots_node)
         graph.add_node("builder", builder_agent)
         graph.add_node("validate", self._validate_node)
         graph.add_node("inject_feedback", self._inject_feedback_node)
 
-        graph.set_entry_point("select_few_shots")
-        graph.add_edge("select_few_shots", "builder")
+        graph.set_entry_point("builder")
         graph.add_conditional_edges(
             "builder",
             self._route_after_builder,
@@ -83,22 +75,6 @@ class SpydrAgent(BaseAgent):
     # ------------------------------------------------------------------
     # Graph nodes
     # ------------------------------------------------------------------
-
-    async def _select_few_shots_node(self, state: AgentState) -> dict[str, Any]:
-        """Select relevant few-shot examples based on the user request."""
-        user_request = self._extract_user_request(state)
-        if not user_request:
-            logger.warning("select_few_shots_node: no user request found")
-            return {"selected_few_shots": []}
-
-        set_status("Подбираю примеры…")
-        selected = await self._few_shot_selector.select(user_request)
-        logger.info(
-            "select_few_shots_node: selected %d few-shot(s) for request: %s",
-            len(selected), user_request[:120],
-        )
-        set_status(f"Подобрано {len(selected)} примеров")
-        return {"selected_few_shots": selected}
 
     async def _validate_node(self, state: AgentState) -> dict[str, Any]:
         """Run the validator LLM against the current feature."""
