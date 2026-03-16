@@ -6,10 +6,9 @@ embedding-based similarity search.  The script writes a JSON array to
 
 Usage::
 
-    python -m src.scripts.generate_few_shots_index                 # full (re)generation
-    python -m src.scripts.generate_few_shots_index --merge         # add only new files
-    python -m src.scripts.generate_few_shots_index --concurrency 5 # limit parallel calls
-    python -m src.scripts.generate_few_shots_index --dry-run       # preview, don't write
+    python -m src.scripts.generate_few_shots_index           # full (re)generation
+    python -m src.scripts.generate_few_shots_index --merge   # add only new files
+    python -m src.scripts.generate_few_shots_index --dry-run # preview, don't write
 """
 
 from __future__ import annotations
@@ -39,8 +38,7 @@ _PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "few_shot_hook_prom
 
 def _discover_features(few_shots_dir: Path) -> list[Path]:
     """Recursively find all .feature files under *few_shots_dir*."""
-    files = sorted(few_shots_dir.rglob("*.feature"))
-    return files
+    return sorted(few_shots_dir.rglob("*.feature"))
 
 
 def _load_existing_index(index_path: Path) -> list[dict[str, Any]]:
@@ -71,30 +69,17 @@ def _get_llm():
     else:
         llm_params = {"model": "gpt-4.1-mini", "temperature": 0.1}
 
-    # Low temperature for deterministic hook generation
     llm_params.setdefault("temperature", 0.1)
     return build_chat_model(llm_params)
 
 
-async def _generate_hook(
-    llm,
-    prompt: ChatPromptTemplate,
-    feature_content: str,
-    file_rel: str,
-    semaphore: asyncio.Semaphore,
-) -> str:
-    """Call the LLM for a single feature and return the hook text."""
-    async with semaphore:
-        logger.info("  Generating hook for %s …", file_rel)
-        chain = prompt | llm
-        response = await chain.ainvoke({"feature_content": feature_content})
-        hook = response.content.strip()
-        # Strip potential wrapping quotes the LLM might add
-        if (hook.startswith('"') and hook.endswith('"')) or \
-           (hook.startswith("«") and hook.endswith("»")):
-            hook = hook[1:-1].strip()
-        logger.info("  Done: %s (%d chars)", file_rel, len(hook))
-        return hook
+def _clean_hook(hook: str) -> str:
+    """Strip wrapping quotes the LLM might add."""
+    hook = hook.strip()
+    if (hook.startswith('"') and hook.endswith('"')) or \
+       (hook.startswith("«") and hook.endswith("»")):
+        hook = hook[1:-1].strip()
+    return hook
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +91,6 @@ async def _generate(
     index_path: Path,
     *,
     merge: bool = False,
-    concurrency: int = 5,
     dry_run: bool = False,
 ) -> list[dict[str, Any]]:
     """Generate hooks for all .feature files and return the index."""
@@ -117,7 +101,6 @@ async def _generate(
 
     logger.info("Found %d .feature file(s) in %s", len(files), few_shots_dir)
 
-    # Build relative paths (support nested folders)
     file_rels = [str(f.relative_to(few_shots_dir)) for f in files]
 
     # Load existing index for --merge mode
@@ -140,11 +123,11 @@ async def _generate(
         )
 
     # Filter out already indexed files in merge mode
-    to_process: list[tuple[Path, str]] = []
-    for fpath, frel in zip(files, file_rels):
-        if merge and frel in existing_files:
-            continue
-        to_process.append((fpath, frel))
+    to_process: list[tuple[Path, str]] = [
+        (fpath, frel)
+        for fpath, frel in zip(files, file_rels)
+        if not (merge and frel in existing_files)
+    ]
 
     if not to_process:
         logger.info("Nothing new to generate (all files already indexed)")
@@ -153,46 +136,34 @@ async def _generate(
     logger.info("%d file(s) to process", len(to_process))
 
     if dry_run:
-        logger.info("Dry-run mode — printing files that would be processed:")
+        logger.info("Dry-run mode — files that would be processed:")
         for _, frel in to_process:
             logger.info("  %s", frel)
         return existing
 
     # Prepare LLM & prompt
     llm = _get_llm()
-    prompt_text = _load_prompt_template()
-    prompt = ChatPromptTemplate.from_template(prompt_text)
-    semaphore = asyncio.Semaphore(concurrency)
+    prompt = ChatPromptTemplate.from_template(_load_prompt_template())
+    chain = prompt | llm
 
-    # Schedule tasks
-    tasks = []
-    for fpath, frel in to_process:
-        content = fpath.read_text(encoding="utf-8")
-        tasks.append(
-            _generate_hook(llm, prompt, content, frel, semaphore)
-        )
-
-    hooks = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Build new entries
+    # Sequential processing
     new_entries: list[dict[str, Any]] = []
-    for (fpath, frel), hook_or_exc in zip(to_process, hooks):
-        if isinstance(hook_or_exc, BaseException):
-            logger.error("  FAILED %s: %s", frel, hook_or_exc)
+    for i, (fpath, frel) in enumerate(to_process, 1):
+        logger.info("[%d/%d] %s …", i, len(to_process), frel)
+        content = fpath.read_text(encoding="utf-8")
+        try:
+            response = await chain.ainvoke({"feature_content": content})
+            hook = _clean_hook(response.content)
+        except Exception as exc:
+            logger.error("  FAILED: %s", exc)
             continue
-        entry = {
-            "id": next_id,
-            "hook": hook_or_exc,
-            "file": frel,
-        }
-        new_entries.append(entry)
+
+        new_entries.append({"id": next_id, "hook": hook, "file": frel})
         next_id += 1
+        logger.info("  OK (%d chars)", len(hook))
 
     logger.info("Generated %d new hook(s)", len(new_entries))
-
-    # Merge
-    result = existing + new_entries
-    return result
+    return existing + new_entries
 
 
 # ---------------------------------------------------------------------------
@@ -204,29 +175,19 @@ def _parse_args() -> argparse.Namespace:
         description="Генерация few_shots_index.json через LLM.",
     )
     p.add_argument(
-        "--merge",
-        action="store_true",
+        "--merge", action="store_true",
         help="Не пересоздавать хуки для уже проиндексированных файлов.",
     )
     p.add_argument(
-        "--concurrency",
-        type=int,
-        default=5,
-        help="Максимальное число параллельных LLM-вызовов (по умолчанию 5).",
-    )
-    p.add_argument(
-        "--dry-run",
-        action="store_true",
+        "--dry-run", action="store_true",
         help="Только показать файлы для обработки, не вызывать LLM и не писать файл.",
     )
     p.add_argument(
-        "--few-shots-dir",
-        default=None,
+        "--few-shots-dir", default=None,
         help="Путь к директории с .feature файлами (по умолчанию из конфига).",
     )
     p.add_argument(
-        "--output",
-        default=None,
+        "--output", default=None,
         help="Путь к выходному JSON-файлу (по умолчанию из конфига).",
     )
     return p.parse_args()
@@ -244,11 +205,8 @@ async def _main() -> None:
         sys.exit(1)
 
     result = await _generate(
-        few_shots_dir,
-        index_path,
-        merge=args.merge,
-        concurrency=args.concurrency,
-        dry_run=args.dry_run,
+        few_shots_dir, index_path,
+        merge=args.merge, dry_run=args.dry_run,
     )
 
     if args.dry_run:
