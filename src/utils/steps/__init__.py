@@ -14,6 +14,7 @@ from .parser import parse_steps_directory, substitute_pattern
 
 __all__ = [
     "get_steps_index",
+    "get_step_def",
     "reload_steps",
     "reindex_steps",
     "requires_datatable",
@@ -87,6 +88,10 @@ def get_steps_index() -> dict[str, dict[str, Any]]:
     assert _steps_index is not None
     return _steps_index
 
+
+def get_step_def(step_id: str) -> dict[str, Any] | None:
+    """Look up a single step definition by ID. Returns ``None`` if not found."""
+    return get_steps_index().get(step_id)
 
 
 # ---------------------------------------------------------------------------

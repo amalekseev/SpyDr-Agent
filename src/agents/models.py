@@ -43,3 +43,7 @@ class AgentState(MessagesState):
     scenarios: Annotated[list[ScenarioDraft], _last_value]
     found_steps: Annotated[dict[str, dict[str, Any]], _merge_dicts]
     found_docs: Annotated[dict[str, dict[str, Any]], _merge_dicts]
+    selected_few_shots: Annotated[list[dict[str, str]], _last_value]
+    validation_iteration: Annotated[int, _last_value]
+    validation_result_valid: Annotated[bool, _last_value]
+    validation_feedback: Annotated[str, _last_value]

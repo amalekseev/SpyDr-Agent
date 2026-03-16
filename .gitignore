@@ -44,3 +44,4 @@ ENV/
 Thumbs.db
 
 # Project specific
+few_shots/

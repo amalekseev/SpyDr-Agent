@@ -1,4 +1,9 @@
 llm_params:
-  provider: gigachat         # openai | gigachat
-  model: GigaChat-2-Max
+  model: gpt-4.1-mini
   temperature: 0
+
+validation:
+  max_iterations: 3
+  llm_params:
+    model: gpt-4.1-mini
+    temperature: 0

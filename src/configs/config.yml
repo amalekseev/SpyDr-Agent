@@ -1,9 +1,7 @@
-steps_dir: gherkin/tests/steps
-
 rag:
-  provider: openai          # openai | gigachat
+  provider: openai
   params:
-    model: text-embedding-3-large  # gigachat: Embeddings
+    model: text-embedding-3-large
 
   steps:
     collection_name: bdd_steps
@@ -16,11 +14,12 @@ rag:
     chunk_size: 1000
     chunk_overlap: 200
 
-projects:
-  # project_alpha:
-  #   custom_steps_dir: /path/to/alpha/custom_steps
-  # project_beta:
-  #   custom_steps_dir: /path/to/beta/custom_steps
+  few_shots:
+    collection_name: few_shots
+    top_k: 3
+    index_path: src/configs/few_shots_index.json
+    few_shots_dir: few_shots
+    batch_size: 100
 
 docstring:
   supported_langs:

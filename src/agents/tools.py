@@ -6,23 +6,28 @@ import asyncio
 import hashlib
 import json
 import logging
-import re
+from pathlib import Path
 from typing import Any, Optional
 
 from langchain.tools import tool, ToolRuntime
 from langchain.messages import ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import Command
 
 from src.configs import global_config
 from src.utils.streaming import set_status, stream_artifact, stream_text
 from src.utils.embeddings import get_vector_store, embed_model
 from src.agents.models import ScenarioDraft, StepChoice
+from src.agents.utils import (
+    normalize_keyword,
+    render_feature,
+    render_step_preview,
+    render_step_text,
+)
 from src.utils.steps import (
     get_custom_collection_name,
+    get_step_def,
     validate_step_params,
-    requires_docstring,
-    requires_datatable,
-    substitute_pattern,
 )
 
 logger = logging.getLogger(__name__)
@@ -69,19 +74,141 @@ def _stream_feature_preview(runtime: ToolRuntime, **overrides: Any) -> None:
     tags: list[str] = overrides.get("feature_tags", state.get("feature_tags", []))
     bg_steps: list[StepChoice] = overrides.get("background_steps", state.get("background_steps") or [])
     scenarios: list[ScenarioDraft] = overrides.get("scenarios", state.get("scenarios") or [])
+    found_steps: dict[str, dict[str, Any]] = state.get("found_steps") or {}
 
     if not title:
         logger.debug("_stream_feature_preview: no title, skipping")
         return
 
     try:
-        feature_text = _render_feature(title, tags, bg_steps, scenarios, runtime.state.get("found_steps") or {})
+        feature_text = render_feature(title, tags, bg_steps, scenarios, found_steps)
     except Exception as exc:
         logger.warning("_stream_feature_preview: render failed: %s", exc)
         return
 
     logger.info("_stream_feature_preview: streaming artifact (%d chars)", len(feature_text))
     stream_artifact(feature_text)
+
+
+# ---------------------------------------------------------------------------
+# Planner helpers
+# ---------------------------------------------------------------------------
+
+_PROMPTS_DIR = Path(__file__).parent / "prompts"
+_RULES_PATH = Path(__file__).resolve().parents[2] / "RULES.md"
+
+
+def _load_planner_prompt() -> str:
+    return (_PROMPTS_DIR / "planner_prompt.md").read_text(encoding="utf-8")
+
+
+def _load_docs_context() -> str:
+    parts = []
+    for fname in ("docs_hooks.md", "docs_summary.md"):
+        path = _PROMPTS_DIR / fname
+        if path.exists():
+            content = path.read_text(encoding="utf-8").strip()
+            if content:
+                parts.append(content)
+    return "\n\n".join(parts)
+
+
+def _load_user_rules() -> str:
+    if not _RULES_PATH.exists():
+        return ""
+    return _RULES_PATH.read_text(encoding="utf-8").strip()
+
+
+# ---------------------------------------------------------------------------
+# 0. create_plan  (LLM-based planning)
+# ---------------------------------------------------------------------------
+
+def _extract_human_messages(state: dict[str, Any]) -> list[HumanMessage]:
+    """Extract HumanMessage instances from the conversation history."""
+    result: list[HumanMessage] = []
+    for msg in state.get("messages", []):
+        if isinstance(msg, HumanMessage):
+            result.append(msg)
+        elif isinstance(msg, dict) and msg.get("role") == "user":
+            result.append(HumanMessage(content=msg.get("content", "")))
+    return result
+
+
+@tool
+async def create_plan(
+    runtime: ToolRuntime,
+) -> Command:
+    """Составить план сборки Feature-файла. Вызывает отдельную LLM, обогащённую
+    эталонными примерами (few-shots) и документацией проекта.
+    ОБЯЗАТЕЛЬНО вызови этот инструмент ПЕРВЫМ — параметры не нужны,
+    запрос пользователя берётся из истории сообщений автоматически.
+
+    Returns:
+        Текстовый план сборки Feature.
+    """
+    set_status("Составляю план…")
+
+    human_msgs = _extract_human_messages(runtime.state)
+    if not human_msgs:
+        return _cmd(runtime, "Ошибка: не найдено сообщений пользователя в истории.")
+
+    user_request = human_msgs[0].content
+    logger.info("create_plan: building plan for request: %s", user_request[:200])
+
+    system_prompt = _load_planner_prompt()
+
+    few_shots: list[dict[str, str]] = runtime.state.get("selected_few_shots", [])
+    few_shots_block = ""
+    if few_shots:
+        parts = []
+        for fs in few_shots:
+            fname = fs.get("file", fs.get("id", "example"))
+            content = fs.get("content", "")
+            parts.append(f"### {fname}\n```gherkin\n{content}```")
+        few_shots_block = (
+            "## Эталонные примеры (few-shots)\n\n"
+            + "\n\n".join(parts)
+        )
+
+    docs_context = _load_docs_context()
+    docs_block = ""
+    if docs_context:
+        docs_block = f"## Контекст из документации проекта\n\n{docs_context}"
+
+    user_rules = _load_user_rules()
+    rules_block = ""
+    if user_rules:
+        rules_block = f"## Пользовательские правила\n\n{user_rules}"
+
+    sections = [
+        f"## Запрос пользователя\n\n{user_request}",
+        few_shots_block,
+        docs_block,
+        rules_block,
+    ]
+    human_content = "\n\n".join(s for s in sections if s)
+
+    from src.agents import config as agent_config
+    from src.agents.base import build_chat_model
+    llm_params: dict[str, Any] = dict(agent_config.get("llm_params", {}))
+    llm = build_chat_model(llm_params)
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=human_content),
+    ]
+
+    logger.info(
+        "create_plan: calling LLM with %d few-shots, docs=%s, rules=%s",
+        len(few_shots), bool(docs_context), bool(user_rules),
+    )
+    response = await llm.ainvoke(messages)
+    plan_text = response.content
+
+    logger.info("create_plan: plan generated (%d chars)", len(plan_text))
+    set_status("План составлен")
+
+    return _cmd(runtime, plan_text)
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +225,10 @@ async def search_steps(
     Результаты дедуплицируются по step_id и сохраняются в состояние агента.
 
     Args:
-        queries: Список описаний нужных шагов на русском языке.
+        queries: Список семантических описаний нужных действий/проверок на русском языке.
+            Описывай что нужно сделать своими словами (например: «проверить статус-код ответа»,
+            «выполнить SQL-запрос к БД», «кликнуть по кнопке»). НЕ копируй точные названия
+            или паттерны шагов — поиск работает по смыслу, а не по точному совпадению.
         top_k: Количество результатов на каждый запрос (по умолчанию берётся из конфига).
 
     Returns:
@@ -224,7 +354,6 @@ def add_scenario(
     set_status(f"Добавляю сценарий «{name.strip()[:50]}»…")
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
     norm_tags = [t if t.startswith("@") else f"@{t}" for t in tags] if tags else []
-
     scenario = ScenarioDraft(name=name.strip(), tags=norm_tags)
     scenarios.append(scenario)
     idx = len(scenarios) - 1
@@ -246,8 +375,8 @@ def edit_scenario(
     name: Optional[str] = None,
     tags: Optional[list[str]] = None,
 ) -> Command:
-    """Редактировать метаданные существующего сценария (название, теги). Обновляются только переданные поля.
-    Для управления таблицей Examples используй add_example / remove_example.
+    """Редактировать метаданные существующего сценария (название и/или теги).
+    Обновляются только переданные поля.
 
     Args:
         scenario_index: Индекс сценария (начиная с 0).
@@ -459,33 +588,41 @@ def add_background_step(
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
     datatable: Optional[list[list[str]]] = None,
+    pos: int = -1,
 ) -> Command:
     """Добавить шаг в блок Background. Background-шаги выполняются перед каждым сценарием.
 
     Args:
         keyword: Ключевое слово Gherkin: Given, When, Then, And, But.
         step_id: Идентификатор шага из каталога (например "S-1").
-        params: Значения плейсхолдеров, например {"url": "https://..."}. Необязательно.
+        params: Значения плейсхолдеров. Необязательно, если плейсхолдеров нет.
         docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
-        docstring_lang: Язык содержимого docstring для статической валидации. Необязательно.
-        datatable: Таблица данных, например [["col1","col2"],["val1","val2"]]. Обязателен если requires_datatable=true.
+        docstring_lang: Язык содержимого docstring для статической валидации. ОБЯЗАТЕЛЕН если содержимое docstring синтаксически соответствует любому поддерживаемому языку (список см. в системном промпте).
+        datatable: Таблица данных как массив строк. Обязателен если requires_datatable=true.
+        pos: Позиция вставки шага (0-based). По умолчанию -1 (вставка в конец). Если >= 0, шаг вставляется перед элементом с этим индексом.
 
     Returns:
         JSON с подтверждением и отрендеренным текстом шага, или ошибка валидации.
     """
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
-    params = params or {}
+    if params is None:
+        params = {}
+
+    step_def = get_step_def(step_id)
+    if step_def is None:
+        return _cmd(runtime, json.dumps({
+            "ok": False, "error": f"Шаг с id '{step_id}' не найден в каталоге.",
+        }, ensure_ascii=False))
 
     found = runtime.state.get("found_steps") or {}
-    step_def = found.get(step_id)
-    if step_def is None:
+    if step_id not in found:
         return _cmd(runtime, json.dumps({
             "ok": False,
             "error": f"step_id '{step_id}' не был найден через search_steps. "
                      "Сначала найди шаг через search_steps, затем используй step_id из результатов.",
         }, ensure_ascii=False))
 
-    keyword_norm = _normalize_keyword(keyword)
+    keyword_norm = normalize_keyword(keyword)
     if keyword_norm is None:
         return _cmd(runtime, json.dumps({
             "ok": False,
@@ -502,15 +639,18 @@ def add_background_step(
         keyword=keyword_norm, step_id=step_id,
         params=params, docstring=docstring, docstring_lang=docstring_lang, datatable=datatable,
     )
-    bg_steps.append(step)
-    step_idx = len(bg_steps) - 1
+    if pos < 0 or pos >= len(bg_steps):
+        bg_steps.append(step)
+        step_idx = len(bg_steps) - 1
+    else:
+        bg_steps.insert(pos, step)
+        step_idx = pos
 
-    rendered = _render_step_preview(step_def, step)
-    step_text = _render_step_text(
+    rendered = render_step_preview(step_def, step)
+    step_text = render_step_text(
         pattern=str(step_def.get("pattern", "")),
         placeholders=step_def.get("placeholders", []),
         params=step.params,
-        parser_kind=step_def.get("parser_kind", "parse"),
     )
     set_status(f"Добавляю Background шаг: {keyword_norm} {step_text}")
     _stream_feature_preview(runtime, background_steps=bg_steps)
@@ -528,7 +668,7 @@ def add_background_step(
 @tool
 def edit_background_step(
     runtime: ToolRuntime,
-    step_index: int,
+    pos: int,
     keyword: Optional[str] = None,
     step_id: Optional[str] = None,
     params: Optional[dict[str, Any]] = None,
@@ -539,32 +679,32 @@ def edit_background_step(
     """Редактировать существующий шаг в блоке Background. Обновляются только переданные поля.
 
     Args:
-        step_index: Индекс шага внутри Background.
+        pos: Позиция шага внутри Background (0-based).
         keyword: Новое ключевое слово (Given/When/Then/And/But). Необязательно.
         step_id: Новый step_id. Необязательно.
         params: Новые параметры. Необязательно.
         docstring: Новый docstring. Необязательно.
-        docstring_lang: Язык docstring для валидации. Необязательно.
-        datatable: Новая таблица данных. Необязательно.
+        docstring_lang: Язык docstring для валидации. ОБЯЗАТЕЛЕН если содержимое docstring синтаксически соответствует любому поддерживаемому языку (список см. в системном промпте).
+        datatable: Новая datatable. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
     """
-    set_status(f"Редактирую Background шаг {step_index}…")
+    set_status(f"Редактирую Background шаг {pos}…")
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
 
-    if step_index < 0 or step_index >= len(bg_steps):
+    if pos < 0 or pos >= len(bg_steps):
         return _cmd(runtime, json.dumps({
             "ok": False,
-            "error": f"Background шаг с индексом {step_index} не существует. "
-                     f"Доступные индексы: 0..{len(bg_steps) - 1}",
+            "error": f"Background шаг с позицией {pos} не существует. "
+                     f"Доступные позиции: 0..{len(bg_steps) - 1}",
         }, ensure_ascii=False))
 
-    cur = bg_steps[step_index]
+    cur = bg_steps[pos]
 
     new_keyword = cur.keyword
     if keyword is not None:
-        kw = _normalize_keyword(keyword)
+        kw = normalize_keyword(keyword)
         if kw is None:
             return _cmd(runtime, json.dumps({
                 "ok": False, "error": f"Невалидное ключевое слово '{keyword}'.",
@@ -577,11 +717,10 @@ def edit_background_step(
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
     new_datatable = datatable if datatable is not None else cur.datatable
 
-    found = runtime.state.get("found_steps") or {}
-    sdef = found.get(new_step_id)
+    sdef = get_step_def(new_step_id)
     if sdef is None:
         return _cmd(runtime, json.dumps({
-            "ok": False, "error": f"step_id '{new_step_id}' не найден в found_steps. Сначала search_steps.",
+            "ok": False, "error": f"Шаг с id '{new_step_id}' не найден в каталоге.",
         }, ensure_ascii=False))
 
     errors = validate_step_params(sdef, new_params, new_docstring, new_datatable, new_docstring_lang)
@@ -590,16 +729,16 @@ def edit_background_step(
             "ok": False, "errors": errors, "hint": "Исправь параметры и вызови edit_background_step снова.",
         }, ensure_ascii=False))
 
-    bg_steps[step_index] = StepChoice(
+    bg_steps[pos] = StepChoice(
         keyword=new_keyword, step_id=new_step_id,
         params=new_params, docstring=new_docstring, docstring_lang=new_docstring_lang, datatable=new_datatable,
     )
 
-    rendered = _render_step_preview(sdef, bg_steps[step_index])
+    rendered = render_step_preview(sdef, bg_steps[pos])
     _stream_feature_preview(runtime, background_steps=bg_steps)
 
     content = json.dumps({
-        "ok": True, "step_index": step_index, "rendered": rendered,
+        "ok": True, "pos": pos, "rendered": rendered,
     }, ensure_ascii=False)
     return _cmd(runtime, content, background_steps=bg_steps)
 
@@ -611,27 +750,27 @@ def edit_background_step(
 @tool
 def remove_background_step(
     runtime: ToolRuntime,
-    step_index: int,
+    pos: int,
 ) -> Command:
     """Удалить шаг из блока Background.
 
     Args:
-        step_index: Индекс шага для удаления.
+        pos: Позиция шага для удаления (0-based).
 
     Returns:
         JSON с подтверждением.
     """
-    set_status(f"Удаляю Background шаг {step_index}…")
+    set_status(f"Удаляю Background шаг {pos}…")
     bg_steps: list[StepChoice] = list(runtime.state.get("background_steps") or [])
 
-    if step_index < 0 or step_index >= len(bg_steps):
+    if pos < 0 or pos >= len(bg_steps):
         return _cmd(runtime, json.dumps({
             "ok": False,
-            "error": f"Background шаг с индексом {step_index} не существует. "
-                     f"Доступные индексы: 0..{len(bg_steps) - 1}",
+            "error": f"Background шаг с позицией {pos} не существует. "
+                     f"Доступные позиции: 0..{len(bg_steps) - 1}",
         }, ensure_ascii=False))
 
-    removed = bg_steps.pop(step_index)
+    removed = bg_steps.pop(pos)
     _stream_feature_preview(runtime, background_steps=bg_steps)
 
     content = json.dumps({
@@ -655,6 +794,7 @@ def add_step(
     docstring: Optional[str] = None,
     docstring_lang: Optional[str] = None,
     datatable: Optional[list[list[str]]] = None,
+    pos: int = -1,
 ) -> Command:
     """Добавить шаг в сценарий. Валидирует step_id, параметры, docstring/datatable.
 
@@ -662,16 +802,18 @@ def add_step(
         scenario_index: Индекс сценария (начиная с 0).
         keyword: Ключевое слово Gherkin: Given, When, Then, And, But.
         step_id: Идентификатор шага из каталога (например "S-1").
-        params: Значения плейсхолдеров, например {"url": "https://..."}. Необязательно.
+        params: Значения плейсхолдеров. Необязательно, если плейсхолдеров нет.
         docstring: Многострочный текст (docstring). Обязателен если pattern заканчивается на ':'.
-        docstring_lang: Язык содержимого docstring для статической валидации. Допустимые значения из конфига (например python, json, xml, sql). Необязательно.
-        datatable: Таблица данных, например [["col1","col2"],["val1","val2"]]. Обязателен если requires_datatable=true.
+        docstring_lang: Язык содержимого docstring для статической валидации. ОБЯЗАТЕЛЕН если содержимое docstring синтаксически соответствует любому поддерживаемому языку (список см. в системном промпте).
+        datatable: Таблица данных как массив строк. Обязателен если requires_datatable=true.
+        pos: Позиция вставки шага (0-based). По умолчанию -1 (вставка в конец). Если >= 0, шаг вставляется перед элементом с этим индексом.
 
     Returns:
         JSON с подтверждением и отрендеренным текстом шага, или ошибка валидации.
     """
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
-    params = params or {}
+    if params is None:
+        params = {}
 
     if scenario_index < 0 or scenario_index >= len(scenarios):
         return _cmd(runtime, json.dumps({
@@ -680,16 +822,21 @@ def add_step(
                      f"Доступные индексы: 0..{len(scenarios) - 1}",
         }, ensure_ascii=False))
 
-    found = runtime.state.get("found_steps") or {}
-    step_def = found.get(step_id)
+    step_def = get_step_def(step_id)
     if step_def is None:
+        return _cmd(runtime, json.dumps({
+            "ok": False, "error": f"Шаг с id '{step_id}' не найден в каталоге.",
+        }, ensure_ascii=False))
+
+    found = runtime.state.get("found_steps") or {}
+    if step_id not in found:
         return _cmd(runtime, json.dumps({
             "ok": False,
             "error": f"step_id '{step_id}' не был найден через search_steps. "
                      "Сначала найди шаг через search_steps, затем используй step_id из результатов.",
         }, ensure_ascii=False))
 
-    keyword_norm = _normalize_keyword(keyword)
+    keyword_norm = normalize_keyword(keyword)
     if keyword_norm is None:
         return _cmd(runtime, json.dumps({
             "ok": False,
@@ -706,15 +853,19 @@ def add_step(
         keyword=keyword_norm, step_id=step_id,
         params=params, docstring=docstring, docstring_lang=docstring_lang, datatable=datatable,
     )
-    scenarios[scenario_index].steps.append(step)
-    step_idx = len(scenarios[scenario_index].steps) - 1
+    steps_list = scenarios[scenario_index].steps
+    if pos < 0 or pos >= len(steps_list):
+        steps_list.append(step)
+        step_idx = len(steps_list) - 1
+    else:
+        steps_list.insert(pos, step)
+        step_idx = pos
 
-    rendered = _render_step_preview(step_def, step)
-    step_text = _render_step_text(
+    rendered = render_step_preview(step_def, step)
+    step_text = render_step_text(
         pattern=str(step_def.get("pattern", "")),
         placeholders=step_def.get("placeholders", []),
         params=step.params,
-        parser_kind=step_def.get("parser_kind", "parse"),
     )
     set_status(f"Добавляю шаг: {keyword_norm} {step_text}")
     _stream_feature_preview(runtime, scenarios=scenarios)
@@ -734,7 +885,7 @@ def add_step(
 def edit_step(
     runtime: ToolRuntime,
     scenario_index: int,
-    step_index: int,
+    pos: int,
     keyword: Optional[str] = None,
     step_id: Optional[str] = None,
     params: Optional[dict[str, Any]] = None,
@@ -746,18 +897,18 @@ def edit_step(
 
     Args:
         scenario_index: Индекс сценария.
-        step_index: Индекс шага внутри сценария.
+        pos: Позиция шага внутри сценария (0-based).
         keyword: Новое ключевое слово (Given/When/Then/And/But). Необязательно.
         step_id: Новый step_id. Необязательно.
         params: Новые параметры. Необязательно.
         docstring: Новый docstring. Необязательно.
-        docstring_lang: Язык docstring для валидации (python, json, xml, sql из конфига). Необязательно.
-        datatable: Новая таблица данных. Необязательно.
+        docstring_lang: Язык docstring для валидации. ОБЯЗАТЕЛЕН если содержимое docstring синтаксически соответствует любому поддерживаемому языку (список см. в системном промпте).
+        datatable: Новая datatable. Необязательно.
 
     Returns:
         JSON с подтверждением или ошибкой.
     """
-    set_status(f"Редактирую шаг {step_index} в сценарии {scenario_index}…")
+    set_status(f"Редактирую шаг {pos} в сценарии {scenario_index}…")
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
 
     if scenario_index < 0 or scenario_index >= len(scenarios):
@@ -766,18 +917,18 @@ def edit_step(
         }, ensure_ascii=False))
 
     scenario = scenarios[scenario_index]
-    if step_index < 0 or step_index >= len(scenario.steps):
+    if pos < 0 or pos >= len(scenario.steps):
         return _cmd(runtime, json.dumps({
             "ok": False,
-            "error": f"Шаг с индексом {step_index} не существует в сценарии {scenario_index}. "
+            "error": f"Шаг с позицией {pos} не существует в сценарии {scenario_index}. "
                      f"Доступные: 0..{len(scenario.steps) - 1}",
         }, ensure_ascii=False))
 
-    cur = scenario.steps[step_index]
+    cur = scenario.steps[pos]
 
     new_keyword = cur.keyword
     if keyword is not None:
-        kw = _normalize_keyword(keyword)
+        kw = normalize_keyword(keyword)
         if kw is None:
             return _cmd(runtime, json.dumps({
                 "ok": False, "error": f"Невалидное ключевое слово '{keyword}'.",
@@ -790,11 +941,10 @@ def edit_step(
     new_docstring_lang = docstring_lang if docstring_lang is not None else cur.docstring_lang
     new_datatable = datatable if datatable is not None else cur.datatable
 
-    found = runtime.state.get("found_steps") or {}
-    sdef = found.get(new_step_id)
+    sdef = get_step_def(new_step_id)
     if sdef is None:
         return _cmd(runtime, json.dumps({
-            "ok": False, "error": f"step_id '{new_step_id}' не найден в found_steps. Сначала search_steps.",
+            "ok": False, "error": f"Шаг с id '{new_step_id}' не найден в каталоге.",
         }, ensure_ascii=False))
 
     errors = validate_step_params(sdef, new_params, new_docstring, new_datatable, new_docstring_lang)
@@ -803,17 +953,17 @@ def edit_step(
             "ok": False, "errors": errors, "hint": "Исправь параметры и вызови edit_step снова.",
         }, ensure_ascii=False))
 
-    scenario.steps[step_index] = StepChoice(
+    scenario.steps[pos] = StepChoice(
         keyword=new_keyword, step_id=new_step_id,
         params=new_params, docstring=new_docstring, docstring_lang=new_docstring_lang, datatable=new_datatable,
     )
 
-    rendered = _render_step_preview(sdef, scenario.steps[step_index])
+    rendered = render_step_preview(sdef, scenario.steps[pos])
     _stream_feature_preview(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "scenario_index": scenario_index,
-        "step_index": step_index, "rendered": rendered,
+        "pos": pos, "rendered": rendered,
     }, ensure_ascii=False)
     return _cmd(runtime, content, scenarios=scenarios)
 
@@ -826,18 +976,18 @@ def edit_step(
 def remove_step(
     runtime: ToolRuntime,
     scenario_index: int,
-    step_index: int,
+    pos: int,
 ) -> Command:
     """Удалить шаг из сценария.
 
     Args:
         scenario_index: Индекс сценария.
-        step_index: Индекс шага для удаления.
+        pos: Позиция шага для удаления (0-based).
 
     Returns:
         JSON с подтверждением.
     """
-    set_status(f"Удаляю шаг {step_index} из сценария {scenario_index}…")
+    set_status(f"Удаляю шаг {pos} из сценария {scenario_index}…")
     scenarios: list[ScenarioDraft] = list(runtime.state.get("scenarios") or [])
 
     if scenario_index < 0 or scenario_index >= len(scenarios):
@@ -846,12 +996,12 @@ def remove_step(
         }, ensure_ascii=False))
 
     scenario = scenarios[scenario_index]
-    if step_index < 0 or step_index >= len(scenario.steps):
+    if pos < 0 or pos >= len(scenario.steps):
         return _cmd(runtime, json.dumps({
-            "ok": False, "error": f"Шаг с индексом {step_index} не существует в сценарии {scenario_index}.",
+            "ok": False, "error": f"Шаг с позицией {pos} не существует в сценарии {scenario_index}.",
         }, ensure_ascii=False))
 
-    removed = scenario.steps.pop(step_index)
+    removed = scenario.steps.pop(pos)
     _stream_feature_preview(runtime, scenarios=scenarios)
 
     content = json.dumps({
@@ -902,7 +1052,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
     tags: list[str] = state.get("feature_tags", [])
     bg_steps: list[StepChoice] = state.get("background_steps") or []
     scenarios: list[ScenarioDraft] = state.get("scenarios") or []
-    steps_index = state.get("found_steps") or {}
+    found_steps: dict[str, dict[str, Any]] = state.get("found_steps") or {}
 
     if not title:
         return json.dumps({"ok": False, "error": "Feature title не задан. Вызови set_feature_meta."}, ensure_ascii=False)
@@ -912,7 +1062,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
     all_errors: list[str] = []
 
     for bsi, step in enumerate(bg_steps):
-        sdef = steps_index.get(step.step_id)
+        sdef = found_steps.get(step.step_id)
         if not sdef:
             all_errors.append(f"Background, шаг {bsi}: step_id '{step.step_id}' не найден.")
             continue
@@ -923,7 +1073,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
         if not scenario.steps:
             all_errors.append(f"Сценарий {si} ('{scenario.name}') не содержит шагов.")
         for sti, step in enumerate(scenario.steps):
-            sdef = steps_index.get(step.step_id)
+            sdef = found_steps.get(step.step_id)
             if not sdef:
                 all_errors.append(f"Сценарий {si}, шаг {sti}: step_id '{step.step_id}' не найден.")
                 continue
@@ -952,7 +1102,7 @@ def generate_feature(runtime: ToolRuntime) -> str:
         }, ensure_ascii=False)
 
     try:
-        feature_text = _render_feature(title, tags, bg_steps, scenarios, steps_index)
+        feature_text = render_feature(title, tags, bg_steps, scenarios, found_steps)
     except ValueError as exc:
         return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
 
@@ -962,159 +1112,6 @@ def generate_feature(runtime: ToolRuntime) -> str:
         "ok": True,
         "message": "Feature файл сгенерирован и показан пользователю.",
     }, ensure_ascii=False)
-
-
-# ---------------------------------------------------------------------------
-# Rendering helpers
-# ---------------------------------------------------------------------------
-
-def _render_feature(
-    title: str,
-    tags: list[str],
-    background_steps: list[StepChoice],
-    scenarios: list[ScenarioDraft],
-    steps_index: dict[str, dict[str, Any]],
-) -> str:
-    lines: list[str] = []
-    if tags:
-        lines.append(" ".join(tags))
-    lines.append(f"Feature: {title}")
-    lines.append("")
-
-    if background_steps:
-        lines.append("  Background:")
-        for step in background_steps:
-            _render_step_into(lines, step, steps_index, indent="    ")
-        lines.append("")
-
-    for scenario in scenarios:
-        has_examples = scenario.examples and len(scenario.examples) >= 2
-        scenario_keyword = "Scenario Outline" if has_examples else "Scenario"
-
-        if scenario.tags:
-            lines.append("  " + " ".join(scenario.tags))
-        lines.append(f"  {scenario_keyword}: {scenario.name}")
-
-        for step in scenario.steps:
-            _render_step_into(lines, step, steps_index, indent="    ")
-
-        if has_examples:
-            lines.append("")
-            lines.append("    Examples:")
-            lines.extend(_render_datatable_block(scenario.examples, indent="      "))
-
-        lines.append("")
-
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def _render_step_into(
-    lines: list[str],
-    step: StepChoice,
-    steps_index: dict[str, dict[str, Any]],
-    indent: str = "    ",
-) -> None:
-    step_def = steps_index[step.step_id]
-    step_text = _render_step_text(
-        pattern=str(step_def.get("pattern", "")),
-        placeholders=step_def.get("placeholders", []),
-        params=step.params,
-        parser_kind=step_def.get("parser_kind", "parse"),
-    )
-    lines.append(f"{indent}{step.keyword} {step_text}")
-
-    doc_indent = indent + "  "
-    if requires_datatable(step_def):
-        if step.datatable:
-            lines.extend(_render_datatable_block(step.datatable, doc_indent))
-        elif step.docstring and step.docstring.strip():
-            parsed = _parse_datatable_from_string(step.docstring)
-            if parsed:
-                lines.extend(_render_datatable_block(parsed, doc_indent))
-            else:
-                lines.extend(_render_docstring_block(step.docstring, step.docstring_lang, doc_indent))
-    elif requires_docstring(step_def):
-        if step.docstring and step.docstring.strip():
-            lines.extend(_render_docstring_block(step.docstring, step.docstring_lang, doc_indent))
-
-
-def _render_step_text(
-    *, pattern: str, placeholders: list[dict[str, Any]], params: dict[str, Any],
-    parser_kind: str = "parse",
-) -> str:
-    return substitute_pattern(pattern, params, parser_kind)
-
-
-def _render_step_preview(step_def: dict[str, Any], step: StepChoice) -> str:
-    text = _render_step_text(
-        pattern=str(step_def.get("pattern", "")),
-        placeholders=step_def.get("placeholders", []),
-        params=step.params,
-        parser_kind=step_def.get("parser_kind", "parse"),
-    )
-    preview = f"{step.keyword} {text}"
-    if step.docstring:
-        lang = step.docstring_lang
-        opener = f'"""{(lang or "")}' if lang else '"""'
-        preview += f"\n      {opener}\n"
-        for line in step.docstring.splitlines():
-            preview += f"      {line}\n" if line else "      \n"
-        preview += '      """'
-    if step.datatable:
-        for row in step.datatable:
-            preview += "\n      | " + " | ".join(row) + " |"
-    return preview
-
-
-def _render_docstring_block(docstring: str, lang: str | None = None, indent: str = "      ") -> list[str]:
-    opener = f'"""{lang}' if lang else '"""'
-    lines = [f"{indent}{opener}"]
-    for raw_line in docstring.splitlines():
-        lines.append(f"{indent}{raw_line}" if raw_line else indent)
-    lines.append(f'{indent}"""')
-    return lines
-
-
-def _render_datatable_block(datatable: list[list[str]], indent: str = "      ") -> list[str]:
-    if not datatable:
-        return []
-    num_cols = max(len(row) for row in datatable)
-    col_widths = [0] * num_cols
-    for row in datatable:
-        for ci, cell in enumerate(row):
-            col_widths[ci] = max(col_widths[ci], len(cell))
-    lines: list[str] = []
-    for row in datatable:
-        cells = []
-        for ci in range(num_cols):
-            cell = row[ci] if ci < len(row) else ""
-            cells.append(f" {cell:<{col_widths[ci]}} ")
-        lines.append(f"{indent}|" + "|".join(cells) + "|")
-    return lines
-
-
-def _parse_datatable_from_string(text: str) -> list[list[str]] | None:
-    rows: list[list[str]] = []
-    for line in text.strip().splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("|") or not stripped.endswith("|"):
-            return None
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        rows.append(cells)
-    return rows if rows else None
-
-
-def _normalize_keyword(raw: str) -> str | None:
-    aliases = {
-        "given": "Given", "when": "When", "then": "Then",
-        "and": "And", "but": "But",
-        "допустим": "Given", "если": "Given",
-        "когда": "When", "то": "Then", "и": "And", "но": "But",
-    }
-    cleaned = raw.strip().strip(":")
-    if cleaned in {"Given", "When", "Then", "And", "But"}:
-        return cleaned
-    return aliases.get(cleaned.lower())
 
 
 # ---------------------------------------------------------------------------
@@ -1191,6 +1188,7 @@ async def search_info(
 # ---------------------------------------------------------------------------
 
 ALL_TOOLS = [
+    create_plan,
     search_steps,
     search_info,
     set_feature_meta,

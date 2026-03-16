@@ -37,6 +37,8 @@ async def _astream_agent_response(user_text: str) -> AsyncGenerator[AgentRespons
         "configurable": {
             "thread_id": st.session_state.thread_id,
             "project_id": st.session_state.get("project_id") or "",
+            "validation_enabled": st.session_state.get("validation_enabled", False),
+            "max_validation_iterations": st.session_state.get("max_validation_iterations", 3),
         },
     }
 
@@ -138,6 +140,18 @@ with st.sidebar:
             icon=":material/download:",
             mime="text/plain",
         )
+    st.divider()
+    st.caption("Валидация")
+    st.session_state.validation_enabled = st.toggle(
+        "Валидация feature", value=st.session_state.get("validation_enabled", False)
+    )
+    st.session_state.max_validation_iterations = st.number_input(
+        "Макс. итераций",
+        min_value=1,
+        max_value=10,
+        value=st.session_state.get("max_validation_iterations", 3),
+        disabled=not st.session_state.validation_enabled,
+    )
     st.divider()
     st.caption("Сессия")
     if st.button("Очистить чат"):
