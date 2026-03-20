@@ -42,7 +42,15 @@ def _get_few_shot_selector() -> FewShotSelector:
     global _few_shot_selector
     if _few_shot_selector is None:
         few_shots_dir = _PROJECT_ROOT / global_config.rag.few_shots.few_shots_dir
-        _few_shot_selector = FewShotSelector(few_shots_dir=few_shots_dir)
+        # Pass LLM params so the selector can summarise the query before search
+        from omegaconf import OmegaConf
+        agent_cfg_path = Path(__file__).resolve().parent / "config.yml"
+        if agent_cfg_path.exists():
+            agent_cfg = OmegaConf.load(agent_cfg_path)
+            llm_params = dict(agent_cfg.get("llm_params", {}))
+        else:
+            llm_params = {}
+        _few_shot_selector = FewShotSelector(few_shots_dir=few_shots_dir, llm_params=llm_params)
     return _few_shot_selector
 
 
