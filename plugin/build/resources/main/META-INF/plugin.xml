@@ -11,5 +11,6 @@
     <toolWindow id="SpyDR Agent" anchor="right" factoryClass="com.spydr.plugin.SpydrToolWindowFactory" icon="AllIcons.Actions.Execute" />
     <applicationConfigurable parentId="tools" instance="com.spydr.plugin.settings.SpydrSettingsConfigurable" id="com.spydr.plugin.settings" displayName="SpyDR Agent" />
     <applicationService serviceImplementation="com.spydr.plugin.settings.SpydrSettingsState" />
+    <notificationGroup id="SpyDR Agent" displayType="BALLOON" />
   </extensions>
 </idea-plugin>

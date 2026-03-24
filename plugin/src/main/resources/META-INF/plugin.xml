@@ -26,5 +26,9 @@
 
         <applicationService
                 serviceImplementation="com.spydr.plugin.settings.SpydrSettingsState"/>
+
+        <notificationGroup
+                id="SpyDR Agent"
+                displayType="BALLOON"/>
     </extensions>
 </idea-plugin>

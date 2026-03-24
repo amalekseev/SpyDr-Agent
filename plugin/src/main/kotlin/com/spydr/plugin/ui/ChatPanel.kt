@@ -1,5 +1,6 @@
 package com.spydr.plugin.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -14,11 +15,14 @@ import java.awt.event.KeyEvent
 import javax.swing.*
 
 /**
- * Chat panel with message history, status line, and input area.
+ * Chat panel with message history, status line, input area,
+ * and **Stop / Restart** controls.
  */
 class ChatPanel(
     private val onSend: (String) -> Unit,
     private val onClear: () -> Unit,
+    private val onStop: () -> Unit,
+    private val onRestart: () -> Unit,
 ) {
     // -----------------------------------------------------------------------
     // Message area
@@ -59,8 +63,19 @@ class ChatPanel(
         addActionListener { doSend() }
     }
 
+    private val stopButton = JButton("Стоп", AllIcons.Actions.Suspend).apply {
+        toolTipText = "Остановить текущий запрос"
+        isEnabled = false
+        addActionListener { onStop() }
+    }
+
     private val clearButton = JButton("Очистить").apply {
         addActionListener { doClear() }
+    }
+
+    private val restartButton = JButton("Перезапуск", AllIcons.Actions.Restart).apply {
+        toolTipText = "Перезапустить бэкенд"
+        addActionListener { onRestart() }
     }
 
     // -----------------------------------------------------------------------
@@ -86,7 +101,9 @@ class ChatPanel(
             }, BorderLayout.CENTER)
 
             val buttonsPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 4, 0)).apply {
+                add(restartButton)
                 add(clearButton)
+                add(stopButton)
                 add(sendButton)
             }
             add(buttonsPanel, BorderLayout.SOUTH)
@@ -157,6 +174,7 @@ class ChatPanel(
     fun setBusy(busy: Boolean) {
         isBusy = busy
         sendButton.isEnabled = !busy
+        stopButton.isEnabled = busy
         inputArea.isEditable = !busy
     }
 

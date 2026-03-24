@@ -6,19 +6,18 @@ import java.io.BufferedWriter
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentLinkedDeque
 
 /**
  * Manages a Python subprocess that runs `src.api.stdio_server`.
  *
  * Communication happens via JSON-lines over stdin/stdout.
- * Stderr is forwarded to the IDE log.
  *
- * @param pythonPath  absolute path to the Python interpreter.
- * @param workingDir  working directory for the subprocess
- *                    (must contain `src/` with the backend code).
- * @param listener    callback interface for incoming messages.
- * @param extraEnv    additional environment variables passed to the
- *                    subprocess (e.g. `SPYDR_DOTENV_PATH`).
+ * Stderr is:
+ * 1. Written to the IDE diagnostic log (`idea.log`).
+ * 2. Forwarded to [BackendListener.onStderrLine] (for the Logs tab).
+ * 3. Kept in a ring buffer so that [BackendListener.onProcessDied]
+ *    can include the last N lines when the process crashes.
  */
 class PythonProcessManager(
     private val pythonPath: String,
@@ -31,8 +30,12 @@ class PythonProcessManager(
     private var readerThread: Thread? = null
     private var stderrThread: Thread? = null
 
+    /** Ring buffer keeping the last [MAX_STDERR_LINES] lines of stderr. */
+    private val stderrBuffer = ConcurrentLinkedDeque<String>()
+
     companion object {
         private val LOG = Logger.getInstance(PythonProcessManager::class.java)
+        private const val MAX_STDERR_LINES = 80
     }
 
     // -----------------------------------------------------------------------
@@ -41,13 +44,13 @@ class PythonProcessManager(
 
     fun start() {
         if (process != null) return
+        stderrBuffer.clear()
 
         try {
             val pb = ProcessBuilder(pythonPath, "-m", "src.api.stdio_server")
                 .directory(java.io.File(workingDir))
                 .redirectErrorStream(false)
 
-            // Inject extra environment variables (e.g. SPYDR_DOTENV_PATH)
             if (extraEnv.isNotEmpty()) {
                 pb.environment().putAll(extraEnv)
             }
@@ -56,7 +59,10 @@ class PythonProcessManager(
             process = proc
             writer = BufferedWriter(OutputStreamWriter(proc.outputStream, StandardCharsets.UTF_8))
 
-            // Background thread: read stdout (JSON lines)
+            listener.onStderrLine("--- Backend запущен: $pythonPath -m src.api.stdio_server")
+            listener.onStderrLine("--- Рабочая директория: $workingDir")
+
+            // stdout reader (JSON-lines)
             readerThread = Thread({
                 val reader = BufferedReader(InputStreamReader(proc.inputStream, StandardCharsets.UTF_8))
                 try {
@@ -70,23 +76,25 @@ class PythonProcessManager(
                     }
                 } finally {
                     LOG.info("stdout reader finished")
+                    onProcessExited()
                 }
             }, "SpyDR-stdout-reader").apply {
                 isDaemon = true
                 start()
             }
 
-            // Background thread: read stderr -> log
+            // stderr reader → IDE log + LogPanel + ring buffer
             stderrThread = Thread({
                 val reader = BufferedReader(InputStreamReader(proc.errorStream, StandardCharsets.UTF_8))
                 try {
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
-                        LOG.info("[python stderr] $line")
+                        val l = line!!
+                        LOG.info("[python stderr] $l")
+                        pushStderrLine(l)
+                        listener.onStderrLine(l)
                     }
-                } catch (_: Exception) {
-                    // ignore
-                }
+                } catch (_: Exception) { }
             }, "SpyDR-stderr-reader").apply {
                 isDaemon = true
                 start()
@@ -105,13 +113,8 @@ class PythonProcessManager(
         process = null
         writer = null
 
-        try {
-            proc.outputStream.close()
-        } catch (_: Exception) {}
-
-        try {
-            proc.destroyForcibly()
-        } catch (_: Exception) {}
+        try { proc.outputStream.close() } catch (_: Exception) {}
+        try { proc.destroyForcibly() } catch (_: Exception) {}
 
         readerThread?.interrupt()
         stderrThread?.interrupt()
@@ -150,7 +153,7 @@ class PythonProcessManager(
         try {
             val w = writer
             if (w == null) {
-                listener.onError("Backend не запущен")
+                listener.onError("Backend не запущен. Нажмите «Перезапуск».")
                 return
             }
             synchronized(w) {
@@ -160,7 +163,40 @@ class PythonProcessManager(
             }
         } catch (e: Exception) {
             LOG.error("Failed to send to backend", e)
-            listener.onError("Ошибка отправки: ${e.message}")
+            listener.onError("Ошибка отправки. Подробности во вкладке «Логи».")
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Process death detection
+    // -----------------------------------------------------------------------
+
+    private fun onProcessExited() {
+        val proc = process ?: return
+
+        // Let stderr thread flush its remaining lines
+        try { stderrThread?.join(1000) } catch (_: Exception) {}
+
+        val exitCode = try { proc.waitFor() } catch (_: Exception) { -1 }
+
+        if (exitCode != 0) {
+            val lastStderr = stderrBuffer.toList().joinToString("\n")
+            LOG.warn("Python process exited with code $exitCode")
+            listener.onProcessDied(exitCode, lastStderr)
+        }
+
+        process = null
+        writer = null
+    }
+
+    // -----------------------------------------------------------------------
+    // Stderr ring buffer
+    // -----------------------------------------------------------------------
+
+    private fun pushStderrLine(line: String) {
+        stderrBuffer.addLast(line)
+        while (stderrBuffer.size > MAX_STDERR_LINES) {
+            stderrBuffer.pollFirst()
         }
     }
 

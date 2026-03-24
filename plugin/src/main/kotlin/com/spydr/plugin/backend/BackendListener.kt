@@ -2,6 +2,9 @@ package com.spydr.plugin.backend
 
 /**
  * Callback interface for events coming from the Python backend process.
+ *
+ * All methods are called from background threads — implementations
+ * must dispatch to the EDT when touching the UI.
  */
 interface BackendListener {
     /** Agent streamed a text chunk (assistant message). */
@@ -24,4 +27,18 @@ interface BackendListener {
 
     /** Session has been reset. */
     fun onSessionReset()
+
+    /**
+     * A line was read from the backend's stderr stream.
+     * Used to populate the Logs panel in real time.
+     */
+    fun onStderrLine(line: String) {}
+
+    /**
+     * The backend process has terminated unexpectedly.
+     *
+     * @param exitCode  process exit code.
+     * @param lastStderr  the last N lines of stderr (for diagnostics).
+     */
+    fun onProcessDied(exitCode: Int, lastStderr: String) {}
 }
