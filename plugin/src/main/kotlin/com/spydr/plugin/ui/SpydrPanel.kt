@@ -14,15 +14,14 @@ import com.spydr.plugin.backend.ConfigWriter
 import com.spydr.plugin.backend.PythonEnvironmentManager
 import com.spydr.plugin.backend.PythonProcessManager
 import com.spydr.plugin.settings.SpydrSettingsState
-import java.awt.BorderLayout
 import java.nio.file.Path
 import javax.swing.JComponent
-import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
 /**
- * Main SpyDR panel that composes [SettingsPanel], [ChatPanel],
- * and manages the [PythonProcessManager] lifecycle.
+ * Main SpyDR chat panel that manages the [PythonProcessManager] lifecycle.
+ * Context controls are exposed via [settingsComponent] and shown
+ * in a separate tool-window tab ("Контекст").
  *
  * Stderr and diagnostic information is routed to [LogPanel]
  * (displayed in a separate "Логи" tab), NOT into the chat.
@@ -50,13 +49,10 @@ class SpydrPanel(
     // Root component
     // -----------------------------------------------------------------------
 
-    val rootComponent: JComponent
+    val rootComponent: JComponent = chatPanel.component
+    val settingsComponent: JComponent = settingsPanel.component
 
     init {
-        rootComponent = JPanel(BorderLayout()).apply {
-            add(settingsPanel.component, BorderLayout.NORTH)
-            add(chatPanel.component, BorderLayout.CENTER)
-        }
         initBackend()
     }
 

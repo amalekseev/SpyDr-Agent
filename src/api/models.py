@@ -5,5 +5,5 @@ from pydantic import BaseModel
 
 class AgentResponse(BaseModel):
     """Унифицированный ответ агента"""
-    type: Literal["text", "status", "artifact"]
+    type: Literal["text", "status", "feature_written"]
     content: Optional[str]

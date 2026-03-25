@@ -21,7 +21,7 @@ def stream_text(text: str) -> None:
     writer((AIMessage(content=text), "text"))
 
 
-def stream_artifact(content: str) -> None:
-    """Отправляет артефакт (.feature preview) в стрим."""
+def stream_feature_written(path: str) -> None:
+    """Уведомляет клиент, что feature-файл записан на диск."""
     writer = get_stream_writer()
-    writer((AIMessage(content=content), "artifact"))
+    writer((AIMessage(content=path), "feature_written"))

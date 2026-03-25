@@ -2,172 +2,161 @@
 
 Платформа для автоматической конвертации ручных тестов в Gherkin-сценарии с помощью LLM, а также для экспертной оценки качества генерации.
 
+## Быстрый старт — плагин GigaIDE
+
+Основной способ работы с агентом — плагин для **GigaIDE** (IntelliJ-based).
+Плагин сам настраивает Python-окружение при первом запуске.
+
+### 1. Установка плагина
+
+1. Скачайте файл `spydr-plugin-1.0.0.zip` из [Releases](#) (или соберите сами — см. [Сборка из исходников](#сборка-плагина-из-исходников)).
+2. Откройте GigaIDE → **Settings → Plugins → ⚙️ → Install Plugin from Disk…**
+3. Выберите скачанный `.zip` файл.
+4. Перезапустите IDE.
+
+### 2. Настройка API-ключей
+
+Создайте файл `.env` в удобном месте (например, в домашней директории) с нужными переменными:
+
+**OpenAI:**
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+**GigaChat (mTLS-сертификаты):**
+
+```env
+GIGACHAT_CERT_FILE=/path/to/client.crt
+GIGACHAT_KEY_FILE=/path/to/client.key
+# Опционально:
+# GIGACHAT_KEY_PASSWORD=...
+# GIGACHAT_CA_BUNDLE_FILE=/path/to/ca.pem
+# GIGACHAT_AUTH_URL=...
+# GIGACHAT_BASE_URL=...
+```
+
+**База данных (PostgreSQL + pgvector):**
+
+```env
+CONNECTION_STRING=postgresql://postgres:password@localhost:5432/postgres
+```
+
+Затем укажите путь к этому файлу в настройках плагина:
+**Settings → Tools → SpyDR Agent → `.env файл`**
+
+### 3. Использование
+
+1. Откройте панель **SpyDR Agent** (правая боковая панель IDE).
+2. При первом запуске плагин автоматически:
+   - извлечёт Python-бэкенд,
+   - найдёт Python 3 в системе,
+   - создаст виртуальное окружение,
+   - установит зависимости.
+3. Выберите проект и укажите путь к целевому `.feature` файлу в настройках панели.
+4. Пишите запросы в чат — агент сгенерирует Gherkin-сценарий и запишет его в файл.
+5. Файл автоматически откроется в редакторе IDE.
+
+### Системные требования
+
+| | Требование |
+|---|---|
+| **IDE** | GigaIDE 2024.1+ (или IntelliJ IDEA 2024.1+) |
+| **Python** | 3.10+ (должен быть в PATH) |
+| **ОС** | Windows, macOS, Linux |
+
+> **Debian/Ubuntu:** если `python3` установлен, но плагин не может создать venv,
+> выполните: `sudo apt install python3-venv`
+
+### Настройки плагина
+
+**Settings → Tools → SpyDR Agent:**
+
+| Поле | Описание |
+|---|---|
+| **Python** | Путь к интерпретатору. Оставьте пустым — плагин найдёт сам |
+| **.env файл** | Путь к файлу с API-ключами и переменными окружения |
+| **Feature директория** | Директория по умолчанию для `.feature` файлов |
+
+---
+
+## Сборка плагина из исходников
+
+Для разработчиков и тех, кто хочет собрать плагин самостоятельно.
+
+### Требования
+
+- JDK 17+
+- Git
+
+### Команды
+
+```bash
+git clone <repo-url>
+cd auto-spydr/plugin
+
+# Gradle Wrapper уже в репозитории — Gradle устанавливать не нужно
+./gradlew buildPlugin
+```
+
+Готовый zip:
+
+```
+plugin/build/distributions/spydr-plugin-1.0.0.zip
+```
+
+---
+
 ## Структура проекта
 
 ```
 auto-spydr/
-├── baseline/                  # Batch-пайплайн конвертации ручных тестов → .feature
-│   ├── main.py                # CLI-точка входа пайплайна
-│   ├── parser.py              # CLI-парсер pytest-bdd шагов → steps.json
-│   ├── core/                  # Ядро пайплайна
-│   │   ├── pipeline.py        # Оркестрация конвертации
-│   │   ├── llm_converter.py   # Взаимодействие с LLM (agent / tool-calling)
-│   │   ├── llm_compat.py      # Адаптеры провайдеров (OpenAI, GigaChat)
-│   │   ├── rag_store.py       # Векторное хранилище шагов (pgvector)
-│   │   ├── step_parser.py     # Парсинг шагов из pytest-bdd исходников
-│   │   ├── step_renderer.py   # Рендер JSON-плана в .feature текст
-│   │   ├── steps_catalog.py   # Загрузка и индексация steps.json
-│   │   ├── constants.py       # Константы и значения по умолчанию
-│   │   ├── models.py          # Pydantic-модели результатов
-│   │   ├── tracing.py         # Логирование и OpenTelemetry/Phoenix трейсинг
-│   │   └── io_utils.py        # Файловые утилиты
-│   ├── features/              # Сгенерированные .feature файлы (выход пайплайна)
-│   └── tests/                 # Тесты пайплайна
-├── src/                       # Интерактивный агент SpyDR (Streamlit-чат)
-│   ├── agents/                # LangGraph-агент
-│   │   ├── agent.py           # SpydrAgent — основной класс агента
-│   │   ├── base.py            # Базовый класс агента
-│   │   ├── tools.py           # Инструменты агента (search_steps, add_step и др.)
-│   │   ├── models.py          # Состояние агента (AgentState, ScenarioDraft)
-│   │   ├── config.yml         # Параметры LLM агента
-│   │   └── prompts/           # Системный промпт агента
+├── plugin/                       # GigaIDE плагин (Kotlin/Gradle)
+│   ├── build.gradle.kts          # Сборка плагина + бандлинг Python-бэкенда
+│   ├── src/main/kotlin/          # Kotlin-исходники плагина
+│   │   └── com/spydr/plugin/
+│   │       ├── SpydrToolWindowFactory.kt  # Фабрика окна инструментов
+│   │       ├── backend/                   # Управление Python-процессом
+│   │       │   ├── PythonEnvironmentManager.kt  # Автонастройка окружения
+│   │       │   ├── PythonProcessManager.kt      # Запуск и общение с бэкендом
+│   │       │   ├── MessageProtocol.kt           # JSON-lines протокол
+│   │       │   └── BackendListener.kt           # Интерфейс обратных вызовов
+│   │       ├── ui/                        # UI-компоненты
+│   │       │   ├── SpydrPanel.kt          # Главная панель
+│   │       │   ├── ChatPanel.kt           # Чат с агентом
+│   │       │   └── SettingsPanel.kt       # Настройки в панели
+│   │       └── settings/                  # Персистентные настройки
+│   │           ├── SpydrSettingsState.kt
+│   │           └── SpydrSettingsConfigurable.kt
+│   └── src/main/resources/
+│       └── META-INF/plugin.xml    # Дескриптор плагина
+├── src/                           # Python-бэкенд (агент SpyDR)
+│   ├── agents/                    # LangGraph-агент
+│   │   ├── agent.py               # SpydrAgent — основной класс
+│   │   ├── base.py                # Базовый класс агента
+│   │   ├── tools.py               # Инструменты (search_steps, add_step и др.)
+│   │   ├── models.py              # Состояние агента (AgentState)
+│   │   ├── validator.py           # Валидатор сгенерированных feature
+│   │   ├── config.yml             # Параметры LLM агента
+│   │   └── prompts/               # Промпты агента
 │   ├── api/
-│   │   ├── streamlit_app.py   # Streamlit UI (чат с агентом)
-│   │   └── dependencies.py    # Инициализация агента
+│   │   ├── stdio_server.py        # JSON-lines сервер (stdin/stdout)
+│   │   ├── __main__.py            # Точка входа: python -m src.api
+│   │   ├── models.py              # Pydantic-модели ответов
+│   │   └── dependencies.py        # Инициализация агента
 │   ├── configs/
-│   │   └── config.yml         # Глобальный конфиг (эмбеддинги, docstring-валидация)
-│   └── utils/                 # Утилиты (эмбеддинги, шаги, стриминг)
-├── gherkin/                   # Эталонные .feature файлы и pytest-bdd шаги
-│   ├── features/              # .feature файлы (источник шагов)
-│   └── tests/                 # pytest-bdd step-определения и запуск
-├── golden_features/           # Эталонные .feature для экспертной оценки
-├── manual_tests/              # Ручные тесты (.txt)
-│   ├── tests/                 # Входные ручные тесты
-│   └── generator/             # Генератор ручных тестов из .feature через LLM
-├── metrics_app/               # Streamlit-приложение экспертной оценки
-├── metrics_results/           # Результаты экспертных сессий
-├── scripts/                   # Вспомогательные скрипты
-│   ├── run_metrics_app.py     # Запуск приложения экспертной оценки
-│   ├── run_tests_with_metrics.py  # Прогон .feature через pytest-bdd с метриками
-│   └── generate_human_tests.py    # Генерация ручных тестов из .feature
-├── logs/                      # Логи пайплайна
-├── steps.json                 # Каталог BDD-шагов (генерируется парсером)
-├── RULES.md                   # Пользовательские правила для агента
-└── requirements.txt           # Python-зависимости
+│   │   └── config.yml             # Глобальный конфиг (RAG, эмбеддинги)
+│   └── utils/                     # Утилиты (эмбеддинги, шаги, стриминг)
+├── docs/                          # Документация проекта (для RAG)
+├── RULES.md                       # Пользовательские правила для агента
+└── requirements.txt               # Python-зависимости
 ```
-
-## Установка
-
-```bash
-pip install -r requirements.txt
-```
-
-### Требования
-
-- Python 3.11+
-- PostgreSQL с расширением pgvector (для RAG-индекса шагов)
 
 ## Переменные окружения
 
 ### Выбор LLM-провайдера
 
-```bash
-export BASELINE_LLM_PROVIDER="openai"           # openai | gigachat
-export BASELINE_MODEL="gpt-4.1-nano"
-export BASELINE_EMBEDDING_MODEL="text-embedding-3-large"
-```
-
-### Авторизация
-
-**OpenAI:**
-
-```bash
-export OPENAI_API_KEY="sk-..."
-```
-
-**GigaChat (сертификатная аутентификация mTLS):**
-
-```bash
-export GIGACHAT_CERT_FILE="/path/to/client.crt"
-export GIGACHAT_KEY_FILE="/path/to/client.key"
-# Опционально:
-# export GIGACHAT_KEY_PASSWORD="..."
-# export GIGACHAT_CA_BUNDLE_FILE="/path/to/ca.pem"
-```
-
-### База данных
-
-```bash
-export BASELINE_RAG_DB_URL="postgresql://postgres:mypassword@localhost:5488/postgres"
-```
-
-## Использование
-
-### 1. Парсинг шагов
-
-Извлечение BDD-шагов из pytest-bdd исходников в `steps.json`:
-
-```bash
-python baseline/parser.py gherkin/tests/steps -o steps.json -v
-```
-
-### 2. Batch-конвертация (baseline)
-
-Конвертация папки с ручными тестами в `.feature` файлы через LLM.
-
-**Первый запуск** (с переиндексацией шагов в pgvector):
-
-```bash
-python baseline/main.py manual_tests/tests \
-  --reindex-steps \
-  --db-url "$BASELINE_RAG_DB_URL"
-```
-
-**Обычный запуск** (без переиндексации):
-
-```bash
-python baseline/main.py manual_tests/tests \
-  --db-url "$BASELINE_RAG_DB_URL"
-```
-
-**Переключение провайдера через CLI** (переопределяет ENV):
-
-```bash
-python baseline/main.py manual_tests/tests \
-  --llm-provider gigachat \
-  --model GigaChat-2-Max \
-  --embedding-model Embeddings \
-  --db-url "$BASELINE_RAG_DB_URL" \
-  --reindex-steps
-```
-
-**С Phoenix трейсингом:**
-
-```bash
-python baseline/main.py manual_tests/tests \
-  --db-url "$BASELINE_RAG_DB_URL" \
-  --trace-phoenix \
-  --phoenix-endpoint http://127.0.0.1:6006/v1/traces \
-  --phoenix-service-name baseline-rag-agent \
-  -v
-```
-
-Все доступные аргументы: `python baseline/main.py --help`
-
-### 3. Интерактивный агент SpyDR (Streamlit-чат)
-
-Чат-интерфейс для пошаговой сборки `.feature` файлов с помощью LLM-агента.
-Агент ищет подходящие BDD-шаги через RAG и собирает сценарий через tool-calling.
-
-```bash
-streamlit run src/api/streamlit_app.py
-```
-
-После запуска откройте `http://localhost:8501`.
-
-#### Переключение провайдера
-
-Провайдер LLM и модель задаются в `src/agents/config.yml`:
+Провайдер и модель задаются в `src/agents/config.yml`:
 
 **OpenAI (по умолчанию):**
 
@@ -187,36 +176,42 @@ llm_params:
   temperature: 0
 ```
 
-Для GigaChat необходимо также задать переменные окружения с сертификатами
-(см. раздел «Авторизация» выше).
+### Авторизация
 
-Провайдер эмбеддингов настраивается отдельно в `src/configs/config.yml`:
-
-```yaml
-embeddings:
-  provider: gigachat          # openai | gigachat
-  params:
-    model: Embeddings
-```
-
-### 4. Прогон сгенерированных тестов
-
-Запуск `.feature` файлов через pytest-bdd с подсчётом метрик (pass rate, число запущенных/пропущенных сценариев):
+**OpenAI:**
 
 ```bash
-python scripts/run_tests_with_metrics.py
+OPENAI_API_KEY=sk-...
 ```
 
-Скрипт автоматически фильтрует неисполняемые сценарии (шаги без реализации) и выводит итоговую статистику.
-
-### 5. Генерация ручных тестов из .feature
-
-Обратная генерация: из эталонных `.feature` файлов создаются описания ручных тестов (`.txt`) через LLM:
+**GigaChat (mTLS):**
 
 ```bash
-python scripts/generate_human_tests.py \
-  --features-dir gherkin/features \
-  --output-dir manual_tests/tests
+GIGACHAT_CERT_FILE=/path/to/client.crt
+GIGACHAT_KEY_FILE=/path/to/client.key
+# Опционально:
+# GIGACHAT_KEY_PASSWORD=...
+# GIGACHAT_CA_BUNDLE_FILE=/path/to/ca.pem
+```
+
+### База данных
+
+```bash
+CONNECTION_STRING=postgresql://postgres:password@localhost:5432/postgres
+```
+
+## Разработка без плагина
+
+Бэкенд можно запустить напрямую (для отладки):
+
+```bash
+# Создайте venv и установите зависимости
+python3 -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# Запуск stdio-сервера (общение через JSON-lines в stdin/stdout)
+python -m src.api.stdio_server
 ```
 
 ## Экспертная оценка (Metrics App)
@@ -233,21 +228,3 @@ python scripts/run_metrics_app.py \
   --preset-features-dir baseline/features \
   --results-dir metrics_results
 ```
-
-После запуска откройте `http://localhost:8501`.
-
-Другой порт: `--server-port 8502`
-
-### Как это работает
-
-- Для каждого теста приложение автоматически показывает один файл: эталонный или сгенерированный.
-- Вероятность показа эталона задаётся переменной `METRICS_GOLDEN_SAMPLE_PROB` (по умолчанию `0.5`).
-- Если предзаготовленного `.feature` нет, запускается генерация «на лету» через baseline-пайплайн.
-
-### Результаты сессии
-
-Каждая сессия записывает:
-
-- `metrics_results/<session_id>/evaluations.jsonl` — детализированные записи по каждому тесту
-- `metrics_results/<session_id>/summary.csv` — сводная таблица для анализа
-- `metrics_results/<session_id>/metadata.json` — метаданные сессии (эксперт, пути, таймстемпы)

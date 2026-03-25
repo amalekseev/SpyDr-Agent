@@ -1,8 +1,11 @@
 package com.spydr.plugin.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.ui.JBColor
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
@@ -22,27 +25,42 @@ class LogPanel {
     private val textPane = JTextPane().apply {
         isEditable = false
         font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-        border = JBUI.Borders.empty(4)
+        border = JBUI.Borders.empty(8)
+        background = UIUtil.getTextFieldBackground()
     }
 
     private val scrollPane = JBScrollPane(textPane).apply {
         verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
         horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
-        border = JBUI.Borders.empty()
+        border = JBUI.Borders.customLine(JBColor.border(), 1)
     }
 
-    private val autoScrollCheckBox = JCheckBox("Автопрокрутка", true)
+    private val autoScrollCheckBox = JCheckBox("Автопрокрутка", true).apply {
+        toolTipText = "Автоматически прокручивать лог к новым событиям"
+    }
 
-    private val clearButton = JButton("Очистить").apply {
+    private val clearButton = JButton("Очистить", AllIcons.Actions.GC).apply {
         addActionListener { clear() }
     }
 
     val component: JComponent
 
     init {
-        val toolbar = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2)).apply {
-            add(autoScrollCheckBox)
+        val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+            isOpaque = false
+            add(JBLabel("Системные логи"))
             add(clearButton)
+        }
+
+        val rightPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 0)).apply {
+            isOpaque = false
+            add(autoScrollCheckBox)
+        }
+
+        val toolbar = JPanel(BorderLayout()).apply {
+            border = JBUI.Borders.empty(6, 8)
+            add(leftPanel, BorderLayout.WEST)
+            add(rightPanel, BorderLayout.EAST)
         }
 
         component = JPanel(BorderLayout()).apply {
@@ -59,15 +77,15 @@ class LogPanel {
     }
 
     private val styleInfo = SimpleAttributeSet().apply {
-        StyleConstants.setForeground(this, JBColor(0x333333, 0xBBBBBB))
+        StyleConstants.setForeground(this, JBColor.namedColor("Label.foreground", JBColor(0x333333, 0xBBBBBB)))
     }
 
     private val styleWarn = SimpleAttributeSet().apply {
-        StyleConstants.setForeground(this, JBColor(0xCC7700, 0xE5A84B))
+        StyleConstants.setForeground(this, JBColor.namedColor("Label.warningForeground", JBColor(0xCC7700, 0xE5A84B)))
     }
 
     private val styleError = SimpleAttributeSet().apply {
-        StyleConstants.setForeground(this, JBColor(0xCC0000, 0xFF6B68))
+        StyleConstants.setForeground(this, JBColor.namedColor("Label.errorForeground", JBColor(0xCC0000, 0xFF6B68)))
         StyleConstants.setBold(this, true)
     }
 

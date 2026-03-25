@@ -1,9 +1,11 @@
 llm_params:
+  provider: openai
   model: gpt-4.1-mini
   temperature: 0
 
 validation:
-  max_iterations: 3
+  max_iterations: 1
   llm_params:
+    provider: openai
     model: gpt-4.1-mini
     temperature: 0

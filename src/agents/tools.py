@@ -15,7 +15,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import Command
 
 from src.configs import global_config
-from src.utils.streaming import set_status, stream_artifact, stream_text
+from src.utils.streaming import set_status, stream_feature_written, stream_text
 from src.utils.embeddings import get_vector_store, embed_model
 from src.agents.models import ScenarioDraft, StepChoice
 from src.agents.utils import (
@@ -83,13 +83,22 @@ def _cmd(runtime: ToolRuntime, content: str, **state_updates) -> Command:
     )
 
 
-def _stream_feature_preview(runtime: ToolRuntime, **overrides: Any) -> None:
-    """Render current feature state and stream it as an artifact.
+def _write_feature_to_file(runtime: ToolRuntime, **overrides: Any) -> None:
+    """Render current feature state and write it directly to the target file.
 
+    The target file path is taken from ``runtime.config["configurable"]["feature_file_path"]``.
     Merges *overrides* (the about-to-be-committed state updates) on top of
-    the current runtime state so the preview reflects the latest change.
-    Silently skips if the feature cannot be rendered yet (no title, etc.).
+    the current runtime state so the file reflects the latest change.
+    Silently skips if the feature cannot be rendered yet (no title, etc.)
+    or if no target file path is configured.
     """
+    # Resolve target path from configurable
+    cfg = (runtime.config or {}).get("configurable", {})
+    feature_path_str: str = cfg.get("feature_file_path", "").strip()
+    if not feature_path_str:
+        logger.debug("_write_feature_to_file: no feature_file_path configured, skipping")
+        return
+
     state = runtime.state
     title: str = overrides.get("feature_title", state.get("feature_title", ""))
     tags: list[str] = overrides.get("feature_tags", state.get("feature_tags", []))
@@ -98,17 +107,25 @@ def _stream_feature_preview(runtime: ToolRuntime, **overrides: Any) -> None:
     found_steps: dict[str, dict[str, Any]] = state.get("found_steps") or {}
 
     if not title:
-        logger.debug("_stream_feature_preview: no title, skipping")
+        logger.debug("_write_feature_to_file: no title, skipping")
         return
 
     try:
         feature_text = render_feature(title, tags, bg_steps, scenarios, found_steps)
     except Exception as exc:
-        logger.warning("_stream_feature_preview: render failed: %s", exc)
+        logger.warning("_write_feature_to_file: render failed: %s", exc)
         return
 
-    logger.info("_stream_feature_preview: streaming artifact (%d chars)", len(feature_text))
-    stream_artifact(feature_text)
+    feature_path = Path(feature_path_str)
+    try:
+        feature_path.parent.mkdir(parents=True, exist_ok=True)
+        feature_path.write_text(feature_text, encoding="utf-8")
+    except Exception as exc:
+        logger.error("_write_feature_to_file: write failed: %s", exc)
+        return
+
+    logger.info("_write_feature_to_file: wrote %d chars to %s", len(feature_text), feature_path)
+    stream_feature_written(str(feature_path))
 
 
 # ---------------------------------------------------------------------------
@@ -356,7 +373,7 @@ def set_feature_meta(
     title = title.strip()
     norm_tags = [t if t.startswith("@") else f"@{t}" for t in tags] if tags else []
 
-    _stream_feature_preview(runtime, feature_title=title, feature_tags=norm_tags)
+    _write_feature_to_file(runtime, feature_title=title, feature_tags=norm_tags)
 
     content = json.dumps({"ok": True, "title": title, "tags": norm_tags}, ensure_ascii=False)
     return _cmd(runtime, content, feature_title=title, feature_tags=norm_tags)
@@ -388,7 +405,7 @@ def add_scenario(
     scenarios.append(scenario)
     idx = len(scenarios) - 1
 
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({"ok": True, "scenario_index": idx, "name": scenario.name}, ensure_ascii=False)
     return _cmd(runtime, content, scenarios=scenarios)
@@ -433,7 +450,7 @@ def edit_scenario(
         scenario.tags = [t if t.startswith("@") else f"@{t}" for t in tags]
 
     set_status(f"Обновляю сценарий {scenario_index}: «{scenario.name[:50]}»…")
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "scenario_index": scenario_index,
@@ -470,7 +487,7 @@ def remove_scenario(
 
     removed = scenarios.pop(scenario_index)
     set_status(f"Удаляю сценарий «{removed.name[:50]}»…")
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "removed_name": removed.name,
@@ -517,7 +534,7 @@ def add_example(
     scenario.examples = examples
 
     set_status(f"Устанавливаю Examples для сценария {scenario_index}: «{scenario.name[:50]}»…")
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "scenario_index": scenario_index,
@@ -570,7 +587,7 @@ def remove_example(
         # Remove the entire Examples table
         scenario.examples = None
         set_status(f"Удаляю Examples из сценария {scenario_index}: «{scenario.name[:50]}»…")
-        _stream_feature_preview(runtime, scenarios=scenarios)
+        _write_feature_to_file(runtime, scenarios=scenarios)
         content = json.dumps({
             "ok": True, "scenario_index": scenario_index,
             "message": "Таблица Examples удалена полностью.",
@@ -596,7 +613,7 @@ def remove_example(
         msg = f"Строка {row_index} удалена. Осталось строк данных: {len(scenario.examples) - 1}."
 
     set_status(f"Удаляю строку из Examples сценария {scenario_index}…")
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "scenario_index": scenario_index,
@@ -683,7 +700,7 @@ def add_background_step(
         params=step.params,
     )
     set_status(f"Добавляю Background шаг: {keyword_norm} {step_text}")
-    _stream_feature_preview(runtime, background_steps=bg_steps)
+    _write_feature_to_file(runtime, background_steps=bg_steps)
 
     content = json.dumps({
         "ok": True, "step_index": step_idx, "rendered": rendered,
@@ -765,7 +782,7 @@ def edit_background_step(
     )
 
     rendered = render_step_preview(sdef, bg_steps[pos])
-    _stream_feature_preview(runtime, background_steps=bg_steps)
+    _write_feature_to_file(runtime, background_steps=bg_steps)
 
     content = json.dumps({
         "ok": True, "pos": pos, "rendered": rendered,
@@ -801,7 +818,7 @@ def remove_background_step(
         }, ensure_ascii=False))
 
     removed = bg_steps.pop(pos)
-    _stream_feature_preview(runtime, background_steps=bg_steps)
+    _write_feature_to_file(runtime, background_steps=bg_steps)
 
     content = json.dumps({
         "ok": True, "removed_step_id": removed.step_id,
@@ -898,7 +915,7 @@ def add_step(
         params=step.params,
     )
     set_status(f"Добавляю шаг: {keyword_norm} {step_text}")
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "scenario_index": scenario_index,
@@ -989,7 +1006,7 @@ def edit_step(
     )
 
     rendered = render_step_preview(sdef, scenario.steps[pos])
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "scenario_index": scenario_index,
@@ -1032,7 +1049,7 @@ def remove_step(
         }, ensure_ascii=False))
 
     removed = scenario.steps.pop(pos)
-    _stream_feature_preview(runtime, scenarios=scenarios)
+    _write_feature_to_file(runtime, scenarios=scenarios)
 
     content = json.dumps({
         "ok": True, "removed_step_id": removed.step_id,
@@ -1070,7 +1087,7 @@ def show_state(runtime: ToolRuntime) -> str:
 @tool
 def generate_feature(runtime: ToolRuntime) -> str:
     """Валидировать и сгенерировать итоговый .feature файл из накопленного состояния.
-    Feature файл показывается пользователю автоматически в виде gherkin-блока.
+    Feature файл записывается на диск по пути, указанному пользователем.
 
     Returns:
         Подтверждение генерации или список ошибок валидации.
@@ -1136,8 +1153,29 @@ def generate_feature(runtime: ToolRuntime) -> str:
     except ValueError as exc:
         return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
 
-    stream_text(f"\n```gherkin\n{feature_text}```\n")
+    # Write feature to the target file
+    cfg = (runtime.config or {}).get("configurable", {})
+    feature_path_str: str = cfg.get("feature_file_path", "").strip()
+    if feature_path_str:
+        feature_path = Path(feature_path_str)
+        try:
+            feature_path.parent.mkdir(parents=True, exist_ok=True)
+            feature_path.write_text(feature_text, encoding="utf-8")
+            logger.info("generate_feature: wrote %d chars to %s", len(feature_text), feature_path)
+            stream_feature_written(str(feature_path))
+        except Exception as exc:
+            logger.error("generate_feature: write failed: %s", exc)
+            return json.dumps({"ok": False, "error": f"Ошибка записи файла: {exc}"}, ensure_ascii=False)
 
+        stream_text(f"\nFeature файл записан: `{feature_path}`")
+        return json.dumps({
+            "ok": True,
+            "message": f"Feature файл сгенерирован и записан в {feature_path}.",
+            "path": str(feature_path),
+        }, ensure_ascii=False)
+
+    # Fallback: no file path configured, just show in chat
+    stream_text(f"\n```gherkin\n{feature_text}```\n")
     return json.dumps({
         "ok": True,
         "message": "Feature файл сгенерирован и показан пользователю.",
