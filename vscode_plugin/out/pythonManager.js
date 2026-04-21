@@ -108,7 +108,7 @@ class PythonManager extends events_1.EventEmitter {
             channel.appendLine('[SpyDR] Virtual environment created.');
         }
         // Step 3: Install deps (smoke-test import langchain)
-        const check = cp.spawnSync(venvPython(), ['-c', 'import langchain; print("ok")'], { cwd: exports.BACKEND_DIR, timeout: 15000, encoding: 'utf8' });
+        const check = cp.spawnSync(venvPython(), ['-c', 'import langchain; import langchain_openai; print("ok")'], { cwd: exports.BACKEND_DIR, timeout: 15000, encoding: 'utf8' });
         if (check.status !== 0 || !check.stdout.includes('ok')) {
             channel.appendLine('[SpyDR] Installing dependencies (this may take several minutes)...');
             await this.pipInstall(exports.BACKEND_DIR, channel);
@@ -234,10 +234,13 @@ class PythonManager extends events_1.EventEmitter {
         // psycopg 3.2.9 does not exist in PyPI; minimum available is 3.2.10
         // langchain 1.2.10 pins langgraph<1.1.0 which has ImportError on ExecutionInfo;
         // 1.2.15 requires langgraph>=1.1.5 which fixes it
-        const patched = content
+        let patched = content
             .replace(/psycopg\[binary\]>=3\.2\.9/g, 'psycopg[binary]>=3.2.10')
             .replace(/psycopg-binary==3\.2\.9/g, 'psycopg-binary>=3.2.10')
             .replace(/langchain==1\.2\.10/g, 'langchain==1.2.15');
+        if (!/langchain[_-]openai/i.test(patched)) {
+            patched = patched.trimEnd() + '\nlangchain-openai>=0.3.0\n';
+        }
         if (patched !== content) {
             fs.writeFileSync(reqPath, patched, 'utf8');
         }
