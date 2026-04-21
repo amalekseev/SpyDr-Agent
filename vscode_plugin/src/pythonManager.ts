@@ -214,9 +214,12 @@ export class PythonManager extends EventEmitter {
         if (!fs.existsSync(reqPath)) { return; }
         let content = fs.readFileSync(reqPath, 'utf8');
         // psycopg 3.2.9 does not exist in PyPI; minimum available is 3.2.10
+        // langchain 1.2.10 pins langgraph<1.1.0 which has ImportError on ExecutionInfo;
+        // 1.2.15 requires langgraph>=1.1.5 which fixes it
         const patched = content
             .replace(/psycopg\[binary\]>=3\.2\.9/g, 'psycopg[binary]>=3.2.10')
-            .replace(/psycopg-binary==3\.2\.9/g,    'psycopg-binary>=3.2.10');
+            .replace(/psycopg-binary==3\.2\.9/g,    'psycopg-binary>=3.2.10')
+            .replace(/langchain==1\.2\.10/g,         'langchain==1.2.15');
         if (patched !== content) {
             fs.writeFileSync(reqPath, patched, 'utf8');
         }
