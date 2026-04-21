@@ -1,0 +1,80 @@
+{
+  "name": "spydr-agent",
+  "displayName": "SpyDR Agent",
+  "description": "AI-powered BDD test generation",
+  "publisher": "spydr",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/D1105/glowing-funicular"
+  },
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "spydrAgent",
+          "title": "SpyDR Agent",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "spydrAgent": [
+        {
+          "type": "webview",
+          "id": "spydr.sidebar",
+          "name": "SpyDR Agent"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SpyDR Agent",
+      "properties": {
+        "spydr.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key"
+        },
+        "spydr.connectionString": {
+          "type": "string",
+          "default": "",
+          "description": "PostgreSQL connection string (postgresql://user:pass@host/db)"
+        },
+        "spydr.featureFilePath": {
+          "type": "string",
+          "default": "tests/generated.feature",
+          "description": "Output .feature file path (relative to workspace root or absolute)"
+        },
+        "spydr.projectId": {
+          "type": "string",
+          "default": "",
+          "description": "Project ID"
+        },
+        "spydr.llmModel": {
+          "type": "string",
+          "default": "gpt-4.1-mini",
+          "description": "LLM model name (e.g. gpt-4.1-mini, gpt-4o)"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "spydr.restart",
+        "title": "SpyDR: Restart Backend"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}
