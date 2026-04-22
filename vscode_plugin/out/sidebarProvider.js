@@ -45,6 +45,15 @@ class SidebarProvider {
     constructor(extensionUri, manager) {
         this.extensionUri = extensionUri;
         this.manager = manager;
+        this.logBuffer = [];
+        this.manager.on('log', (entry) => {
+            if (this.view) {
+                this.post({ type: 'log', level: entry.level, text: entry.text });
+            }
+            else {
+                this.logBuffer.push(entry);
+            }
+        });
     }
     resolveWebviewView(webviewView) {
         this.view = webviewView;
@@ -89,6 +98,11 @@ class SidebarProvider {
             switch (msg.type) {
                 case 'ready':
                     this.sendInitSettings();
+                    // Replay logs buffered before webview was open
+                    for (const entry of this.logBuffer) {
+                        this.post({ type: 'log', level: entry.level, text: entry.text });
+                    }
+                    this.logBuffer = [];
                     if (this.manager.isRunning()) {
                         this.post({ type: 'backendReady' });
                     }
@@ -209,6 +223,7 @@ class SidebarProvider {
     letter-spacing: 0.4px;
     cursor: pointer;
     transition: opacity 0.15s, border-color 0.15s;
+    position: relative;
   }
   .tab-btn:hover { opacity: 0.8; }
   .tab-btn.active {
@@ -216,6 +231,20 @@ class SidebarProvider {
     border-bottom-color: var(--vscode-focusBorder, #007fd4);
     color: var(--vscode-focusBorder, #007fd4);
   }
+  .tab-badge {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: var(--vscode-editorError-foreground, #F44747);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 1px 4px;
+    line-height: 1.4;
+    display: none;
+  }
+  .tab-badge.visible { display: inline-block; }
 
   /* Connecting banner */
   #connecting-banner {
@@ -240,7 +269,7 @@ class SidebarProvider {
   .tab-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
   .tab-panel.active { display: flex; }
 
-  /* Messages */
+  /* ── Chat tab ───────────────────────────────────────────── */
   #messages {
     flex: 1;
     overflow-y: auto;
@@ -366,7 +395,7 @@ class SidebarProvider {
   #send-btn:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
   #send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  /* Settings panel */
+  /* ── Settings tab ───────────────────────────────────────── */
   #settings-panel {
     padding: 16px 12px;
     display: flex; flex-direction: column; gap: 16px; overflow-y: auto;
@@ -392,6 +421,87 @@ class SidebarProvider {
   .setting-saved { font-size: 11px; color: var(--vscode-terminal-ansiGreen, #4ec9b0); opacity: 0; transition: opacity 0.3s; }
   .setting-saved.show { opacity: 1; }
   .settings-divider { border: none; border-top: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.08)); }
+
+  /* ── Logs tab ───────────────────────────────────────────── */
+  #log-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.08));
+    flex-shrink: 0;
+    background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  }
+  #log-title {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  #log-clear-btn {
+    background: none;
+    border: 1px solid var(--vscode-button-border, rgba(255,255,255,0.15));
+    color: var(--vscode-descriptionForeground);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 8px;
+    transition: background 0.1s, color 0.1s;
+    font-family: var(--vscode-font-family);
+  }
+  #log-clear-btn:hover {
+    background: var(--vscode-button-secondaryBackground, rgba(255,255,255,0.08));
+    color: var(--vscode-foreground);
+  }
+  #log-autoscroll-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    opacity: 0.65;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+  }
+  #log-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px 8px;
+    font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.65;
+  }
+  .log-entry {
+    display: flex;
+    gap: 6px;
+    padding: 1px 0;
+  }
+  .log-ts {
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.55;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .log-lv {
+    flex-shrink: 0;
+    min-width: 40px;
+    font-weight: 700;
+  }
+  .log-tx {
+    overflow-wrap: break-word;
+    word-break: break-all;
+    flex: 1;
+  }
+  .log-info .log-lv { color: var(--vscode-descriptionForeground); }
+  .log-info .log-tx { color: var(--vscode-editor-foreground); }
+  .log-warn .log-lv,
+  .log-warn .log-tx { color: var(--vscode-editorWarning-foreground, #CCA700); }
+  .log-error .log-lv,
+  .log-error .log-tx { color: var(--vscode-editorError-foreground, #F44747); font-weight: 700; }
+  .log-stderr .log-lv,
+  .log-stderr .log-tx { color: var(--vscode-terminal-ansiRed, #CD3131); }
 </style>
 </head>
 <body>
@@ -399,6 +509,7 @@ class SidebarProvider {
 <div id="tab-bar">
   <button class="tab-btn active" data-tab="chat">Chat</button>
   <button class="tab-btn" data-tab="settings">Settings</button>
+  <button class="tab-btn" data-tab="logs">Logs<span class="tab-badge" id="log-badge"></span></button>
 </div>
 
 <div id="connecting-banner">
@@ -478,44 +589,66 @@ class SidebarProvider {
   </div>
 </div>
 
+<!-- Logs tab -->
+<div class="tab-panel" id="panel-logs">
+  <div id="log-toolbar">
+    <span id="log-title">System Logs</span>
+    <button id="log-clear-btn">Clear</button>
+    <label id="log-autoscroll-label">
+      <input type="checkbox" id="log-autoscroll" checked />
+      Auto-scroll
+    </label>
+  </div>
+  <div id="log-content"></div>
+</div>
+
 <script nonce="${n}">
 (function () {
   const vscode = acquireVsCodeApi();
 
-  // Tab switching
+  // ── Tab switching ────────────────────────────────────────
+  var activeTab = 'chat';
+  var logUnreadCount = 0;
+  var logBadge = document.getElementById('log-badge');
+
   document.querySelectorAll('.tab-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      const tab = btn.getAttribute('data-tab');
+      var tab = btn.getAttribute('data-tab');
+      activeTab = tab;
       document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('panel-' + tab).classList.add('active');
+      // Clear badge when switching to logs
+      if (tab === 'logs') {
+        logUnreadCount = 0;
+        logBadge.textContent = '';
+        logBadge.classList.remove('visible');
+      }
     });
   });
 
-  // Chat refs
-  const messagesEl    = document.getElementById('messages');
-  const emptyStateEl  = document.getElementById('empty-state');
-  const inputEl       = document.getElementById('prompt-input');
-  const sendBtn       = document.getElementById('send-btn');
-  const statusBanner  = document.getElementById('status-banner');
-  const statusText    = document.getElementById('status-text');
-  const connBanner    = document.getElementById('connecting-banner');
-  const connText      = document.getElementById('conn-text');
-  const connSpinner   = document.getElementById('conn-spinner');
+  // ── Chat refs ────────────────────────────────────────────
+  var messagesEl   = document.getElementById('messages');
+  var emptyStateEl = document.getElementById('empty-state');
+  var inputEl      = document.getElementById('prompt-input');
+  var sendBtn      = document.getElementById('send-btn');
+  var statusBanner = document.getElementById('status-banner');
+  var statusText   = document.getElementById('status-text');
+  var connBanner   = document.getElementById('connecting-banner');
+  var connText     = document.getElementById('conn-text');
+  var connSpinner  = document.getElementById('conn-spinner');
 
-  let isStreaming    = false;
-  let backendReady   = false;
-  let currentMsgEl   = null;
-  let currentBodyEl  = null;
-  let currentContent = '';
+  var isStreaming   = false;
+  var backendReady  = false;
+  var currentMsgEl  = null;
+  var currentBodyEl = null;
+  var currentContent = '';
 
   function setBackendReady(ready) {
     backendReady = ready;
     sendBtn.disabled = !ready || isStreaming;
-    if (ready) {
-      connBanner.classList.remove('visible', 'error');
-    }
+    if (ready) { connBanner.classList.remove('visible', 'error'); }
   }
 
   function showConnecting(text, isError) {
@@ -525,15 +658,15 @@ class SidebarProvider {
     connBanner.classList.add('visible');
   }
 
-  // Settings refs
-  const fields = {
+  // ── Settings refs ────────────────────────────────────────
+  var fields = {
     apikey:  document.getElementById('s-apikey'),
     conn:    document.getElementById('s-conn'),
     model:   document.getElementById('s-model'),
     feature: document.getElementById('s-feature'),
     project: document.getElementById('s-project'),
   };
-  const saved = {
+  var saved = {
     apikey:  document.getElementById('saved-apikey'),
     conn:    document.getElementById('saved-conn'),
     model:   document.getElementById('saved-model'),
@@ -547,7 +680,7 @@ class SidebarProvider {
   }
 
   function makeSaveHandler(savedEl) {
-    let timer = null;
+    var timer = null;
     return function () {
       clearTimeout(timer);
       timer = setTimeout(function () {
@@ -570,7 +703,7 @@ class SidebarProvider {
   fields.feature.addEventListener('input', makeSaveHandler(saved.feature));
   fields.project.addEventListener('input', makeSaveHandler(saved.project));
 
-  // Chat helpers
+  // ── Chat helpers ─────────────────────────────────────────
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
@@ -603,7 +736,7 @@ class SidebarProvider {
 
   function appendUserMsg(text) {
     hideEmpty();
-    const el = document.createElement('div');
+    var el = document.createElement('div');
     el.className = 'message user';
     el.innerHTML = '<div class="msg-label">You</div><div class="msg-body">' + escHtml(text) + '</div>';
     messagesEl.appendChild(el);
@@ -612,10 +745,10 @@ class SidebarProvider {
 
   function beginAssistantMsg() {
     hideEmpty();
-    const el = document.createElement('div');
+    var el = document.createElement('div');
     el.className = 'message assistant';
     el.innerHTML = '<div class="msg-label">Agent</div>';
-    const body = document.createElement('div');
+    var body = document.createElement('div');
     body.className = 'msg-body';
     body.style.display = 'none';
     el.appendChild(body);
@@ -633,11 +766,11 @@ class SidebarProvider {
   }
 
   function finishAssistantMsg(content) {
-    const ICON_COPY  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
-    const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-    const actions = document.createElement('div');
+    var ICON_COPY  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+    var ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+    var actions = document.createElement('div');
     actions.className = 'msg-actions';
-    const copyBtn = document.createElement('button');
+    var copyBtn = document.createElement('button');
     copyBtn.className = 'action-btn';
     copyBtn.title = 'Copy';
     copyBtn.innerHTML = ICON_COPY;
@@ -653,16 +786,16 @@ class SidebarProvider {
   }
 
   function appendError(message) {
-    const el = document.createElement('div');
+    var el = document.createElement('div');
     el.className = 'error-msg';
     el.textContent = 'Error: ' + message;
     messagesEl.appendChild(el);
     scrollBottom();
   }
 
-  // Send
+  // ── Send ─────────────────────────────────────────────────
   function sendMessage() {
-    const prompt = inputEl.value.trim();
+    var prompt = inputEl.value.trim();
     if (!prompt || isStreaming || !backendReady) { return; }
     appendUserMsg(prompt);
     inputEl.value = '';
@@ -671,7 +804,7 @@ class SidebarProvider {
     beginAssistantMsg();
     showBanner('Thinking…');
     setStreaming(true);
-    vscode.postMessage({ type: 'sendPrompt', prompt });
+    vscode.postMessage({ type: 'sendPrompt', prompt: prompt });
   }
 
   sendBtn.addEventListener('click', sendMessage);
@@ -680,9 +813,59 @@ class SidebarProvider {
   });
   inputEl.addEventListener('input', adjustHeight);
 
-  // Extension → WebView messages
+  // ── Logs ─────────────────────────────────────────────────
+  var logContent      = document.getElementById('log-content');
+  var logAutoScroll   = document.getElementById('log-autoscroll');
+  var logClearBtn     = document.getElementById('log-clear-btn');
+
+  var LEVEL_LABEL = { info: 'INFO', warn: 'WARN', error: 'ERROR', stderr: 'PY' };
+
+  logClearBtn.addEventListener('click', function () {
+    logContent.innerHTML = '';
+    logUnreadCount = 0;
+    logBadge.textContent = '';
+    logBadge.classList.remove('visible');
+  });
+
+  function appendLog(level, text) {
+    var now = new Date();
+    var ts = now.toTimeString().slice(0, 8) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+
+    var entry = document.createElement('div');
+    entry.className = 'log-entry log-' + (level || 'info');
+
+    var tsSpan = document.createElement('span');
+    tsSpan.className = 'log-ts';
+    tsSpan.textContent = '[' + ts + ']';
+
+    var lvSpan = document.createElement('span');
+    lvSpan.className = 'log-lv';
+    lvSpan.textContent = (LEVEL_LABEL[level] || 'INFO').padEnd(5);
+
+    var txSpan = document.createElement('span');
+    txSpan.className = 'log-tx';
+    txSpan.textContent = text;
+
+    entry.appendChild(tsSpan);
+    entry.appendChild(lvSpan);
+    entry.appendChild(txSpan);
+    logContent.appendChild(entry);
+
+    if (logAutoScroll.checked) {
+      logContent.scrollTop = logContent.scrollHeight;
+    }
+
+    // Badge for unread errors/warnings when not on Logs tab
+    if (activeTab !== 'logs' && (level === 'error' || level === 'stderr')) {
+      logUnreadCount++;
+      logBadge.textContent = logUnreadCount > 99 ? '99+' : String(logUnreadCount);
+      logBadge.classList.add('visible');
+    }
+  }
+
+  // ── Extension → WebView messages ─────────────────────────
   window.addEventListener('message', function (event) {
-    const msg = event.data;
+    var msg = event.data;
     switch (msg.type) {
       case 'initSettings':
         fields.apikey.value  = msg.openaiApiKey || '';
@@ -694,6 +877,7 @@ class SidebarProvider {
 
       case 'backendReady':
         setBackendReady(true);
+        appendLog('info', 'Backend ready.');
         break;
 
       case 'backendDead':
@@ -711,6 +895,7 @@ class SidebarProvider {
 
       case 'fileSaved':
         showBanner('Saved → ' + msg.filePath.split(/[\\\\/]/).pop());
+        appendLog('info', 'Feature file saved: ' + msg.filePath);
         break;
 
       case 'done':
@@ -722,14 +907,20 @@ class SidebarProvider {
       case 'error':
         if (isStreaming) { setStreaming(false); }
         appendError(msg.message);
+        appendLog('error', msg.message);
         break;
 
       case 'sessionReset':
+        appendLog('info', 'Session reset.');
+        break;
+
+      case 'log':
+        appendLog(msg.level, msg.text);
         break;
     }
   });
 
-  // Init
+  // ── Init ─────────────────────────────────────────────────
   showConnecting('Starting backend…', false);
   vscode.postMessage({ type: 'ready' });
 })();

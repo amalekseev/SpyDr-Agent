@@ -69,16 +69,16 @@ class PythonManager extends events_1.EventEmitter {
         fs.mkdirSync(exports.BASE_DIR, { recursive: true });
         // Step 1: Clone repo (once)
         if (!fs.existsSync(CLONE_MARKER)) {
-            channel.appendLine(`[SpyDR] Cloning repository...`);
+            this.log(channel, 'info', 'Cloning repository...');
             if (fs.existsSync(exports.BACKEND_DIR)) {
                 fs.rmSync(exports.BACKEND_DIR, { recursive: true, force: true });
             }
             this.exec(['git', 'clone', REPO_URL, exports.BACKEND_DIR], exports.BASE_DIR, channel, 120);
             fs.writeFileSync(CLONE_MARKER, '', 'utf8');
-            channel.appendLine('[SpyDR] Repository cloned.');
+            this.log(channel, 'info', 'Repository cloned.');
         }
         else {
-            channel.appendLine('[SpyDR] Repository already present.');
+            this.log(channel, 'info', 'Repository already present.');
         }
         // Patch requirements.txt to fix known broken version pins
         this.patchRequirements(exports.BACKEND_DIR);
@@ -88,11 +88,11 @@ class PythonManager extends events_1.EventEmitter {
             const ver = (r.stdout + r.stderr).trim();
             const m = ver.match(/Python 3\.(\d+)/);
             if (m && Number(m[1]) >= 13) {
-                channel.appendLine(`[SpyDR] Venv uses ${ver} (too new, packages lack wheels). Recreating...`);
+                this.log(channel, 'warn', `Venv uses ${ver} (too new, packages lack wheels). Recreating...`);
                 fs.rmSync(VENV_DIR, { recursive: true, force: true });
             }
             else {
-                channel.appendLine(`[SpyDR] Virtual environment already exists (${ver}).`);
+                this.log(channel, 'info', `Virtual environment already exists (${ver}).`);
             }
         }
         if (!fs.existsSync(venvPython())) {
@@ -103,21 +103,21 @@ class PythonManager extends events_1.EventEmitter {
                         ? 'Run: brew install python@3.12'
                         : 'See https://www.python.org/downloads/'));
             }
-            channel.appendLine(`[SpyDR] Creating virtual environment with ${sysPython}...`);
+            this.log(channel, 'info', `Creating virtual environment with ${sysPython}...`);
             this.exec([sysPython, '-m', 'venv', VENV_DIR], exports.BACKEND_DIR, channel, 120);
-            channel.appendLine('[SpyDR] Virtual environment created.');
+            this.log(channel, 'info', 'Virtual environment created.');
         }
-        // Step 3: Install deps (smoke-test import langchain)
+        // Step 3: Install deps (smoke-test import langchain + langchain_openai)
         const check = cp.spawnSync(venvPython(), ['-c', 'import langchain; import langchain_openai; print("ok")'], { cwd: exports.BACKEND_DIR, timeout: 15000, encoding: 'utf8' });
         if (check.status !== 0 || !check.stdout.includes('ok')) {
-            channel.appendLine('[SpyDR] Installing dependencies (this may take several minutes)...');
+            this.log(channel, 'info', 'Installing dependencies (this may take several minutes)...');
             await this.pipInstall(exports.BACKEND_DIR, channel);
-            channel.appendLine('[SpyDR] Dependencies installed.');
+            this.log(channel, 'info', 'Dependencies installed.');
         }
         else {
-            channel.appendLine('[SpyDR] Dependencies already installed.');
+            this.log(channel, 'info', 'Dependencies already installed.');
         }
-        channel.appendLine('[SpyDR] Setup complete.');
+        this.log(channel, 'info', 'Setup complete.');
     }
     startProcess(channel) {
         const cfg = vscode.workspace.getConfiguration('spydr');
@@ -126,6 +126,7 @@ class PythonManager extends events_1.EventEmitter {
             OPENAI_API_KEY: cfg.get('openaiApiKey', ''),
             CONNECTION_STRING: cfg.get('connectionString', ''),
         };
+        this.log(channel, 'info', 'Starting backend process...');
         this.proc = cp.spawn(venvPython(), ['-m', 'src.api.stdio_server'], {
             cwd: exports.BACKEND_DIR,
             env,
@@ -143,12 +144,18 @@ class PythonManager extends events_1.EventEmitter {
             }
             else {
                 channel.appendLine(`[stdout] ${line}`);
+                this.emit('log', { level: 'info', text: line });
             }
         });
         const errRl = readline.createInterface({ input: this.proc.stderr });
-        errRl.on('line', (line) => channel.appendLine(`[stderr] ${line}`));
+        errRl.on('line', (line) => {
+            channel.appendLine(`[stderr] ${line}`);
+            this.emit('log', { level: 'stderr', text: line });
+        });
         this.proc.on('exit', (code) => {
-            channel.appendLine(`[SpyDR] Process exited with code ${code}`);
+            const msg = `Process exited with code ${code}`;
+            channel.appendLine(`[SpyDR] ${msg}`);
+            this.emit('log', { level: code === 0 ? 'info' : 'error', text: `--- ${msg} ---` });
             this.emit('died', code);
         });
     }
@@ -165,11 +172,12 @@ class PythonManager extends events_1.EventEmitter {
     isRunning() {
         return this.proc !== null && !this.proc.killed;
     }
+    log(channel, level, text) {
+        channel.appendLine(`[SpyDR] ${text}`);
+        this.emit('log', { level, text });
+    }
     findSystemPython() {
-        // Prefer stable versions 3.10–3.12; avoid 3.13+ where many packages lack wheels
-        const preferred = process.platform === 'win32'
-            ? ['python3.12', 'python3.11', 'python3.10', 'python3', 'python']
-            : ['python3.12', 'python3.11', 'python3.10', 'python3', 'python'];
+        const preferred = ['python3.12', 'python3.11', 'python3.10', 'python3', 'python'];
         const absPaths = process.platform === 'win32'
             ? []
             : [
@@ -187,7 +195,6 @@ class PythonManager extends events_1.EventEmitter {
                 if (r.status !== 0 || !version.includes('Python 3')) {
                     continue;
                 }
-                // Require 3.10–3.12
                 const m = version.match(/Python 3\.(\d+)/);
                 if (m && Number(m[1]) >= 10 && Number(m[1]) <= 12) {
                     return cmd;
@@ -195,7 +202,6 @@ class PythonManager extends events_1.EventEmitter {
             }
             catch { /* skip */ }
         }
-        // Fallback: accept any Python 3
         for (const cmd of ['python3', 'python']) {
             try {
                 const r = cp.spawnSync(cmd, ['--version'], { timeout: 5000, encoding: 'utf8' });
@@ -211,9 +217,15 @@ class PythonManager extends events_1.EventEmitter {
         return new Promise((resolve, reject) => {
             const proc = cp.spawn(venvPip(), ['install', '-r', 'requirements.txt', '--timeout', '120'], { cwd: backendDir, encoding: 'utf8' });
             const rl = readline.createInterface({ input: proc.stdout });
-            rl.on('line', (line) => channel.appendLine(line));
+            rl.on('line', (line) => {
+                channel.appendLine(line);
+                this.emit('log', { level: 'info', text: line });
+            });
             const errRl = readline.createInterface({ input: proc.stderr });
-            errRl.on('line', (line) => channel.appendLine(line));
+            errRl.on('line', (line) => {
+                channel.appendLine(line);
+                this.emit('log', { level: 'info', text: line });
+            });
             proc.on('exit', (code) => {
                 if (code === 0) {
                     resolve();
@@ -231,9 +243,6 @@ class PythonManager extends events_1.EventEmitter {
             return;
         }
         let content = fs.readFileSync(reqPath, 'utf8');
-        // psycopg 3.2.9 does not exist in PyPI; minimum available is 3.2.10
-        // langchain 1.2.10 pins langgraph<1.1.0 which has ImportError on ExecutionInfo;
-        // 1.2.15 requires langgraph>=1.1.5 which fixes it
         let patched = content
             .replace(/psycopg\[binary\]>=3\.2\.9/g, 'psycopg[binary]>=3.2.10')
             .replace(/psycopg-binary==3\.2\.9/g, 'psycopg-binary>=3.2.10')

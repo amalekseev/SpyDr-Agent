@@ -14,6 +14,8 @@ export const BACKEND_DIR = path.join(BASE_DIR, 'backend');
 const VENV_DIR = path.join(BACKEND_DIR, '.venv');
 const CLONE_MARKER = path.join(BACKEND_DIR, '.cloned');
 
+type LogLevel = 'info' | 'warn' | 'error' | 'stderr';
+
 function venvPython(): string {
     if (process.platform === 'win32') {
         return path.join(VENV_DIR, 'Scripts', 'python.exe');
@@ -32,6 +34,7 @@ function venvPip(): string {
 export declare interface PythonManager {
     on(event: 'message', listener: (msg: IncomingMessage) => void): this;
     on(event: 'died', listener: (code: number | null) => void): this;
+    on(event: 'log', listener: (entry: { level: LogLevel; text: string }) => void): this;
 }
 
 export class PythonManager extends EventEmitter {
@@ -42,15 +45,15 @@ export class PythonManager extends EventEmitter {
 
         // Step 1: Clone repo (once)
         if (!fs.existsSync(CLONE_MARKER)) {
-            channel.appendLine(`[SpyDR] Cloning repository...`);
+            this.log(channel, 'info', 'Cloning repository...');
             if (fs.existsSync(BACKEND_DIR)) {
                 fs.rmSync(BACKEND_DIR, { recursive: true, force: true });
             }
             this.exec(['git', 'clone', REPO_URL, BACKEND_DIR], BASE_DIR, channel, 120);
             fs.writeFileSync(CLONE_MARKER, '', 'utf8');
-            channel.appendLine('[SpyDR] Repository cloned.');
+            this.log(channel, 'info', 'Repository cloned.');
         } else {
-            channel.appendLine('[SpyDR] Repository already present.');
+            this.log(channel, 'info', 'Repository already present.');
         }
 
         // Patch requirements.txt to fix known broken version pins
@@ -62,10 +65,10 @@ export class PythonManager extends EventEmitter {
             const ver = (r.stdout + r.stderr).trim();
             const m = ver.match(/Python 3\.(\d+)/);
             if (m && Number(m[1]) >= 13) {
-                channel.appendLine(`[SpyDR] Venv uses ${ver} (too new, packages lack wheels). Recreating...`);
+                this.log(channel, 'warn', `Venv uses ${ver} (too new, packages lack wheels). Recreating...`);
                 fs.rmSync(VENV_DIR, { recursive: true, force: true });
             } else {
-                channel.appendLine(`[SpyDR] Virtual environment already exists (${ver}).`);
+                this.log(channel, 'info', `Virtual environment already exists (${ver}).`);
             }
         }
 
@@ -79,26 +82,26 @@ export class PythonManager extends EventEmitter {
                         : 'See https://www.python.org/downloads/')
                 );
             }
-            channel.appendLine(`[SpyDR] Creating virtual environment with ${sysPython}...`);
+            this.log(channel, 'info', `Creating virtual environment with ${sysPython}...`);
             this.exec([sysPython, '-m', 'venv', VENV_DIR], BACKEND_DIR, channel, 120);
-            channel.appendLine('[SpyDR] Virtual environment created.');
+            this.log(channel, 'info', 'Virtual environment created.');
         }
 
-        // Step 3: Install deps (smoke-test import langchain)
+        // Step 3: Install deps (smoke-test import langchain + langchain_openai)
         const check = cp.spawnSync(
             venvPython(),
             ['-c', 'import langchain; import langchain_openai; print("ok")'],
             { cwd: BACKEND_DIR, timeout: 15_000, encoding: 'utf8' }
         );
         if (check.status !== 0 || !check.stdout.includes('ok')) {
-            channel.appendLine('[SpyDR] Installing dependencies (this may take several minutes)...');
+            this.log(channel, 'info', 'Installing dependencies (this may take several minutes)...');
             await this.pipInstall(BACKEND_DIR, channel);
-            channel.appendLine('[SpyDR] Dependencies installed.');
+            this.log(channel, 'info', 'Dependencies installed.');
         } else {
-            channel.appendLine('[SpyDR] Dependencies already installed.');
+            this.log(channel, 'info', 'Dependencies already installed.');
         }
 
-        channel.appendLine('[SpyDR] Setup complete.');
+        this.log(channel, 'info', 'Setup complete.');
     }
 
     startProcess(channel: vscode.OutputChannel): void {
@@ -108,6 +111,8 @@ export class PythonManager extends EventEmitter {
             OPENAI_API_KEY: cfg.get<string>('openaiApiKey', ''),
             CONNECTION_STRING: cfg.get<string>('connectionString', ''),
         };
+
+        this.log(channel, 'info', 'Starting backend process...');
 
         this.proc = cp.spawn(venvPython(), ['-m', 'src.api.stdio_server'], {
             cwd: BACKEND_DIR,
@@ -124,14 +129,20 @@ export class PythonManager extends EventEmitter {
                 this.emit('message', msg);
             } else {
                 channel.appendLine(`[stdout] ${line}`);
+                this.emit('log', { level: 'info', text: line });
             }
         });
 
         const errRl = readline.createInterface({ input: this.proc.stderr! });
-        errRl.on('line', (line) => channel.appendLine(`[stderr] ${line}`));
+        errRl.on('line', (line) => {
+            channel.appendLine(`[stderr] ${line}`);
+            this.emit('log', { level: 'stderr', text: line });
+        });
 
         this.proc.on('exit', (code) => {
-            channel.appendLine(`[SpyDR] Process exited with code ${code}`);
+            const msg = `Process exited with code ${code}`;
+            channel.appendLine(`[SpyDR] ${msg}`);
+            this.emit('log', { level: code === 0 ? 'info' : 'error', text: `--- ${msg} ---` });
             this.emit('died', code);
         });
     }
@@ -150,11 +161,13 @@ export class PythonManager extends EventEmitter {
         return this.proc !== null && !this.proc.killed;
     }
 
+    private log(channel: vscode.OutputChannel, level: LogLevel, text: string): void {
+        channel.appendLine(`[SpyDR] ${text}`);
+        this.emit('log', { level, text });
+    }
+
     private findSystemPython(): string | null {
-        // Prefer stable versions 3.10–3.12; avoid 3.13+ where many packages lack wheels
-        const preferred = process.platform === 'win32'
-            ? ['python3.12', 'python3.11', 'python3.10', 'python3', 'python']
-            : ['python3.12', 'python3.11', 'python3.10', 'python3', 'python'];
+        const preferred = ['python3.12', 'python3.11', 'python3.10', 'python3', 'python'];
         const absPaths = process.platform === 'win32'
             ? []
             : [
@@ -169,12 +182,10 @@ export class PythonManager extends EventEmitter {
                 const r = cp.spawnSync(cmd, ['--version'], { timeout: 5000, encoding: 'utf8' });
                 const version = (r.stdout + r.stderr).trim();
                 if (r.status !== 0 || !version.includes('Python 3')) { continue; }
-                // Require 3.10–3.12
                 const m = version.match(/Python 3\.(\d+)/);
                 if (m && Number(m[1]) >= 10 && Number(m[1]) <= 12) { return cmd; }
             } catch { /* skip */ }
         }
-        // Fallback: accept any Python 3
         for (const cmd of ['python3', 'python']) {
             try {
                 const r = cp.spawnSync(cmd, ['--version'], { timeout: 5000, encoding: 'utf8' });
@@ -193,10 +204,16 @@ export class PythonManager extends EventEmitter {
             );
 
             const rl = readline.createInterface({ input: proc.stdout as NodeJS.ReadableStream });
-            rl.on('line', (line) => channel.appendLine(line));
+            rl.on('line', (line) => {
+                channel.appendLine(line);
+                this.emit('log', { level: 'info', text: line });
+            });
 
             const errRl = readline.createInterface({ input: proc.stderr as NodeJS.ReadableStream });
-            errRl.on('line', (line) => channel.appendLine(line));
+            errRl.on('line', (line) => {
+                channel.appendLine(line);
+                this.emit('log', { level: 'info', text: line });
+            });
 
             proc.on('exit', (code) => {
                 if (code === 0) {
@@ -213,9 +230,6 @@ export class PythonManager extends EventEmitter {
         const reqPath = path.join(backendDir, 'requirements.txt');
         if (!fs.existsSync(reqPath)) { return; }
         let content = fs.readFileSync(reqPath, 'utf8');
-        // psycopg 3.2.9 does not exist in PyPI; minimum available is 3.2.10
-        // langchain 1.2.10 pins langgraph<1.1.0 which has ImportError on ExecutionInfo;
-        // 1.2.15 requires langgraph>=1.1.5 which fixes it
         let patched = content
             .replace(/psycopg\[binary\]>=3\.2\.9/g, 'psycopg[binary]>=3.2.10')
             .replace(/psycopg-binary==3\.2\.9/g,    'psycopg-binary>=3.2.10')
